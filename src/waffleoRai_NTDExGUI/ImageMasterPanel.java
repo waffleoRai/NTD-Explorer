@@ -1,14 +1,27 @@
 package waffleoRai_NTDExGUI;
 
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import java.awt.GridBagLayout;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
+import java.io.File;
+
 import javax.swing.JScrollPane;
+import javax.swing.SwingWorker;
 import javax.swing.border.BevelBorder;
 
+import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.filetypes.TypeManager;
+import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
+import waffleoRai_NTDExGUI.dialogs.TreeDialog;
+import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
+import waffleoRai_NTDExGUI.panels.FileViewPanel;
+import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Utils.FileNode;
 
 import java.awt.FlowLayout;
 import java.awt.Frame;
@@ -130,6 +143,30 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 	
 	/*----- Enabling -----*/
 	
+	public void setWait()
+	{
+		//TODO
+		disableAll();
+	}
+	
+	public void unsetWait()
+	{
+		//TODO
+		reenable();
+		
+	}
+	
+	public void disableAll()
+	{
+		//TODO
+		
+	}
+	
+	public void reenable()
+	{
+		//TODO
+	}
+	
 	/*----- GUI Sync -----*/
 	
 	private void clearProject()
@@ -177,8 +214,17 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		pnlRight.updateUI();
 		
 		//Tree panel
+		refreshTree();
+		
+		this.repaint();
+	}
+	
+	public void refreshTree()
+	{
+		if(pnlTree != null) pnlTree.clearTreeListeners();
+
 		pnlLeft.removeAll();
-		pnlTree = new TreePanel(project.getTreeRoot());
+		pnlTree = new TreePanel(myproject.getTreeRoot());
 		pnlTree.addTreeListener(this);
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.fill = GridBagConstraints.BOTH;
@@ -186,8 +232,15 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		gbc.gridy = 0;
 		pnlLeft.add(pnlTree, gbc);
 		pnlLeft.updateUI();
-		
-		this.repaint();
+	}
+	
+	public void refreshFileViewPanel(FileNode node)
+	{
+		pnlRight.removeAll();
+		FileViewPanel pnl = new FileViewPanel(parent);
+		pnl.loadFile(node, myproject);
+		pnlRight.add(pnl);
+		pnlRight.updateUI();
 	}
 	
 	/*----- Tree Actions -----*/
@@ -213,39 +266,335 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 	
 	private void onTreeActionRename(String path)
 	{
-		//TODO
+		if(myproject == null)
+		{
+			showError("No project loaded!");
+			return;
+		}
+		if(path == null) return;
+		FileNode node = myproject.getNodeAt(path);
+		if(node == null){
+			System.err.println("ERR -- Tree path \"" + path + "\" could not be matched to a node.");
+			return;
+		}
+		
+		SetTextDialog dialog = new SetTextDialog(parent, "Set New Name");
+		dialog.setVisible(true);
+		
+		if(!dialog.okSelected()) return;
+		String newname = dialog.getText();
+		if(newname.contains("/"))
+		{
+			showError("File/directory name cannot contain forward slashes!");
+			return;
+		}
+		
+		node.setFileName(newname);
+		
+		refreshTree();
 	}
 	
 	private void onTreeActionNewDir(String path)
 	{
-		//TODO
+		if(myproject == null)
+		{
+			showError("No project loaded!");
+			return;
+		}
+		if(path == null) return;
+		FileNode node = myproject.getNodeAt(path);
+		if(node == null){
+			System.err.println("ERR -- Tree path \"" + path + "\" could not be matched to a node.");
+			return;
+		}
+		if(!node.isDirectory())
+		{
+			System.err.println("ERR -- Tree path \"" + path + "\" is not a directory.");
+			return;
+		}
+		
+		SetTextDialog dialog = new SetTextDialog(parent, "New Directory Name");
+		dialog.setVisible(true);
+		
+		if(!dialog.okSelected()) return;
+		String newname = dialog.getText();
+		if(newname.contains("/"))
+		{
+			showError("File/directory name cannot contain forward slashes!");
+			return;
+		}
+		
+		//Create new directory
+		new DirectoryNode((DirectoryNode)node, newname);
+		
+		refreshTree();
+		
 	}
 	
 	private void onTreeActionMoveNode(String path)
 	{
-		//TODO
+		if(myproject == null)
+		{
+			showError("No project loaded!");
+			return;
+		}
+		if(path == null) return;
+		FileNode node = myproject.getNodeAt(path);
+		if(node == null){
+			System.err.println("ERR -- Tree path \"" + path + "\" could not be matched to a node.");
+			return;
+		}
+		
+		TreeDialog dialog = new TreeDialog(parent, "Move To", myproject.generateDirectoryTree());
+		dialog.setVisible(true);
+		
+		if(!dialog.okSelected()) return;
+		String newpath = dialog.getSelectedTreePath();
+		
+		//Do move
+		if(!myproject.moveNode(node, newpath))
+		{
+			showError("Unknown error: Node move failed!");
+		}
+		
+		refreshTree();
 	}
 	
 	private void onTreeActionSplit(String path)
 	{
-		//TODO
+		if(myproject == null)
+		{
+			showError("No project loaded!");
+			return;
+		}
+		if(path == null) return;
+		FileNode node = myproject.getNodeAt(path);
+		if(node == null){
+			System.err.println("ERR -- Tree path \"" + path + "\" could not be matched to a node.");
+			return;
+		}
+		
+		SetTextDialog dialog = new SetTextDialog(parent, "Enter Offset (Hex) to Split At");
+		dialog.setVisible(true);
+		
+		if(!dialog.okSelected()) return;
+		String rawoff = dialog.getText();
+		if(rawoff.startsWith("0x")) rawoff = rawoff.substring(2);
+		long offset = 0;
+		try{offset = Long.parseUnsignedLong(rawoff, 16);}
+		catch(NumberFormatException x){showError("\"" + rawoff + "\" is not a valid hexadecimal value!"); return;}
+		
+		if(offset > node.getLength())
+		{
+			showError("Offset 0x" + Long.toHexString(offset) + " invalid for file node of length 0x" + 
+					Long.toHexString(node.getLength()) + "!");
+			return;
+		}
+		
+		String confirm_msg = "Split " + path + " at offset 0x" + Long.toHexString(offset) + "?";
+		int confirm = JOptionPane.showConfirmDialog(this, confirm_msg, "Split File Node", 
+				JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+		
+		if(confirm != JOptionPane.YES_OPTION) return;
+		
+		//Do split
+		if(!node.splitNodeAt(offset)) showError("Unknown Err -- Split failed!");
+		
+		refreshTree();
 	}
 	
 	private void onTreeActionExtract(String path)
 	{
-		//TODO
+		if(myproject == null)
+		{
+			showError("No project loaded!");
+			return;
+		}
+		if(path == null) return;
+		FileNode node = myproject.getNodeAt(path);
+		if(node == null){
+			System.err.println("ERR -- Tree path \"" + path + "\" could not be matched to a node.");
+			return;
+		}
+		
+		//JFileChooser
+		JFileChooser fc = new JFileChooser(NTDProgramFiles.getIniValue(NTDProgramFiles.INIKEY_LAST_EXTRACTED));
+		fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		
+		int select = fc.showSaveDialog(this);
+		
+		if(select != JFileChooser.APPROVE_OPTION) return;
+		String dir = fc.getSelectedFile().getAbsolutePath();
+		
+		//Option dialog asking if should decompress?
+		int decomp_choice = JOptionPane.showConfirmDialog(this, 
+				"Would you like to decompress extracted file(s)?", 
+				"Decompress & Extract", JOptionPane.YES_NO_CANCEL_OPTION, 
+				JOptionPane.QUESTION_MESSAGE);
+		if(decomp_choice == JOptionPane.CANCEL_OPTION) return;
+		
+		//Spawn task and dialog
+		String targetpath = dir + node.getFileName();
+		IndefProgressDialog dialog = new IndefProgressDialog(parent, "File Extraction");
+		dialog.setPrimaryString("Extracting Data");
+		dialog.setSecondaryString("Extracting to " + targetpath);
+		
+		SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+		{
+
+			protected Void doInBackground() throws Exception 
+			{
+				try
+				{
+					boolean decomp = (decomp_choice == JOptionPane.YES_OPTION);
+					node.copyDataTo(targetpath + File.separator + node.getFileName(), decomp);
+				}
+				catch(Exception x)
+				{
+					x.printStackTrace();
+					showError("Unknown Error: Extraction Failed! See stderr for details.");
+				}
+				
+				return null;
+			}
+			
+			public void done()
+			{
+				dialog.closeMe();
+			}
+		};
+		
+		task.execute();
+		dialog.render();
 	}
 	
 	private void onTreeActionExport(String path)
 	{
-		//TODO
+		if(myproject == null)
+		{
+			showError("No project loaded!");
+			return;
+		}
+		if(path == null) return;
+		FileNode node = myproject.getNodeAt(path);
+		if(node == null){
+			System.err.println("ERR -- Tree path \"" + path + "\" could not be matched to a node.");
+			return;
+		}
+		
+		//JFileChooser
+		JFileChooser fc = new JFileChooser(NTDProgramFiles.getIniValue(NTDProgramFiles.INIKEY_LAST_EXTRACTED));
+		fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		
+		int select = fc.showSaveDialog(this);
+		
+		if(select != JFileChooser.APPROVE_OPTION) return;
+		String dir = fc.getSelectedFile().getAbsolutePath();
+		
+		//Spawn task and dialog
+		String targetpath = dir + node.getFileName();
+		IndefProgressDialog dialog = new IndefProgressDialog(parent, "File Export");
+		dialog.setPrimaryString("Converting & Exporting Data");
+		dialog.setSecondaryString("Exporting to " + targetpath);
+		
+		SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+		{
+
+			protected Void doInBackground() throws Exception 
+			{
+				try
+				{
+					if(!TypeManager.exportNode(node, targetpath, dialog))
+					{
+						showWarning("WARNING: Export complete. Not all files were properly exported!");
+					}
+				}
+				catch(Exception x)
+				{
+					x.printStackTrace();
+					showError("Unknown Error: Export Failed! See stderr for details.");
+				}
+				
+				return null;
+			}
+			
+			public void done()
+			{
+				dialog.closeMe();
+			}
+		};
+		
+		task.execute();
+		dialog.render();
 	}
 	
 	private void onTreeActionViewNode(String path)
 	{
-		//TODO
+		if(myproject == null)
+		{
+			showError("No project loaded!");
+			return;
+		}
+		if(path == null) return;
+		FileNode node = myproject.getNodeAt(path);
+		if(node == null){
+			System.err.println("ERR -- Tree path \"" + path + "\" could not be matched to a node.");
+			return;
+		}
+		
+		if(node instanceof DirectoryNode) return;
+		
+		IndefProgressDialog dialog = new IndefProgressDialog(parent, "Loading File");
+		dialog.setPrimaryString("Loading");
+		dialog.setSecondaryString("Loading preview of " + node.getFullPath());
+		
+		SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+		{
+
+			protected Void doInBackground() throws Exception 
+			{
+				try
+				{
+					//setWait();
+					refreshFileViewPanel(node);
+				}
+				catch(Exception x)
+				{
+					x.printStackTrace();
+					showError("Unknown Error: Export Failed! See stderr for details.");
+				}
+				
+				return null;
+			}
+			
+			public void done()
+			{
+				//unsetWait();
+				dialog.closeMe();
+			}
+		};
+		
+		task.execute();
+		dialog.render();
+		
 	}
 	
 	/*----- Messages -----*/
+	
+	public void showWarning(String text)
+	{
+		JOptionPane.showMessageDialog(this, text, "Warning", JOptionPane.WARNING_MESSAGE);
+	}
+	
+	public void showError(String text)
+	{
+		JOptionPane.showMessageDialog(this, text, "Error", JOptionPane.ERROR_MESSAGE);
+	}
+	
+	public void showInfo(String text)
+	{
+		JOptionPane.showMessageDialog(this, text, "Notice", JOptionPane.INFORMATION_MESSAGE);
+	}
+	
 	
 }

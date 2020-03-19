@@ -4,8 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum Console {
-
+	
 	UNKNOWN(-1, "UNK"),
+	
+	PS1(-2, "PSX"),
 	
 	NES(1, ""),
 	SNES(2, ""),

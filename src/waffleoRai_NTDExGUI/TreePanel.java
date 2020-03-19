@@ -113,6 +113,8 @@ public class TreePanel extends JPanel{
 	
 	public void addTreeListener(TreePanelListener l){listeners.add(l);}
 	
+	public void clearTreeListeners(){listeners.clear();}
+	
 	/*----- Enable/Disable -----*/
 	
 	public void disableAll()

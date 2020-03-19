@@ -34,5 +34,10 @@ public class TM_BIN extends TypeManager{
 	{
 		return null;
 	}
+	
+	public boolean isOfType(FileNode node)
+	{
+		return true;
+	}
 
 }

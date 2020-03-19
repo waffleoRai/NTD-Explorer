@@ -55,4 +55,15 @@ public class EncryptionRegion {
 		return sz;
 	}
 	
+	public boolean inRegion(long off, long len)
+	{
+		long edoff = off+len;
+		long myed = offset + size;
+		
+		if(edoff <= offset) return false;
+		if(off >= myed) return false;
+		
+		return true;
+	}
+	
 }

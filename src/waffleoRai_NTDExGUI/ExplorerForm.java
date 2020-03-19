@@ -42,6 +42,9 @@ import java.awt.GridBagConstraints;
 
 public class ExplorerForm extends JFrame {
 	
+	//TODO Also add detector on project load to see if
+			//	existing decryption buffers have been deleted (and regenerate if needed)
+	
 	/*----- Constants -----*/
 	
 	private static final long serialVersionUID = -5515199484209320297L;
@@ -140,6 +143,21 @@ public class ExplorerForm extends JFrame {
 			public void actionPerformed(ActionEvent e){onFileSetTemp();}
 		});
 		
+		JMenuItem mntmImportProj = new JMenuItem("Import Project...");
+		mnFile.add(mntmImportProj);
+		always_enabled.addComponent("mntmImportProj", mntmImportProj);
+		mntmImportProj.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileImportProject();}
+		});
+		
+		JMenuItem mntmExportProj = new JMenuItem("Export Project...");
+		mnFile.add(mntmExportProj);
+		loaded_enabled.addComponent("mntmExportProj", mntmExportProj);
+		mntmExportProj.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileExportProject();}
+		});
+		
+		
 		JMenu mnTools = new JMenu("Tools");
 		menuBar.add(mnTools);
 		loaded_enabled.addComponent("mnTools", mnTools);
@@ -186,6 +204,12 @@ public class ExplorerForm extends JFrame {
 			public void actionPerformed(ActionEvent e){onDecryptSetDir();}
 		});
 		
+		JMenuItem mntmRunRomDecryption = new JMenuItem("Run ROM Decryption...");
+		mnDecryption.add(mntmRunRomDecryption);
+		mntmRunRomDecryption.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onDecryptRunDecrypt();}
+		});
+		
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0};
@@ -211,6 +235,18 @@ public class ExplorerForm extends JFrame {
 	
 	/*----- Enable/Disable -----*/
 	
+	public void disableMenu()
+	{
+		always_enabled.setEnabling(false);
+		loaded_enabled.setEnabling(false);
+	}
+	
+	public void enableMenu()
+	{
+		always_enabled.setEnabling(true);
+		loaded_enabled.setEnabling(loaded_project != null);
+	}
+	
 	/*----- GUI Update -----*/
 	
 	public void loadProject(NTDProject project)
@@ -226,7 +262,6 @@ public class ExplorerForm extends JFrame {
 		loaded_enabled.setEnabling(project != null);
 	}
 	
-
 	/*----- Actions -----*/
 	
 	public void onImport(ImportDialog idialog)
@@ -658,6 +693,79 @@ public class ExplorerForm extends JFrame {
 			task.execute();
 			dialog.render();
 		}
+	}
+	
+	private void onDecryptRunDecrypt()
+	{
+		//Check if project has encrypted regions. If not, show
+		//message saying it doesn't need decryption and return
+		
+		if(!checkSourcePath()) return;
+		if(!loaded_project.isEncrypted())
+		{
+			showWarning("Current ROM does not contain encrypted regions!\n"
+					+ "No decryption needed!");
+			return;
+		}
+		
+		//Confirm dialog (essentially to inform user of what they are doing
+		// and where the files will be saved)
+		String msgstr = "This process will save a copy of each decrypted region to disk.\n";
+		msgstr += "These files can be quite large - often nearly as large as the full image.\n";
+		msgstr += "Proceed, writing decrypted data to:\n";
+		msgstr += loaded_project.getDecryptedDataDir();
+		msgstr += " ?";
+		
+		int sel = JOptionPane.showConfirmDialog(this, msgstr, "Confirm Decryption", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+		
+		//Spawn progress dialog and background thread
+		if(sel != JOptionPane.YES_OPTION) return;
+		
+		IndefProgressDialog dialog = new IndefProgressDialog(this, "Decrypt Image");
+		
+		dialog.setPrimaryString("Decrypting Data");
+		dialog.setSecondaryString("Decrypting image data to " + loaded_project.getDecryptedDataDir());
+		
+		SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+		{
+
+			protected Void doInBackground() throws Exception 
+			{
+				try
+				{
+					if(!loaded_project.decrypt())
+					{
+						showError("Unknown Error: Operation aborted. See stderr for details.");
+					}
+				}
+				catch(Exception x)
+				{
+					x.printStackTrace();
+					showError("Unknown Error: Operation aborted. See stderr for details.");
+				}
+				
+				return null;
+			}
+			
+			public void done()
+			{
+				dialog.closeMe();
+			}
+		};
+		
+		task.execute();
+		dialog.render();
+		
+	}
+	
+	private void onFileExportProject()
+	{
+		//TODO
+	}
+	
+	private void onFileImportProject()
+	{
+		//TODO
 	}
 	
 	/*----- Checks -----*/

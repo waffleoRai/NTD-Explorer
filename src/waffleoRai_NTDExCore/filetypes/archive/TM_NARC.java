@@ -150,4 +150,10 @@ public class TM_NARC extends TypeManager{
 		return NARC.getConverter();
 	}
 	
+	public boolean isOfType(FileNode node)
+	{
+		//Checks for NARC magic
+		return(detectFileType(node) != null);
+	}
+	
 }

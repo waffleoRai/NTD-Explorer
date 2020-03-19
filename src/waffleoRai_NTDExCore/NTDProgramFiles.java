@@ -58,6 +58,7 @@ import waffleoRai_Utils.StreamWrapper;
 public class NTDProgramFiles {
 	
 	public static final String ENCODING = "UTF8";
+	public static final byte[] KEY_PLACEHOLDER = {0};
 	
 	/*----- Temp Stems -----*/
 	
@@ -76,6 +77,8 @@ public class NTDProgramFiles {
 	/*----- Various Ini Keys -----*/
 	
 	public static final String INIKEY_LAST_ARCDUMP = "LAST_ARCDUMP_PATH";
+	public static final String INIKEY_LAST_EXPORTED = "LAST_EXPORT_PATH";
+	public static final String INIKEY_LAST_EXTRACTED = "LAST_EXTRACT_PATH";
 	
 	/*----- Font -----*/
 	
@@ -95,10 +98,6 @@ public class NTDProgramFiles {
 	public static final String DIRNAME_TEMP = "temp";
 	
 	public static final String PROJECTS_FILE_NAME = "proj.bin";
-	
-	public static final String KEYFILE_NAME_WII = "rvl_common.bin";
-	public static final String KEYFILE_NAME_DSI = "twl_common.bin";
-	public static final String KEYFILE_NAME_3DS = "ctr_common.bin";
 	
 	public static final String TREE_FILE_NAME = "customtree.bin";
 	
@@ -165,7 +164,11 @@ public class NTDProgramFiles {
 	
 	public static boolean moveDecryptTempDir(String path) throws IOException
 	{
+		String olddir = getDecryptTempDir();
+		setIniValue(IKEY_DEC_DIR, path);
 		moveDir(getDecryptTempDir(), path);
+		Collection<NTDProject> allproj = getAllProjects();
+		for(NTDProject p : allproj) p.moveDecryptPath(olddir);
 		return true;
 	}
 	
@@ -688,6 +691,18 @@ public class NTDProgramFiles {
 		}
 		
 		return false;
+	}
+	
+	public static Collection<NTDProject> getAllProjects()
+	{
+		if(project_map == null) return new LinkedList<NTDProject>();
+		List<NTDProject> list = new LinkedList<NTDProject>();
+		for(Console c : project_map.keySet())
+		{
+			Collection<NTDProject> col = project_map.get(c);
+			if(col != null) list.addAll(col);
+		}
+		return list;
 	}
 	
 }

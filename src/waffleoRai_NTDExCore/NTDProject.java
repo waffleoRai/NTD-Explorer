@@ -1,7 +1,9 @@
 package waffleoRai_NTDExCore;
 
 import java.awt.image.BufferedImage;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -18,6 +20,7 @@ import waffleoRai_Utils.BinFieldSize;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
+import waffleoRai_Utils.FileBufferStreamer;
 import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.FileTreeSaver;
 import waffleoRai_Utils.SerializedString;
@@ -60,7 +63,19 @@ public class NTDProject {
 	 * Image Data
 	 * 	Each pixel is 32 bits (RGBA)
 	 * 
+	 * 
+	 * 
+	 * Exported File (ntdpj)
+	 * 	MAGIC [8] "ntd PROJ"
+	 * 	Version [2]
+	 *  Flags [2]
+	 *  Offset to Tree [4]
 	 */
+	
+	/*----- Constant -----*/
+	
+	public static final String EXPORT_MAGIC = "ntd PROJ";
+	public static final short CURRENT_VERSION = 1;
 
 	/*----- Instance Variables -----*/
 	
@@ -189,7 +204,7 @@ public class NTDProject {
 			{
 				//Check for common key
 				byte[] dsikey = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_DSI_COMMON);
-				if(dsikey == null) aeskey = new byte[16];
+				if(dsikey == null) aeskey = NTDProgramFiles.KEY_PLACEHOLDER;
 				else aeskey = image.getSecureKey(dsikey);
 			}
 			else aeskey = image.getInsecureKey();
@@ -217,6 +232,9 @@ public class NTDProject {
 		
 		//Scan for empty paths...
 		scanTreeDir(proj.rom_path, proj.custom_tree);
+		
+		//Note encrypted nodes...
+		if(proj.is_encrypted) proj.markEncryptedNodes(proj.custom_tree);
 		
 		return proj;
 	}
@@ -406,13 +424,28 @@ public class NTDProject {
 	
 	public FileBuffer serializeProjectBlock()
 	{
+		return serializeProjectBlock(false);
+	}
+	
+	public FileBuffer serializeProjectBlock(boolean scrubPaths)
+	{
 		//Calculate Size
 		int sz = calculatePrelimSerializedSize();
 		
 		//Serialize strings
-		FileBuffer str_rom = new FileBuffer(3+(rom_path.length() << 1), true);
-		str_rom.addVariableLengthString(NTDProgramFiles.ENCODING, rom_path, BinFieldSize.WORD, 2);
-		sz += str_rom.getFileSize();
+		FileBuffer str_rom = null;
+		if(!scrubPaths)
+		{
+			str_rom = new FileBuffer(3+(rom_path.length() << 1), true);
+			str_rom.addVariableLengthString(NTDProgramFiles.ENCODING, rom_path, BinFieldSize.WORD, 2);
+			sz += str_rom.getFileSize();
+		}
+		else
+		{
+			str_rom = new FileBuffer(6, true);
+			str_rom.addVariableLengthString(NTDProgramFiles.ENCODING, "<NA>", BinFieldSize.WORD, 2);
+			sz += str_rom.getFileSize();
+		}
 		//FileBuffer str_dec = null;
 		/*if(is_encrypted){
 			str_dec = new FileBuffer(3+(decrypted_rom_path.length() << 1), true);
@@ -539,6 +572,33 @@ public class NTDProject {
 		FileTreeSaver.saveTree(custom_tree, tpath);
 	}
 	
+	public void exportProject(String outpath) throws IOException
+	{
+		//Do header
+		FileBuffer header = new FileBuffer(16, true);
+		header.printASCIIToFile(EXPORT_MAGIC);
+		header.addToFile(CURRENT_VERSION);
+		header.addToFile((short)0);
+		
+		//Serialize block
+		FileBuffer pblock = serializeProjectBlock(true);
+		int blocksize = (int)pblock.getFileSize();
+		header.addToFile(16+blocksize);
+		
+		//Serialize tree
+		String temppath = FileBuffer.generateTemporaryPath("exportntdproj");
+		FileTreeSaver.saveTree(custom_tree, temppath, true);
+		
+		BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outpath));
+		header.writeToStream(bos);
+		pblock.writeToStream(bos);
+		FileBuffer tree = FileBuffer.createBuffer(temppath);
+		tree.writeToStream(bos);
+		bos.close();
+		
+		Files.delete(Paths.get(temppath));
+	}
+	
 	/*----- Getters -----*/
 	
 	public String getROMPath(){return this.rom_path;}
@@ -549,9 +609,16 @@ public class NTDProject {
 	public BufferedImage[] getBannerIcon(){return this.banner;}
 	public Console getConsole(){return this.console;}
 	public GameRegion getRegion(){return this.region;}
-	public boolean isEncrypted(){return this.is_encrypted;}
+	//public boolean isEncrypted(){return this.is_encrypted;}
 	public OffsetDateTime getImportTime(){return this.imported_time;}
 	public OffsetDateTime getModifyTime(){return this.modified_time;}
+	
+	public boolean isEncrypted()
+	{
+		if(encrypted_regs == null) return false;
+		if(encrypted_regs.isEmpty()) return false;
+		return true;
+	}
 	
 	public DirectoryNode getTreeRoot()
 	{
@@ -601,6 +668,172 @@ public class NTDProject {
 		}
 		
 		stampModificationTime();
+	}
+	
+	/*----- Decryption -----*/
+	
+	private void markEncryptedNodes(DirectoryNode dir)
+	{
+		if(encrypted_regs == null) return;
+		List<FileNode> children = dir.getChildren();
+		for(FileNode child : children)
+		{
+			if(child instanceof DirectoryNode) markEncryptedNodes((DirectoryNode)child);
+			else
+			{
+				for(EncryptionRegion reg : encrypted_regs)
+				{
+					if(reg.inRegion(child.getOffset(), child.getLength()))
+					{
+						child.setEncryption(reg.getDefintion());
+						break;
+					}
+				}
+			}
+		}
+		
+	}
+	
+	private void updateDecryptPaths(String oldpath, String newpath, DirectoryNode dir)
+	{
+		//Just substitute the strings in the paths...
+		List<FileNode> children = dir.getChildren();
+		for(FileNode child : children)
+		{
+			if(child instanceof DirectoryNode)
+			{
+				updateDecryptPaths(oldpath, newpath, (DirectoryNode)child);
+			}
+			else
+			{
+				String cpath = child.getSourcePath();
+				if(cpath.startsWith(oldpath))
+				{
+					String npath = cpath.replace(oldpath, newpath);
+					child.setSourcePath(npath);
+				}
+			}
+		}
+		
+	}
+	
+	public void moveDecryptPath(String oldpath)
+	{
+		String newdir = NTDProgramFiles.getDecryptTempDir();
+		updateDecryptPaths(oldpath, newdir, custom_tree);
+		if(this.encrypted_regs != null)
+		{
+			for(EncryptionRegion reg : encrypted_regs)
+			{
+				String p = reg.getDecryptBufferPath();
+				if(p.contains(oldpath)) p = p.replace(oldpath, newdir);
+				reg.setDecryptBufferPath(p);
+			}
+		}
+	}
+	
+	private void rerefDecryptedNodes(DirectoryNode dir, EncryptionRegion reg)
+	{
+		if(dir == null) return;
+		if(reg == null) return;
+		
+		List<FileNode> children = dir.getChildren();
+		for(FileNode child : children)
+		{
+			if(child instanceof DirectoryNode) rerefDecryptedNodes((DirectoryNode)child, reg);
+			else
+			{
+				if(reg.inRegion(child.getOffset(), child.getLength()))
+				{
+					long r_off = child.getOffset() - reg.getOffset();
+					child.setSourcePath(reg.getDecryptBufferPath());
+					child.setOffset(r_off);
+				}
+			}
+		}
+	}
+	
+	private boolean decryptDSi() throws IOException
+	{
+		//Scan regions
+		if(encrypted_regs == null || encrypted_regs.isEmpty()) return true;
+		NDS nds = null;
+		byte[] securekey = null;
+		
+		for(EncryptionRegion reg : encrypted_regs)
+		{
+			//See if the key is available
+			//Key, then ctr
+			List<byte[]> keydat = reg.getKeyData();
+			byte[] aeskey = keydat.get(0);
+			if(aeskey.length < 16)
+			{
+				//Didn't have the DSi common before. Try to load now.
+				if(securekey != null) aeskey = securekey;
+				else
+				{
+					byte[] dsicommon = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_DSI_COMMON);
+					if(dsicommon == null) return false;
+					if(nds == null) nds = NDS.readROM(rom_path, 0);
+					securekey = nds.getSecureKey(dsicommon);
+					aeskey = securekey;
+				}
+				//if we get this far, then we should have the key.
+				keydat.set(0, aeskey);
+			}
+			//Check if decrypted file exists
+			String decpath = reg.getDecryptBufferPath();
+			if(FileBuffer.fileExists(decpath)) continue;
+			
+			//Do decryption
+			FileBuffer inbuff = FileBuffer.createBuffer(rom_path, reg.getOffset(), reg.getOffset() + reg.getSize());
+			FileBufferStreamer streamer = new FileBufferStreamer(inbuff);
+			BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(decpath));
+			reg.getDefintion().decrypt(streamer, bos, keydat);
+			bos.close();
+			
+			//Change references in nodes...
+			rerefDecryptedNodes(custom_tree, reg);
+		}
+		
+		//We'll have to reload the ROM image
+		nds = NDS.readROM(rom_path, 0);
+		
+		return true;
+	}
+	
+	public boolean decrypt() throws IOException
+	{
+		//Will redo decryption if already done...
+		if(console == Console.DSi) return decryptDSi();
+		return false;
+	}
+	
+	/*----- Tree Manipulation -----*/
+	
+	public FileNode getNodeAt(String treepath)
+	{
+		if(custom_tree == null) return null;
+		return custom_tree.getNodeAt(treepath);
+	}
+	
+	public DirectoryNode generateDirectoryTree()
+	{
+		if(custom_tree == null) return null;
+		return custom_tree.copyDirectoryTree();
+	}
+	
+	public boolean moveNode(FileNode node, String targetpath)
+	{
+		//Get the target...
+		FileNode target = getNodeAt(targetpath);
+		if(target == null) return false;
+		if(!(target instanceof DirectoryNode)) return false;
+		
+		DirectoryNode newparent = (DirectoryNode)target;
+		node.setParent(newparent);
+		
+		return true;
 	}
 	
 }
