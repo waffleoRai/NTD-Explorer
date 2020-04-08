@@ -9,6 +9,7 @@ import javax.swing.JPanel;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_Utils.FileNode;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import javax.swing.JScrollPane;
 import java.awt.GridBagConstraints;
@@ -31,6 +32,9 @@ import java.awt.Insets;
 public class FileInfoPanel extends JPanel{
 
 	private static final long serialVersionUID = 8306200207814899162L;
+	
+	private static final int MIN_WIDTH = 150;
+	private static final int MIN_HEIGHT = 145;
 
 	private FileNode loaded_node;
 	//private TypeDefinition file_type;
@@ -38,6 +42,9 @@ public class FileInfoPanel extends JPanel{
 	
 	public FileInfoPanel(FileNode node)
 	{
+		setMinimumSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
+		setPreferredSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
+		
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0};
@@ -57,9 +64,12 @@ public class FileInfoPanel extends JPanel{
 		JPanel panel = new JPanel()
 		{
 			private static final long serialVersionUID = 8144654522128846798L;
-
-			public void paint(Graphics g) 
+			
+			public void paintComponent(Graphics g) 
 			{
+				setMinimumSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
+				setPreferredSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
+				super.paintComponent(g);
 				paintPanel(g);
 			}
 		};

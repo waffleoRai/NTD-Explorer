@@ -1,6 +1,6 @@
 package waffleoRai_NTDExCore.filetypes.fileactions;
 
-import java.awt.Component;
+import java.awt.Frame;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,6 +12,7 @@ import javax.swing.JOptionPane;
 
 import waffleoRai_Containers.ArchiveDef;
 import waffleoRai_Containers.nintendo.NARC;
+import waffleoRai_Containers.nintendo.sar.DSSoundArchive;
 import waffleoRai_Files.FileClass;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.FileAction;
@@ -26,15 +27,9 @@ import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 
 public class FA_DumpArc {
 	
+	/* ------ Common ------*/
+	
 	private static final String DEFO_ENG_STRING = "Dump archive contents to disk";
-	
-	private static FADumpArc_Narc static_narc;
-	
-	public static FADumpArc_Narc getNARCAction()
-	{
-		if(static_narc == null) static_narc = new FADumpArc_Narc();
-		return static_narc;
-	}
 	
 	private static boolean dump(DirectoryNode dir, String path, boolean recursive) throws IOException, UnsupportedFileTypeException
 	{
@@ -78,6 +73,16 @@ public class FA_DumpArc {
 		return true;
 	}
 	
+	/* ------ NARC ------*/
+	
+	private static FADumpArc_Narc static_narc;
+	
+	public static FADumpArc_Narc getNARCAction()
+	{
+		if(static_narc == null) static_narc = new FADumpArc_Narc();
+		return static_narc;
+	}
+	
 	public static class FADumpArc_Narc implements FileAction
 	{
 		private String str;
@@ -88,7 +93,7 @@ public class FA_DumpArc {
 		}
 		
 		@Override
-		public void doAction(FileNode node, NTDProject project, Component gui_parent) 
+		public void doAction(FileNode node, NTDProject project, Frame gui_parent) 
 		{
 			int rop = JOptionPane.showOptionDialog(gui_parent, "Would you like to attempt detection"
 					+ ", parsing and dumping of internal archives?\n"
@@ -115,7 +120,7 @@ public class FA_DumpArc {
 			
 			try
 			{
-				FileBuffer buffer = NTDProgramFiles.openAndDecompress(node);
+				FileBuffer buffer = node.loadDecompressedData();
 				NARC arc = NARC.readNARC(buffer, 0);
 				
 				DirectoryNode root = arc.getArchiveTree();
@@ -142,4 +147,60 @@ public class FA_DumpArc {
 		public String toString(){return str;}
 	}
 
+	/* ------ SDAT ------*/
+	
+	private static FADumpArc_SDAT static_sdat;
+	
+	public static FADumpArc_SDAT getSDATAction()
+	{
+		if(static_sdat == null) static_sdat = new FADumpArc_SDAT();
+		return static_sdat;
+	}
+	
+	public static class FADumpArc_SDAT implements FileAction
+	{
+		private String str;
+		
+		public FADumpArc_SDAT()
+		{
+			str = DEFO_ENG_STRING;
+		}
+		
+		@Override
+		public void doAction(FileNode node, NTDProject project, Frame gui_parent) 
+		{
+
+			//Path
+			JFileChooser fc = new JFileChooser(NTDProgramFiles.getIniValue(NTDProgramFiles.INIKEY_LAST_ARCDUMP));
+			fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+			int sel = fc.showOpenDialog(gui_parent);
+			if(sel != JFileChooser.APPROVE_OPTION) return;
+			File file = fc.getSelectedFile();
+			String target = file.getAbsolutePath();
+			NTDProgramFiles.setIniValue(NTDProgramFiles.INIKEY_LAST_ARCDUMP, target);
+			
+			try
+			{
+				FileBuffer buffer = node.loadDecompressedData();
+				//NARC arc = NARC.readNARC(buffer, 0);
+				DSSoundArchive arc = DSSoundArchive.readSDAT(buffer);
+				target += File.separator + node.getFileName();
+				arc.extractToDisk(target);
+
+			}
+			catch(IOException e)
+			{
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(gui_parent, "ERROR: File could not be read!", "I/O Error", JOptionPane.ERROR_MESSAGE);
+			} 
+			
+		}
+
+		@Override
+		public void setString(String s) {str = s;}
+		
+		public String toString(){return str;}
+	}
+
+	
 }

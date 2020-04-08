@@ -35,6 +35,8 @@ import waffleoRai_Compression.nintendo.DSRLE;
 import waffleoRai_Compression.nintendo.NinLZ;
 import waffleoRai_Containers.nintendo.NARC;
 import waffleoRai_Containers.nintendo.NDS;
+import waffleoRai_Containers.nintendo.sar.DSSoundArchive;
+import waffleoRai_Executable.nintendo.DSExeDefs;
 import waffleoRai_Files.EncryptionDefinitions;
 import waffleoRai_Files.FileDefinitions;
 import waffleoRai_Files.FileTypeNode;
@@ -42,6 +44,7 @@ import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBufferStreamer;
 import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.StreamWrapper;
+import waffleoRai_fdefs.nintendo.DSSysFileDefs;
 
 
 /*
@@ -67,6 +70,8 @@ public class NTDProgramFiles {
 	
 	/*----- Key Paths -----*/
 	
+	public static final String KEYNAME_DS_BLOWFISH = "ntr_blowfish";
+	public static final String KEYNAME_DSI_BLOWFISH = "twl_blowfish";
 	public static final String KEYNAME_DSI_COMMON = "twl_common";
 	
 	public static final String KEYNAME_WII_COMMON = "rvl_common";
@@ -273,12 +278,22 @@ public class NTDProgramFiles {
 	
 	public static void registerTypeDefinitions()
 	{
+		//-- DS/DSi
 		CompressionDefs.registerDefinition(NinLZ.getDefinition());
 		CompressionDefs.registerDefinition(DSRLE.getDefinition());
 		
 		FileDefinitions.registerDefinition(NARC.getTypeDef());
+		FileDefinitions.registerDefinition(DSExeDefs.getDefARM7());
+		FileDefinitions.registerDefinition(DSExeDefs.getDefARM7i());
+		FileDefinitions.registerDefinition(DSExeDefs.getDefARM9());
+		FileDefinitions.registerDefinition(DSExeDefs.getDefARM9i());
+		FileDefinitions.registerDefinition(DSSysFileDefs.getHeaderDef());
+		FileDefinitions.registerDefinition(DSSysFileDefs.getBannerDef());
+		FileDefinitions.registerDefinition(DSSysFileDefs.getRSACertDef());
+		FileDefinitions.registerDefinition(DSSoundArchive.getTypeDef());
 		
 		EncryptionDefinitions.registerDefinition(NDS.getModcryptDef());
+		EncryptionDefinitions.registerDefinition(NDS.getBlowfishDef());
 	}
 	
 	/*----- Init Values -----*/
@@ -326,6 +341,7 @@ public class NTDProgramFiles {
 	{
 		if(init_values == null) init_values = new HashMap<String, String>();
 		init_values.put(key, value);
+		//System.err.println("Ini Value Set: key = " + key + " | val = " + value);
 	}
 	
 	public static void createIniFile(String installDir) throws IOException

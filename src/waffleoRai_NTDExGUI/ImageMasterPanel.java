@@ -4,6 +4,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import java.awt.GridBagLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
@@ -13,6 +14,7 @@ import javax.swing.JScrollPane;
 import javax.swing.SwingWorker;
 import javax.swing.border.BevelBorder;
 
+import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
@@ -26,7 +28,7 @@ import waffleoRai_Utils.FileNode;
 import java.awt.FlowLayout;
 import java.awt.Frame;
 
-public class ImageMasterPanel extends JPanel implements TreePanelListener{
+public class ImageMasterPanel extends JPanel implements TreePanelListener, FileActionListener{
 
 	/*----- Constants -----*/
 	
@@ -53,6 +55,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 	public ImageMasterPanel(Frame myparent)
 	{
 		parent = myparent;
+		//System.err.print("Parent is null? " + (parent == null));
 		initGUI();
 	}
 
@@ -113,6 +116,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		pnlLeft.add(scrollPane, gbc_scrollPane);*/
 		
 		pnlRight = new JPanel();
+		pnlRight.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		GridBagConstraints gbc_panel_1 = new GridBagConstraints();
 		gbc_panel_1.weightx = 1.0;
 		gbc_panel_1.weighty = 1.0;
@@ -193,6 +197,9 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		gbc_scrollPane.gridy = 0;
 		pnlLeft.add(scrollPane, gbc_scrollPane);
 		pnlLeft.updateUI();
+		
+		pnlRight.removeAll();
+		pnlRight.updateUI();
 	}
 	
 	public void loadProject(NTDProject project)
@@ -214,32 +221,66 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		pnlRight.updateUI();
 		
 		//Tree panel
-		refreshTree();
+		resetTree();
 		
 		this.repaint();
 	}
 	
-	public void refreshTree()
+	public void resetTree()
 	{
+		//System.err.println("Refreshin'");
 		if(pnlTree != null) pnlTree.clearTreeListeners();
 
 		pnlLeft.removeAll();
-		pnlTree = new TreePanel(myproject.getTreeRoot());
+		DirectoryNode root = myproject.getTreeRoot();
+		root.setFileName("");
+		pnlTree = new TreePanel(root);
 		pnlTree.addTreeListener(this);
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.fill = GridBagConstraints.BOTH;
 		gbc.gridx = 0;
 		gbc.gridy = 0;
 		pnlLeft.add(pnlTree, gbc);
+		pnlTree.updateGUITree();
 		pnlLeft.updateUI();
 	}
 	
 	public void refreshFileViewPanel(FileNode node)
 	{
+		Component[] clist = pnlRight.getComponents();
+		for(int i = 0; i < clist.length; i++){
+			if(clist[i] != null){
+				if(clist[i] instanceof FileViewPanel){
+					((FileViewPanel)clist[i]).dispose();
+				}
+			}
+		}
+		
 		pnlRight.removeAll();
 		FileViewPanel pnl = new FileViewPanel(parent);
+		GridBagConstraints gbc = new GridBagConstraints();
+		gbc.gridx = 0;
+		gbc.gridy = 0;
+		gbc.fill = GridBagConstraints.BOTH;
+		
 		pnl.loadFile(node, myproject);
-		pnlRight.add(pnl);
+		pnl.addFileActionListener(this);
+		pnlRight.add(pnl,gbc);
+		pnlTree.updateUI();
+		pnlRight.updateUI();
+	}
+	
+	public void updateTree(){
+		pnlTree.updateGUITree();
+	}
+	
+	public void onFileAction(){
+		updateTree();
+	}
+	
+	public void refreshMe(){
+		resetTree();
+		pnlRight.removeAll();
 		pnlRight.updateUI();
 	}
 	
@@ -247,11 +288,13 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 	
 	public void onDoubleClickSelection(String path)
 	{
+		//System.err.println("double click!");
 		onTreeActionViewNode(path);
 	}
 	
 	public void onRightClickSelection(String path, int choice)
 	{
+		//System.err.println("right click: " + choice);
 		switch(choice)
 		{
 		case TreePopupMenu.MENU_OP_RENAME: onTreeActionRename(path); break;
@@ -261,6 +304,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		case TreePopupMenu.MENU_OP_EXTRACT: onTreeActionExtract(path); break;
 		case TreePopupMenu.MENU_OP_EXPORT: onTreeActionExport(path); break;
 		case TreePopupMenu.MENU_OP_VIEW: onTreeActionViewNode(path); break;
+		case TreePopupMenu.MENU_OP_REFRESH: resetTree(); break;
 		}
 	}
 	
@@ -279,6 +323,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		}
 		
 		SetTextDialog dialog = new SetTextDialog(parent, "Set New Name");
+		dialog.setLocationRelativeTo(this);
 		dialog.setVisible(true);
 		
 		if(!dialog.okSelected()) return;
@@ -291,7 +336,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		
 		node.setFileName(newname);
 		
-		refreshTree();
+		updateTree();
 	}
 	
 	private void onTreeActionNewDir(String path)
@@ -327,7 +372,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		//Create new directory
 		new DirectoryNode((DirectoryNode)node, newname);
 		
-		refreshTree();
+		updateTree();
 		
 	}
 	
@@ -357,7 +402,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 			showError("Unknown error: Node move failed!");
 		}
 		
-		refreshTree();
+		updateTree();
 	}
 	
 	private void onTreeActionSplit(String path)
@@ -400,7 +445,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		//Do split
 		if(!node.splitNodeAt(offset)) showError("Unknown Err -- Split failed!");
 		
-		refreshTree();
+		updateTree();
 	}
 	
 	private void onTreeActionExtract(String path)
@@ -418,7 +463,8 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		}
 		
 		//JFileChooser
-		JFileChooser fc = new JFileChooser(NTDProgramFiles.getIniValue(NTDProgramFiles.INIKEY_LAST_EXTRACTED));
+		String lastpath = NTDProgramFiles.getIniValue(NTDProgramFiles.INIKEY_LAST_EXTRACTED);
+		JFileChooser fc = new JFileChooser(lastpath);
 		fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 		
 		int select = fc.showSaveDialog(this);
@@ -434,7 +480,8 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		if(decomp_choice == JOptionPane.CANCEL_OPTION) return;
 		
 		//Spawn task and dialog
-		String targetpath = dir + node.getFileName();
+		String targetpath = dir + File.separator + node.getFileName();
+		NTDProgramFiles.setIniValue(NTDProgramFiles.INIKEY_LAST_EXTRACTED, targetpath);
 		IndefProgressDialog dialog = new IndefProgressDialog(parent, "File Extraction");
 		dialog.setPrimaryString("Extracting Data");
 		dialog.setSecondaryString("Extracting to " + targetpath);
@@ -447,7 +494,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 				try
 				{
 					boolean decomp = (decomp_choice == JOptionPane.YES_OPTION);
-					node.copyDataTo(targetpath + File.separator + node.getFileName(), decomp);
+					node.copyDataTo(targetpath, decomp);
 				}
 				catch(Exception x)
 				{
@@ -461,6 +508,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 			public void done()
 			{
 				dialog.closeMe();
+				showInfo("Extraction complete!");
 			}
 		};
 		
@@ -492,7 +540,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 		String dir = fc.getSelectedFile().getAbsolutePath();
 		
 		//Spawn task and dialog
-		String targetpath = dir + node.getFileName();
+		String targetpath = dir;
 		IndefProgressDialog dialog = new IndefProgressDialog(parent, "File Export");
 		dialog.setPrimaryString("Converting & Exporting Data");
 		dialog.setSecondaryString("Exporting to " + targetpath);
@@ -556,12 +604,24 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener{
 				try
 				{
 					//setWait();
+					if(node.getTypeChainHead() == null){
+						//Detect...
+						//System.err.println("Node: " + node.getFileName() + " | 0x" + Long.toHexString(node.getOffset()) + ": 0x" + Long.toHexString(node.getLength()));
+						dialog.setPrimaryString("Type Unknown");
+						dialog.setSecondaryString("Detecting file type of " + node.getFullPath());
+						FileTypeNode type = TypeManager.detectType(node);
+						node.setTypeChainHead(type);
+						
+						dialog.setPrimaryString("Loading");
+						dialog.setSecondaryString("Loading preview of " + node.getFullPath());
+					}
+					
 					refreshFileViewPanel(node);
 				}
 				catch(Exception x)
 				{
 					x.printStackTrace();
-					showError("Unknown Error: Export Failed! See stderr for details.");
+					showError("Unknown Error: Preview Failed! See stderr for details.");
 				}
 				
 				return null;

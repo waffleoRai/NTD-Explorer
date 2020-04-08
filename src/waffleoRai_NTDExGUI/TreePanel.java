@@ -9,10 +9,12 @@ import java.awt.GridBagConstraints;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.border.BevelBorder;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 
+import waffleoRai_NTDExGUI.icons.TypeIconTreeRenderer;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileNode;
 
@@ -82,6 +84,7 @@ public class TreePanel extends JPanel{
 		add(scrollPane, gbc_scrollPane);
 		
 		tree = new JTree();
+		tree.setCellRenderer(new TypeIconTreeRenderer());
 		tree.setToolTipText("ROM image internal file system.\r\n(With optional custom link tree)");
 		tree.setBorder(null);
 		scrollPane.setViewportView(tree);
@@ -135,9 +138,11 @@ public class TreePanel extends JPanel{
 	{
 		//Sync tree 
 		disableAll();
-		TreeModel model = new DefaultTreeModel(tree_root);
+		DefaultTreeModel model = new DefaultTreeModel(tree_root);
 		tree.setModel(model);
-		tree.repaint();
+		tree.updateUI();
+		
+		//tree.repaint();
 		scrollPane.repaint();
 		enableAll();
 	}
@@ -161,6 +166,7 @@ public class TreePanel extends JPanel{
 	
 	public void onRightClickNode(TreePath tp, int x, int y)
 	{
+		if(listeners.isEmpty()) return;
 		//TreePath path = e.getPath();
 		String spath = FileNode.readTreePath(tp);
 		//System.err.println("Tree - Right click detected: " + spath);
@@ -169,15 +175,37 @@ public class TreePanel extends JPanel{
 		//System.err.println("Tree - Node matched: " + node.getFullPath());
 		
 		//Spawn menu at click site
-		TreePopupMenu popup = new TreePopupMenu(node.isDirectory());
+		TreePopupMenu popup = new TreePopupMenu(spath, node.isDirectory(), listeners);
+		popup.addPopupMenuListener(new PopupMenuListener(){
+
+			private boolean cancel = false;
+			
+			@Override
+			public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+				//System.err.println("Visible");
+				cancel = false;
+			}
+
+			@Override
+			public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+				if(cancel) return;
+			}
+
+			@Override
+			public void popupMenuCanceled(PopupMenuEvent e) {
+				cancel = true;
+			}
+			
+		});
 		popup.show(tree, x, y);
 		
+		
 		//Once menu closed, notify listeners...
-		int op = popup.getSelection();
+		/*int op = popup.getSelection();
 		for(TreePanelListener l : listeners)
 		{
 			l.onRightClickSelection(spath, op);
-		}
+		}*/
 	}
 	
 	private static void addPopup(Component component, final JPopupMenu popup) {

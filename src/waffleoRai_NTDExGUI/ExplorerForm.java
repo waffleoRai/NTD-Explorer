@@ -180,6 +180,18 @@ public class ExplorerForm extends JFrame {
 			public void actionPerformed(ActionEvent e){onToolsConvDump();}
 		});
 		
+		JMenuItem mntmScanForKnown = new JMenuItem("Scan for Known Types");
+		mnTools.add(mntmScanForKnown);
+		mntmScanForKnown.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onToolsScanTypes();}
+		});
+		
+		JMenuItem mntmClearTypeNotations = new JMenuItem("Clear Type Notations");
+		mnTools.add(mntmClearTypeNotations);
+		mntmClearTypeNotations.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onToolsClearTypes();}
+		});
+		
 		JMenuItem mntmResetImageTree = new JMenuItem("Reset Image Tree");
 		mnTools.add(mntmResetImageTree);
 		mntmResetImageTree.addActionListener(new ActionListener(){
@@ -417,7 +429,7 @@ public class ExplorerForm extends JFrame {
 		//Dumps all known archive formats to tree
 		int op = JOptionPane.showConfirmDialog(this, 
 				"Scan for and extract archives with known formats"
-				+ "to the project tree?", 
+				+ " to the project tree?", 
 				"Archive Extraction", 
 				JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 		
@@ -503,7 +515,13 @@ public class ExplorerForm extends JFrame {
 				try
 				{
 					DirectoryNode root = loaded_project.getTreeRoot();
-					root.dumpTo(path, decomp);
+					root.dumpTo(path, decomp, new DirectoryNode.TreeDumpListener() {
+						
+						@Override
+						public void onStartNodeDump(FileNode node) {
+							dialog.setSecondaryString("Extracting " + node.getFullPath());
+						}
+					});
 				}
 				catch(IOException x)
 				{
@@ -517,6 +535,8 @@ public class ExplorerForm extends JFrame {
 			public void done()
 			{
 				dialog.closeMe();
+				NTDProgramFiles.setIniValue(INIKEY_LASTDUMP, path);
+				showInfo("ROM tree dump complete!");
 			}
 		};
 		
@@ -588,6 +608,101 @@ public class ExplorerForm extends JFrame {
 		dialog.render();
 	}
 	
+	private void onToolsScanTypes(){
+		if(!checkSourcePath()) return;
+		
+		//Dumps all known archive formats to tree
+		int op = JOptionPane.showConfirmDialog(this, 
+				"Scan tree to look for files with known formats?", 
+				"File Type Scan", 
+				JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+		
+		if(op == JOptionPane.YES_OPTION)
+		{
+			IndefProgressDialog dialog = new IndefProgressDialog(this, "Scanning Files");
+			
+			dialog.setPrimaryString("Scanning");
+			dialog.setSecondaryString("Scanning for known formats...");
+			
+			SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+			{
+
+				protected Void doInBackground() throws Exception 
+				{
+					try
+					{
+						NTDTools.doTypeScan(loaded_project.getTreeRoot(), dialog);
+						loaded_project.stampModificationTime();
+					}
+					catch(Exception x)
+					{
+						x.printStackTrace();
+						showError("Unknown Error: Operation aborted. See stderr for details.");
+					}
+					
+					return null;
+				}
+				
+				public void done()
+				{
+					pnlMain.updateTree();
+					dialog.closeMe();
+				}
+			};
+			
+			task.execute();
+			dialog.render();
+		}
+		
+	}
+	
+	private void onToolsClearTypes(){
+		if(!checkSourcePath()) return;
+		
+		//Dumps all known archive formats to tree
+		int op = JOptionPane.showConfirmDialog(this, 
+				"Clear file type notations from tree?", 
+				"File Type Clear", 
+				JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+		
+		if(op == JOptionPane.YES_OPTION)
+		{
+			IndefProgressDialog dialog = new IndefProgressDialog(this, "Clearing Type Notations");
+			
+			dialog.setPrimaryString("Scanning");
+			dialog.setSecondaryString("Clearing tree of type notations...");
+			
+			SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+			{
+
+				protected Void doInBackground() throws Exception 
+				{
+					try
+					{
+						NTDTools.clearTypeMarkers(loaded_project.getTreeRoot(), dialog);
+						loaded_project.stampModificationTime();
+					}
+					catch(Exception x)
+					{
+						x.printStackTrace();
+						showError("Unknown Error: Operation aborted. See stderr for details.");
+					}
+					
+					return null;
+				}
+				
+				public void done()
+				{
+					pnlMain.updateTree();
+					dialog.closeMe();
+				}
+			};
+			
+			task.execute();
+			dialog.render();
+		}
+	}
+	
 	private void onToolsTreeReset()
 	{
 		if(!checkSourcePath()) return;
@@ -625,6 +740,7 @@ public class ExplorerForm extends JFrame {
 			
 			public void done()
 			{
+				pnlMain.refreshMe();
 				dialog.closeMe();
 			}
 		};

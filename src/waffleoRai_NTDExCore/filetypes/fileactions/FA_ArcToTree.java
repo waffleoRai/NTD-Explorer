@@ -1,18 +1,15 @@
 package waffleoRai_NTDExCore.filetypes.fileactions;
 
-import java.awt.Component;
+import java.awt.Frame;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
 
 import javax.swing.JOptionPane;
 
-import waffleoRai_Compression.definitions.*;
 import waffleoRai_Containers.nintendo.NARC;
-import waffleoRai_Files.FileTypeNode;
+import waffleoRai_Containers.nintendo.sar.DSSoundArchive;
 import waffleoRai_NTDExCore.FileAction;
-import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
@@ -26,64 +23,9 @@ import waffleoRai_Utils.FileNode;
 
 public class FA_ArcToTree {
 	
+	/* ------ NARC ------*/
+	
 	private static final String DEFO_ENG_STRING = "Extract archive to ROM tree";
-	
-	private static List<CompressionInfoNode> getCompressionChain(FileNode archive)
-	{
-		List<CompressionInfoNode> list = new LinkedList<CompressionInfoNode>();
-		FileTypeNode t = archive.getTypeChainHead();
-		
-		long off = archive.getOffset();
-		long len = archive.getLength();
-		while(t != null)
-		{
-			if(t.isCompression())
-			{
-				AbstractCompDef def = ((CompDefNode)t).getDefinition();
-				list.add(new CompressionInfoNode(def, off, len));
-				t = t.getChild();
-				off = 0;
-				len = -1;
-			}
-		}
-		
-		return list;
-	}
-	
-	private static void notateDir(DirectoryNode dir, List<CompressionInfoNode> chain, String srcpath)
-	{
-		List<FileNode> children = dir.getChildren();
-		for(FileNode child : children)
-		{
-			if(child instanceof DirectoryNode)
-			{
-				notateDir(((DirectoryNode)child), chain, srcpath);
-			}
-			else
-			{
-				for(CompressionInfoNode c : chain)
-				{
-					child.addCompressionChainNode(c.getDefinition(), c.getStartOffset(), c.getLength());
-				}
-				child.setSourcePath(srcpath);
-			}
-		}
-		
-	}
-	
-	private static void notateTree(DirectoryNode root, FileNode archive)
-	{
-		/*Basically, this function notes the source archive file's
-		 * compression routines in the nodes of its contents.
-		 * 
-		 * That way, when the project tree is saved with these noted, these
-		 * internal files can be loaded without later without having to re-parse
-		 * the source archive. (Though it does have to be decompressed).
-		 */
-		
-		notateDir(root, getCompressionChain(archive), archive.getSourcePath());
-		
-	}
 	
 	public static class FAMergeTree_Narc implements FileAction
 	{
@@ -95,22 +37,28 @@ public class FA_ArcToTree {
 		}
 
 		@Override
-		public void doAction(FileNode node, NTDProject project, Component gui_parent) 
+		public void doAction(FileNode node, NTDProject project, Frame gui_parent) 
 		{
 			//Load file
+			//System.err.println("FAMergeTree_Narc.doAction || Called!");
 			try
 			{
-				FileBuffer buffer = NTDProgramFiles.openAndDecompress(node);
+				FileBuffer buffer = node.loadDecompressedData();
 				NARC arc = NARC.readNARC(buffer, 0);
+				//System.err.println("FAMergeTree_Narc.doAction || File loaded!");
 				
 				DirectoryNode root = arc.getArchiveTree();
-				notateTree(root, node);
+				NTDTools.notateTree(root, node);
+				NTDTools.doTypeScan(root, null);
 				
 				root.setFileName(node.getFileName());
 				DirectoryNode arc_parent = node.getParent();
-				arc_parent.removeChild(node);
+				//System.err.println("arc_parent -- " + arc_parent.getFullPath());
+				if(!arc_parent.removeChild(node)) System.err.println("Remove failed!");
 				
 				root.setParent(arc_parent);
+				
+				//gui_parent.repaint();
 			}
 			catch(IOException e)
 			{
@@ -145,6 +93,71 @@ public class FA_ArcToTree {
 		if(static_narc != null) return static_narc;
 		static_narc = new FAMergeTree_Narc();
 		return static_narc;
+	}
+	
+	/* ------ SDAT ------*/
+	
+	public static class FAMergeTree_SDAT implements FileAction
+	{
+		private String str;
+		
+		public FAMergeTree_SDAT()
+		{
+			str = DEFO_ENG_STRING;
+		}
+
+		@Override
+		public void doAction(FileNode node, NTDProject project, Frame gui_parent) 
+		{
+			//Load file
+			//System.err.println("FAMergeTree_Narc.doAction || Called!");
+			try
+			{
+				FileBuffer buffer = node.loadDecompressedData();
+				//NARC arc = NARC.readNARC(buffer, 0);
+				DSSoundArchive arc = DSSoundArchive.readSDAT(buffer);
+				//System.err.println("FAMergeTree_Narc.doAction || File loaded!");
+				
+				DirectoryNode root = arc.getArchiveView();
+				NTDTools.notateTree(root, node);
+				NTDTools.doTypeScan(root, null);
+				
+				root.setFileName(node.getFileName());
+				DirectoryNode arc_parent = node.getParent();
+				//System.err.println("arc_parent -- " + arc_parent.getFullPath());
+				if(!arc_parent.removeChild(node)) System.err.println("Remove failed!");
+				
+				root.setParent(arc_parent);
+				
+				//gui_parent.repaint();
+			}
+			catch(IOException e)
+			{
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(gui_parent, "ERROR: File could not be read!", "I/O Error", JOptionPane.ERROR_MESSAGE);
+			} 
+			
+		}
+
+		@Override
+		public void setString(String s) {
+			str = s;
+		}
+		
+		public String toString()
+		{
+			return str;
+		}
+		
+	}
+
+	private static FAMergeTree_SDAT static_sdat;
+	
+	public static FileAction getAction_SDAT()
+	{
+		if(static_sdat != null) return static_sdat;
+		static_sdat = new FAMergeTree_SDAT();
+		return static_sdat;
 	}
 	
 }

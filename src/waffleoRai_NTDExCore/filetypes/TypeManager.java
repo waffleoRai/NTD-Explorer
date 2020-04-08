@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,18 +15,23 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.swing.JPanel;
 
 import waffleoRai_Containers.nintendo.NARC;
+import waffleoRai_Containers.nintendo.sar.DSSoundArchive;
+import waffleoRai_Executable.nintendo.DSExeDefs;
 import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.filetypes.archive.TM_NARC;
+import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM7;
+import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM7i;
+import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM9;
+import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM9i;
+import waffleoRai_NTDExCore.filetypes.sound.TM_SDAT;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 import waffleoRai_Utils.FileNode;
 
-
-//TODO map multiple types to a string
 public abstract class TypeManager {
 	
 	private static TypeManager BIN_DETECTOR;
@@ -55,6 +61,24 @@ public abstract class TypeManager {
 		registerTypeManager(NARC.TYPE_ID, elist, tm);
 		elist.clear();
 		
+		//Bincode
+		elist.add("arm9"); elist.add("ARM9");
+		registerTypeManager(DSExeDefs.DSARM9ExeDef.getTypeIDStatic(), elist, new TM_DSARM9());
+		elist.clear();
+		elist.add("arm7"); elist.add("ARM7");
+		registerTypeManager(DSExeDefs.DSARM7ExeDef.getTypeIDStatic(), elist, new TM_DSARM7());
+		elist.clear();
+		elist.add("arm9i"); elist.add("ARM9i");
+		registerTypeManager(DSExeDefs.DSARM9iExeDef.getTypeIDStatic(), elist, new TM_DSARM9i());
+		elist.clear();
+		elist.add("arm7i"); elist.add("ARM7i");
+		registerTypeManager(DSExeDefs.DSARM7iExeDef.getTypeIDStatic(), elist, new TM_DSARM7i());
+		elist.clear();
+		
+		//DS Sound
+		elist.add("sdat"); elist.add("bnsar"); elist.add("nsar");
+		registerTypeManager(DSSoundArchive.getTypeDef().getTypeID(), elist, new TM_SDAT());
+		elist.clear();
 		
 	}
 	
@@ -93,6 +117,13 @@ public abstract class TypeManager {
 		return true;
 	}
 	
+	public static Collection<TypeManager> getAllAvailableTypeManagers(){
+		if(id_map == null) buildDetectorMap();
+		List<TypeManager> list = new ArrayList<TypeManager>(id_map.size()+1);
+		list.addAll(id_map.values());
+		return list;
+	}
+	
 	public static FileTypeNode detectType(FileNode node)
 	{
 		if(ext_map == null) buildDetectorMap();
@@ -100,21 +131,35 @@ public abstract class TypeManager {
 		//Get initial extension...
 		String fname = node.getFileName();
 		int lastdot = fname.lastIndexOf('.');
-		TypeManager d = BIN_DETECTOR;
+		TypeManager d = null;
 		if(lastdot >= 0)
 		{
 			String ext = fname.substring(lastdot + 1).trim().toLowerCase();
 			List<TypeManager> list = ext_map.get(ext);
-			for(TypeManager tm : list)
-			{
+			if(list != null){
+				for(TypeManager tm : list){
+					if(tm.isOfType(node))
+					{
+						d = tm;
+						break;
+					}
+				}	
+			}
+		}
+		
+		if(d == null){
+			//Try scanning internally...
+			Collection<TypeManager> alltypes = getAllAvailableTypeManagers();
+			for(TypeManager tm : alltypes){
+				if(tm instanceof TM_BIN) continue; //It's always true, we don't need it getting stuck there...
 				if(tm.isOfType(node))
 				{
 					d = tm;
 					break;
 				}
 			}
-			if(d == null) d = BIN_DETECTOR;
 		}
+		if(d == null) d = BIN_DETECTOR;
 		
 		return d.detectFileType(node);
 	}
@@ -128,7 +173,9 @@ public abstract class TypeManager {
  	public static TypeManager getTypeManager(int typeid)
 	{
 		if(id_map == null) buildDetectorMap();
-		return id_map.get(typeid);
+		TypeManager tm = id_map.get(typeid);
+		if(tm == null) return getDefaultManager();
+		return tm;
 	}
 	
 	public static TypeManager getDefaultManager()

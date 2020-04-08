@@ -16,6 +16,7 @@ import javax.swing.border.BevelBorder;
 import java.awt.Insets;
 import javax.swing.JPanel;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 
 /*
@@ -28,18 +29,25 @@ public class DSImageInfoDialog extends JDialog{
 
 	private static final long serialVersionUID = -8254793571383432576L;
 	
+	public static final int WIDTH = 300;
+	public static final int HEIGHT = 350;
+	
 	private NDS my_image;
 	private JPanel pnlInfo;
 
 	public DSImageInfoDialog(Frame parent, NDS image)
 	{
 		super(parent, true);
+		this.setLocationRelativeTo(parent);
 		my_image = image;
 		initGUI();
 	}
 	
 	private void initGUI()
 	{
+		setMinimumSize(new Dimension(WIDTH, HEIGHT));
+		setPreferredSize(new Dimension(WIDTH, HEIGHT));
+		
 		setTitle("DS Game Image Info");
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0, 0};
@@ -61,8 +69,9 @@ public class DSImageInfoDialog extends JDialog{
 		{
 			private static final long serialVersionUID = 830744516271989334L;
 
-			public void paint(Graphics g) 
+			public void paintComponent(Graphics g) 
 			{
+				super.paintComponent(g);
 				paintInfoPanel((Graphics2D)g);
 			}
 		};
@@ -72,7 +81,6 @@ public class DSImageInfoDialog extends JDialog{
 	
 	private void paintInfoPanel(Graphics2D g2d)
 	{
-		super.paint(g2d);
 		if(my_image == null) return;
 		
 		Font myfont = g2d.getFont();
@@ -83,7 +91,7 @@ public class DSImageInfoDialog extends JDialog{
         int y_off = 10;
         
         String str = "Title ID: " + my_image.getLongGameCode();
-        g2d.setFont(new Font("Courier New", Font.PLAIN, 10));
+        g2d.setFont(new Font("Courier New", Font.PLAIN, 11));
         g2d.drawString(str, x_off, y_off);
         y_off += y_space;
         

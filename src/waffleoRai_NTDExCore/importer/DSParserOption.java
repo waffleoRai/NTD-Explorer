@@ -1,9 +1,7 @@
 package waffleoRai_NTDExCore.importer;
 
 import java.awt.Frame;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -65,11 +63,13 @@ public class DSParserOption implements ParserOption {
 				{
 					//Read ROM
 					NDS image = NDS.readROM(path, 0);
+					//System.err.println("NDS ROM Read");
 					
 					//Check to see if that ROM has already been imported...
 					boolean match = false;
 					if(image.hasTWL()) match = NTDProgramFiles.gameHasBeenLoaded(Console.DSi, image.getGameCode(), reg);
 					else match = NTDProgramFiles.gameHasBeenLoaded(Console.DS, image.getGameCode(), reg);
+					//System.err.println("ROM match checked");
 					
 					if(match)
 					{
@@ -82,6 +82,7 @@ public class DSParserOption implements ParserOption {
 					dialog.setPrimaryString("Importing");
 					dialog.setSecondaryString("Loading data from game \"" + image.getGameCode() + "\"");
 					p = NTDProject.createFromNDSImage(image, reg);
+					//System.err.println("Project generated");
 					
 					//Decrypt if necessary
 					dialog.setPrimaryString("Decrypting");
@@ -90,8 +91,15 @@ public class DSParserOption implements ParserOption {
 					
 					if(modcrypt)
 					{
+						
+						dialog.showWarningMessage("This image contains modcrypted regions that cannot currently be read.\n"
+								+ "Only data in these regions will be affected.\n"
+								+ "It will be possible to reattempt decryption for any image once the modcrypt\n"
+								+ "routine has been fully implemented!");
+						
+						
 						//Load common key....
-						byte[] dsi_key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_DSI_COMMON);
+						/*byte[] dsi_key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_DSI_COMMON);
 						if(dsi_key == null)
 						{
 							dialog.showWarningMessage("This image contains modcrypted regions that cannot be read without the DSi common key.\n"
@@ -99,9 +107,9 @@ public class DSParserOption implements ParserOption {
 									+ "It will be possible to reattempt decryption for any image once the key"
 									+ "has been registered!");
 							return p;
-						}
+						}*/
 						
-						String decstem = p.getDecryptedDataDir() + File.separator + NTDProgramFiles.DECSTEM_DSI_MC;
+						/*String decstem = p.getDecryptedDataDir() + File.separator + NTDProgramFiles.DECSTEM_DSI_MC;
 						p.setDecryptStem(decstem);
 						
 						if(image.hasModcryptRegion1())
@@ -109,7 +117,7 @@ public class DSParserOption implements ParserOption {
 							String path = decstem + "01.bin";
 							dialog.setSecondaryString("Decrypting modcrypt region 1 to disk buffer at " + path);
 							BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(path));
-							image.decryptSecureRegion1(dsi_key, bos);
+							image.decryptSecureRegion1(bos);
 							bos.close();
 						}
 						
@@ -118,9 +126,9 @@ public class DSParserOption implements ParserOption {
 							String path = decstem + "02.bin";
 							dialog.setSecondaryString("Decrypting modcrypt region 2 to disk buffer at " + path);
 							BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(path));
-							image.decryptSecureRegion2(dsi_key, bos);
+							image.decryptSecureRegion2(bos);
 							bos.close();
-						}
+						}*/
 						
 					}
 				}

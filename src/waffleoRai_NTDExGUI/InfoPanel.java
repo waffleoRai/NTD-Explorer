@@ -26,7 +26,7 @@ public class InfoPanel extends JPanel{
 
 	private static final long serialVersionUID = -2849616410459530735L;
 	
-	public static final int MIN_WIDTH = 450;
+	public static final int MIN_WIDTH = 475;
 	public static final int HEIGHT = 55;
 	
 	private Image img;
@@ -41,7 +41,7 @@ public class InfoPanel extends JPanel{
 		setLayout(null);
 		Dimension minsize = new Dimension(MIN_WIDTH, HEIGHT);
 		setMinimumSize(minsize);
-		setPreferredSize(minsize);
+		setPreferredSize(new Dimension(475, 55));
 		
 		if(proj != null)
 		{
@@ -104,19 +104,19 @@ public class InfoPanel extends JPanel{
 		JLabel lblTitle1 = new JLabel("No image loaded");
 		lblTitle1.setHorizontalAlignment(SwingConstants.CENTER);
 		lblTitle1.setFont(NTDProgramFiles.getUnicodeFont(Font.PLAIN, 10));
-		lblTitle1.setBounds(186, 10, 118, 12);
+		lblTitle1.setBounds(186, 10, 141, 12);
 		add(lblTitle1);
 		
 		JLabel lblTitle2 = new JLabel("");
 		lblTitle2.setHorizontalAlignment(SwingConstants.CENTER);
 		lblTitle2.setFont(NTDProgramFiles.getUnicodeFont(Font.PLAIN, 10));
-		lblTitle2.setBounds(186, 22, 118, 12);
+		lblTitle2.setBounds(186, 22, 141, 12);
 		add(lblTitle2);
 		
 		JLabel lblTitle3 = new JLabel("");
 		lblTitle3.setHorizontalAlignment(SwingConstants.CENTER);
 		lblTitle3.setFont(NTDProgramFiles.getUnicodeFont(Font.PLAIN, 10));
-		lblTitle3.setBounds(186, 34, 118, 12);
+		lblTitle3.setBounds(186, 34, 141, 12);
 		add(lblTitle3);
 		
 		//28
@@ -152,12 +152,12 @@ public class InfoPanel extends JPanel{
 		
 		JLabel lblEncryption = new JLabel("Encryption:");
 		lblEncryption.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		lblEncryption.setBounds(314, 11, 55, 14);
+		lblEncryption.setBounds(337, 11, 55, 14);
 		add(lblEncryption);
 		
 		JLabel lblEnc = new JLabel("N/A");
 		//lblEnc.setForeground(new Color(0, 128, 0));
-		lblEnc.setBounds(371, 11, 79, 14);
+		lblEnc.setBounds(396, 11, 79, 14);
 		add(lblEnc);
 		if(proj != null)
 		{

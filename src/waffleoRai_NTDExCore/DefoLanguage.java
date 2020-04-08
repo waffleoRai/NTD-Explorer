@@ -14,7 +14,9 @@ public enum DefoLanguage {
 	JAPANESE('J'),
 	KOREAN('K'),
 	ITALIAN('I'),
+	ENGLISH_US_AUS('T'),
 	ANY('A'),
+	MULTI('O'),
 	ANY_PAL('P');
 	
 	private char code_letter;

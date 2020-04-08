@@ -19,12 +19,13 @@ import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileTypeDefNode;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.FileAction;
-import waffleoRai_NTDExCore.NTDProgramFiles;
+import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ArcToTree;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_DumpArc;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ViewHex;
-import waffleoRai_NTDExGUI.panels.preview.ArchivePreviewPanel;
+import waffleoRai_NTDExGUI.TreePanel;
+import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 import waffleoRai_Utils.FileBufferStreamer;
@@ -57,7 +58,11 @@ public class TM_NARC extends TypeManager{
 			long magicoff = buffer.findString(0, 0x10, NARC.MAGIC);
 			if(magicoff == 0)
 			{
-				//Should be good as is?
+				//Make sure size is the same as the header says...
+				int bom = Short.toUnsignedInt(buffer.shortFromFile(4));
+				if(bom == 0xFEFF) buffer.setEndian(true); //Big endian
+				int expsize = buffer.intFromFile(8);
+				if(node.getLength() != expsize) return null;
 				return new FileTypeDefNode(NARC.getTypeDef());
 			}
 			else
@@ -100,13 +105,17 @@ public class TM_NARC extends TypeManager{
 		//Read in
 		try 
 		{
-			FileBuffer buffer = NTDProgramFiles.openAndDecompress(node);
+			FileBuffer buffer = node.loadDecompressedData();
+			//System.err.println("Buffer size: 0x" + Long.toHexString(buffer.getFileSize()));
 			
 			//Parse
 			NARC arc = NARC.readNARC(buffer, 0);
+			DirectoryNode root = arc.getArchiveTree();
+			NTDTools.doTypeScan(root, null);
 			
 			//Return panel
-			return new ArchivePreviewPanel(arc.getArchiveTree());
+			//return new ArchivePreviewPanel(arc.getArchiveTree());
+			return new TreePanel(root);
 		} 
 		catch (IOException e) 
 		{

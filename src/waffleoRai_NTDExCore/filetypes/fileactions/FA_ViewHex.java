@@ -1,6 +1,5 @@
 package waffleoRai_NTDExCore.filetypes.fileactions;
 
-import java.awt.Component;
 import java.awt.Frame;
 import java.io.IOException;
 
@@ -33,7 +32,7 @@ public class FA_ViewHex implements FileAction{
 	}
 	
 	@Override
-	public void doAction(FileNode node, NTDProject project, Component gui_parent) 
+	public void doAction(FileNode node, NTDProject project, Frame gui_parent) 
 	{
 		long max = node.getLength();
 		

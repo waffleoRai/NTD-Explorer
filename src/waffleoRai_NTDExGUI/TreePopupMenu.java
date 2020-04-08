@@ -2,6 +2,8 @@ package waffleoRai_NTDExGUI;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Collection;
+import java.util.LinkedList;
 
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
@@ -19,15 +21,21 @@ public class TreePopupMenu extends JPopupMenu{
 	public static final int MENU_OP_EXTRACT = 5; 
 	public static final int MENU_OP_EXPORT = 6;
 	public static final int MENU_OP_VIEW = 7;
+	public static final int MENU_OP_REFRESH = 8;
 	
 	private boolean isDir;
-	private int selection;
+	private Collection<TreePanelListener> list;
+	private String mypath;
 	
-	public TreePopupMenu(){this(false);}
+	public TreePopupMenu(){this("", false, null);}
 	
-	public TreePopupMenu(boolean isDirectory) 
+	public TreePopupMenu(String path, boolean isDirectory, Collection<TreePanelListener> listeners) 
 	{
 		isDir = isDirectory;
+		mypath = path;
+		list = listeners;
+		if(list == null) list = new LinkedList<TreePanelListener>();
+		
 		
 		JMenuItem opRename = new JMenuItem("Rename...");
 		add(opRename);
@@ -36,8 +44,8 @@ public class TreePopupMenu extends JPopupMenu{
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				selection = MENU_OP_RENAME;
-				closeMe();
+				for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_RENAME);
+				//closeMe();
 			}
 			
 		});
@@ -49,8 +57,8 @@ public class TreePopupMenu extends JPopupMenu{
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				selection = MENU_OP_MOVEME;
-				closeMe();
+				for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_MOVEME);
+				//closeMe();
 			}
 			
 		});
@@ -62,8 +70,8 @@ public class TreePopupMenu extends JPopupMenu{
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				selection = MENU_OP_EXTRACT;
-				closeMe();
+				for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_EXTRACT);
+				//closeMe();
 			}
 			
 		});
@@ -75,8 +83,8 @@ public class TreePopupMenu extends JPopupMenu{
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				selection = MENU_OP_EXPORT;
-				closeMe();
+				for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_EXPORT);
+				//closeMe();
 			}
 			
 		});
@@ -88,8 +96,8 @@ public class TreePopupMenu extends JPopupMenu{
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
-				selection = MENU_OP_VIEW;
-				closeMe();
+				for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_VIEW);
+				//closeMe();
 			}
 			
 		});
@@ -106,8 +114,8 @@ public class TreePopupMenu extends JPopupMenu{
 				@Override
 				public void actionPerformed(ActionEvent e) 
 				{
-					selection = MENU_OP_NEWDIR;
-					closeMe();
+					for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_NEWDIR);
+					//closeMe();
 				}
 				
 			});
@@ -121,19 +129,28 @@ public class TreePopupMenu extends JPopupMenu{
 				@Override
 				public void actionPerformed(ActionEvent e) 
 				{
-					selection = MENU_OP_SPLIT;
-					closeMe();
+					for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_SPLIT);
+					//closeMe();
 				}
 				
 			});
 		}
-	
+		
+		JMenuItem opRefresh = new JMenuItem("Refresh Tree");
+		add(opRefresh);
+		opRefresh.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_REFRESH);
+				//closeMe();
+			}
+			
+		});
+		
 	}
 	
-	public int getSelection()
-	{
-		return selection;
-	}
 	
 	public void closeMe()
 	{

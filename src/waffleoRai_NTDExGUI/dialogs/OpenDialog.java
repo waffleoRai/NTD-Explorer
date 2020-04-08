@@ -12,6 +12,7 @@ import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,13 @@ public class OpenDialog extends JDialog{
 	public static final int TAB_IDX_DS = 1;
 	public static final int TAB_IDX_WII = 2;
 	public static final int TAB_IDX_3DS = 3;
+	public static final int TAB_IDX_WIIU = 4;
+	public static final int TAB_IDX_SWITCH = 5;
+	//public static final int TAB_IDX_PS1 = 99;
+	//public static final int TAB_IDX_N64 = 99;
+	//public static final int TAB_IDX_GB = 99;
+	//public static final int TAB_IDX_GBC = 99;
+	//public static final int TAB_IDX_GBA = 99;
 	
 	//private Timer ds_timer;
 	private NTDProject selection;
@@ -147,6 +155,7 @@ public class OpenDialog extends JDialog{
 		if(ntr != null) addlist.addAll(ntr);
 		Collection<NTDProject> twl = loadlist.get(Console.DSi);
 		if(twl != null) addlist.addAll(twl);
+		Collections.sort(addlist);
 		
 		final int pnl_width = DSPreviewPanel.WIDTH;
 		final int pnl_height = DSPreviewPanel.HEIGHT;

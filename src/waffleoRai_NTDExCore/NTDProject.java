@@ -16,6 +16,7 @@ import java.util.List;
 
 import waffleoRai_Containers.nintendo.NDS;
 import waffleoRai_Files.EncryptionDefinitions;
+import waffleoRai_Files.FileTypeDefNode;
 import waffleoRai_Utils.BinFieldSize;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
@@ -24,8 +25,9 @@ import waffleoRai_Utils.FileBufferStreamer;
 import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.FileTreeSaver;
 import waffleoRai_Utils.SerializedString;
+import waffleoRai_fdefs.nintendo.DSSysFileDefs;
 
-public class NTDProject {
+public class NTDProject implements Comparable<NTDProject>{
 	
 	/*
 	 * Block Format
@@ -189,7 +191,7 @@ public class NTDProject {
 			EncryptionRegion reg = new EncryptionRegion();
 			String ddir = proj.getDecryptedDataDir();
 			String stem = ddir + File.separator + NTDProgramFiles.DECSTEM_DSI_MC;
-			String path = stem + "1.bin";
+			String path = stem + "01.bin";
 			
 			long off = image.getMC1Offset();
 			long size = image.getMC1Size();
@@ -199,13 +201,12 @@ public class NTDProject {
 			reg.setSize(size);
 			reg.setDefintion(NDS.getModcryptDef());
 			
+			//WARNING!! The secure key is NOT currently accurate (20/03/31)!
+			//I'm still testing the key derivation!!!!
 			byte[] aeskey = null;
-			if(image.usesSecureKey())
-			{
-				//Check for common key
-				byte[] dsikey = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_DSI_COMMON);
-				if(dsikey == null) aeskey = NTDProgramFiles.KEY_PLACEHOLDER;
-				else aeskey = image.getSecureKey(dsikey);
+			if(image.usesSecureKey()){
+				//aeskey = image.getSecureKey();
+				aeskey = new byte[16];
 			}
 			else aeskey = image.getInsecureKey();
 			
@@ -214,7 +215,7 @@ public class NTDProject {
 			proj.encrypted_regs.add(reg);
 			
 			reg = new EncryptionRegion();
-			path = stem + "2.bin";
+			path = stem + "02.bin";
 			reg.setDecryptBufferPath(path);
 			reg.setOffset(image.getMC2Offset());
 			reg.setSize(image.getMC2Size());
@@ -235,6 +236,19 @@ public class NTDProject {
 		
 		//Note encrypted nodes...
 		if(proj.is_encrypted) proj.markEncryptedNodes(proj.custom_tree);
+		
+		//Run initial type scan
+		NTDTools.doTypeScan(proj.custom_tree, null);
+		
+		//Mark system files...
+		FileNode sys = proj.custom_tree.getNodeAt("/header.bin");
+		if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getHeaderDef()));
+		sys = proj.custom_tree.getNodeAt("/icon.bin");
+		if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getBannerDef()));
+		if(image.hasTWL()){
+			sys = proj.custom_tree.getNodeAt("/rsa.bin");
+			if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getRSACertDef()));
+		}
 		
 		return proj;
 	}
@@ -497,10 +511,9 @@ public class NTDProject {
 		
 		out.addToFile(str_rom);
 		//out.addToFile(str_dec);
-		out.addToFile(str_name);
 		
 		//Encryption info
-		if(encrypted_regs != null)
+		if(encrypted_regs != null && is_encrypted)
 		{
 			out.addToFile((short)encrypted_regs.size());
 			int i = 0;
@@ -520,6 +533,8 @@ public class NTDProject {
 				i++;
 			}
 		}
+		
+		out.addToFile(str_name);
 		
 		//Banner
 		if(banner == null) out.addToFile(0);
@@ -665,7 +680,24 @@ public class NTDProject {
 		{
 			NDS nds = NDS.readROM(rom_path, 0);
 			custom_tree = nds.getArchiveTree();
+			
+			//Mark system files...
+			FileNode sys = custom_tree.getNodeAt("/header.bin");
+			if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getHeaderDef()));
+			sys = custom_tree.getNodeAt("/icon.bin");
+			if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getBannerDef()));
+			if(nds.hasTWL()){
+				sys = custom_tree.getNodeAt("/rsa.bin");
+				if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getRSACertDef()));
+			}
 		}
+		
+		//Note encrypted nodes...
+		scanTreeDir(rom_path, custom_tree);
+		if(is_encrypted) markEncryptedNodes(custom_tree);
+				
+		//Run initial type scan
+		NTDTools.doTypeScan(custom_tree, null);
 		
 		stampModificationTime();
 	}
@@ -685,7 +717,18 @@ public class NTDProject {
 				{
 					if(reg.inRegion(child.getOffset(), child.getLength()))
 					{
-						child.setEncryption(reg.getDefintion());
+						long off = 0;
+						long sz = child.getLength();
+						if(reg.getOffset() > child.getOffset()) off = child.getOffset() - reg.getOffset();
+						if(off != 0 || reg.getSize() < child.getLength()){
+							long end = reg.getOffset() + reg.getSize();
+							long cend = child.getOffset() + child.getLength();
+							if(end < cend){
+								if(off != 0) sz = end - reg.getOffset();
+								else sz = end - child.getOffset();
+							}
+						}
+						child.setEncryption(reg.getDefintion(), off, sz);
 						break;
 					}
 				}
@@ -753,6 +796,8 @@ public class NTDProject {
 		}
 	}
 	
+	@SuppressWarnings("unused")
+	@Deprecated
 	private boolean decryptDSi() throws IOException
 	{
 		//Scan regions
@@ -772,10 +817,8 @@ public class NTDProject {
 				if(securekey != null) aeskey = securekey;
 				else
 				{
-					byte[] dsicommon = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_DSI_COMMON);
-					if(dsicommon == null) return false;
 					if(nds == null) nds = NDS.readROM(rom_path, 0);
-					securekey = nds.getSecureKey(dsicommon);
+					securekey = nds.getSecureKey();
 					aeskey = securekey;
 				}
 				//if we get this far, then we should have the key.
@@ -805,7 +848,7 @@ public class NTDProject {
 	public boolean decrypt() throws IOException
 	{
 		//Will redo decryption if already done...
-		if(console == Console.DSi) return decryptDSi();
+		//if(console == Console.DSi) return decryptDSi();
 		return false;
 	}
 	
@@ -834,6 +877,37 @@ public class NTDProject {
 		node.setParent(newparent);
 		
 		return true;
+	}
+	
+	/*----- Comparison -----*/
+	
+	public boolean equals(Object o){
+		return (this == o);
+	}
+	
+	public int hashCode(){
+		return fullcode.hashCode();
+	}
+
+	@Override
+	public int compareTo(NTDProject o) {
+		if(o == null) return 1;
+		
+		//Compare by console..
+		Console tcon = this.getConsole();
+		Console ocon = o.getConsole();
+		if(tcon != ocon){
+			if(tcon == null) return -1;
+			if(ocon == null) return 1;
+			return tcon.getIntValue() - ocon.getIntValue();
+		}
+		
+		//Compare by full code...
+		String tcode = this.getGameCode12();
+		String ocode = o.getGameCode12();
+		if(tcode == null) return -1;
+		
+		return tcode.compareTo(ocode);
 	}
 	
 }

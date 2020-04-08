@@ -4,6 +4,7 @@ import javax.swing.JPanel;
 
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExGUI.FileActionListener;
 import waffleoRai_Utils.FileNode;
 
 import javax.swing.JComboBox;
@@ -16,6 +17,7 @@ import java.awt.Font;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.LinkedList;
 import java.util.List;
 import javax.swing.border.EtchedBorder;
 
@@ -33,8 +35,13 @@ public class FileOptionPanel extends JPanel {
 	private NTDProject project;
 	private FileNode file;
 	
+	private List<FileActionListener> listeners;
+	
 	public FileOptionPanel(Frame parent_frame)
 	{
+		parent = parent_frame;
+		listeners = new LinkedList<FileActionListener>();
+		
 		setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
 		setLayout(null);
 		setMinimumSize(new Dimension(MIN_WIDTH, HEIGHT));
@@ -50,14 +57,16 @@ public class FileOptionPanel extends JPanel {
 		btnGo.setBounds(231, 25, 89, 23);
 		add(btnGo);
 		btnGo.addActionListener(new ActionListener(){
-
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				int idx = comboBox.getSelectedIndex();
 				if(idx < 0) return;
 				
 				FileAction action = comboBox.getItemAt(idx);
+				//System.err.println("Action: " + action.toString());
 				action.doAction(file, project, parent);
+				//System.err.println("Listeners: " + listeners.size());
+				for(FileActionListener l : listeners)l.onFileAction();
 			}
 			
 		});
@@ -92,5 +101,8 @@ public class FileOptionPanel extends JPanel {
 		comboBox.setEnabled(true);
 	}
 	
+	public void addFileActionListener(FileActionListener l){
+		listeners.add(l);
+	}
 	
 }

@@ -11,6 +11,7 @@ import java.io.IOException;
 import javax.swing.JTable;
 import javax.swing.border.BevelBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumnModel;
 
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileNode;
@@ -21,6 +22,10 @@ public class HexPreviewDialog extends JFrame{
 	public static final int MAX_LOAD_SIZE = 0x4000000; //64MB
 
 	private static final long serialVersionUID = 1188495637881268288L;
+	
+	public static final int MIN_COL_WIDTH_OFFSET = 40;
+	public static final int MIN_COL_WIDTH_BYTE = 5;
+	public static final int MIN_COL_WIDTH_ASCII = 100;
 	
 	private JScrollPane scrollPane;
 	private JTable table;
@@ -105,6 +110,17 @@ public class HexPreviewDialog extends JFrame{
 		
 		DefaultTableModel tmodel = new DefaultTableModel(tbl, cols);
 		table.setModel(tmodel);
+		
+		TableColumnModel tcm = table.getColumnModel();
+		tcm.getColumn(0).setMinWidth(MIN_COL_WIDTH_OFFSET);
+		tcm.getColumn(0).setPreferredWidth(MIN_COL_WIDTH_OFFSET);
+		for(int i = 1; i <= 16; i++){
+			tcm.getColumn(i).setMinWidth(MIN_COL_WIDTH_BYTE);
+			tcm.getColumn(i).setPreferredWidth(MIN_COL_WIDTH_BYTE);
+		}
+		tcm.getColumn(17).setMinWidth(MIN_COL_WIDTH_ASCII);
+		tcm.getColumn(17).setPreferredWidth(MIN_COL_WIDTH_ASCII);
+		
 		table.repaint();
 		scrollPane.repaint();
 		

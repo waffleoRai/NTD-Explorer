@@ -58,7 +58,7 @@ public class IndefProgressDialog extends JDialog implements ActionListener, Prog
 		
 		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		
-		timer = new Timer((int)Math.round(1000.0/60.0), this);
+		timer = new Timer((int)Math.round(1000.0/30.0), this);
 	}
 	
 	public void setMaxDots(int n)
