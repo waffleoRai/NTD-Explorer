@@ -40,11 +40,17 @@ import waffleoRai_Executable.nintendo.DSExeDefs;
 import waffleoRai_Files.EncryptionDefinitions;
 import waffleoRai_Files.FileDefinitions;
 import waffleoRai_Files.FileTypeNode;
+import waffleoRai_SeqSound.ninseq.DSMultiSeq;
+import waffleoRai_SeqSound.ninseq.DSSeq;
+import waffleoRai_Sound.nintendo.DSStream;
+import waffleoRai_Sound.nintendo.DSWarc;
+import waffleoRai_Sound.nintendo.DSWave;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBufferStreamer;
 import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.StreamWrapper;
 import waffleoRai_fdefs.nintendo.DSSysFileDefs;
+import waffleoRai_soundbank.nintendo.DSBank;
 
 
 /*
@@ -59,6 +65,7 @@ import waffleoRai_fdefs.nintendo.DSSysFileDefs;
  */
 
 public class NTDProgramFiles {
+	
 	
 	public static final String ENCODING = "UTF8";
 	public static final byte[] KEY_PLACEHOLDER = {0};
@@ -90,6 +97,10 @@ public class NTDProgramFiles {
 	private static final String[] TRYFONTS = {"Arial Unicode MS", "MS PGothic", "MS Gothic", 
 			"AppleGothic", "Takao PGothic",
 			"Hiragino Maru Gothic Pro", "Hiragino Kaku Gothic Pro"};
+	
+	/*----- Metadata Tags -----*/
+	
+	public static final String FN_METAKEY_TITLE = "TITLE";
 	
 	/*----- Paths -----*/
 	
@@ -291,6 +302,12 @@ public class NTDProgramFiles {
 		FileDefinitions.registerDefinition(DSSysFileDefs.getBannerDef());
 		FileDefinitions.registerDefinition(DSSysFileDefs.getRSACertDef());
 		FileDefinitions.registerDefinition(DSSoundArchive.getTypeDef());
+		FileDefinitions.registerDefinition(DSWave.getDefinition());
+		FileDefinitions.registerDefinition(DSWarc.getDefinition());
+		FileDefinitions.registerDefinition(DSStream.getDefinition());
+		FileDefinitions.registerDefinition(DSBank.getDefinition());
+		FileDefinitions.registerDefinition(DSSeq.getDefinition());
+		FileDefinitions.registerDefinition(DSMultiSeq.getDefinition());
 		
 		EncryptionDefinitions.registerDefinition(NDS.getModcryptDef());
 		EncryptionDefinitions.registerDefinition(NDS.getBlowfishDef());

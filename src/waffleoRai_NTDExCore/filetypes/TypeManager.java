@@ -25,11 +25,23 @@ import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM7;
 import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM7i;
 import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM9;
 import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM9i;
+import waffleoRai_NTDExCore.filetypes.sound.TM_NitroBNK;
+import waffleoRai_NTDExCore.filetypes.sound.TM_NitroSAR;
+import waffleoRai_NTDExCore.filetypes.sound.TM_NitroSEQ;
+import waffleoRai_NTDExCore.filetypes.sound.TM_NitroSTM;
+import waffleoRai_NTDExCore.filetypes.sound.TM_NitroWAR;
+import waffleoRai_NTDExCore.filetypes.sound.TM_NitroWAV;
 import waffleoRai_NTDExCore.filetypes.sound.TM_SDAT;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
+import waffleoRai_SeqSound.ninseq.DSMultiSeq;
+import waffleoRai_SeqSound.ninseq.DSSeq;
+import waffleoRai_Sound.nintendo.DSStream;
+import waffleoRai_Sound.nintendo.DSWarc;
+import waffleoRai_Sound.nintendo.DSWave;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
+import waffleoRai_soundbank.nintendo.DSBank;
 import waffleoRai_Utils.FileNode;
 
 public abstract class TypeManager {
@@ -78,6 +90,24 @@ public abstract class TypeManager {
 		//DS Sound
 		elist.add("sdat"); elist.add("bnsar"); elist.add("nsar");
 		registerTypeManager(DSSoundArchive.getTypeDef().getTypeID(), elist, new TM_SDAT());
+		elist.clear();
+		elist.add("swav"); elist.add("bnwav"); elist.add("nwav");
+		registerTypeManager(DSWave.TYPE_ID, elist, new TM_NitroWAV());
+		elist.clear();
+		elist.add("swar"); elist.add("bnwar"); elist.add("nwar");
+		registerTypeManager(DSWarc.TYPE_ID, elist, new TM_NitroWAR());
+		elist.clear();
+		elist.add("strm"); elist.add("bnstm"); elist.add("nstm");
+		registerTypeManager(DSStream.TYPE_ID, elist, new TM_NitroSTM());
+		elist.clear();
+		elist.add("sbnk"); elist.add("bnbnk"); elist.add("nbnk");
+		registerTypeManager(DSBank.TYPE_ID, elist, new TM_NitroBNK());
+		elist.clear();
+		elist.add("sseq"); elist.add("bnseq"); elist.add("nseq");
+		registerTypeManager(DSSeq.TYPE_ID, elist, new TM_NitroSEQ());
+		elist.clear();
+		elist.add("ssar"); elist.add("bnseq"); elist.add("nseq");
+		registerTypeManager(DSMultiSeq.TYPE_ID, elist, new TM_NitroSAR());
 		elist.clear();
 		
 	}
@@ -135,6 +165,7 @@ public abstract class TypeManager {
 		if(lastdot >= 0)
 		{
 			String ext = fname.substring(lastdot + 1).trim().toLowerCase();
+			//System.err.println("ext = " + ext);
 			List<TypeManager> list = ext_map.get(ext);
 			if(list != null){
 				for(TypeManager tm : list){
@@ -238,8 +269,8 @@ public abstract class TypeManager {
 				String outpath = dirpath + File.separator + node.getFileName();
 				outpath = con.changeExtension(outpath);
 				if(dialog!=null)dialog.setSecondaryString("Extracting to " + outpath);
-				FileBuffer nodeload = node.loadDecompressedData();
-				con.writeAsTargetFormat(nodeload, outpath);
+				//FileBuffer nodeload = node.loadDecompressedData();
+				con.writeAsTargetFormat(node, outpath);
 			}	
 		}		
 		

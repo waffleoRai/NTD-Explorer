@@ -400,7 +400,14 @@ public class NTDProject implements Comparable<NTDProject>{
 	public void loadSavedTree() throws IOException, UnsupportedFileTypeException
 	{
 		String tpath = getCustomTreeSavePath();
-		if(FileBuffer.fileExists(tpath)) custom_tree = FileTreeSaver.loadTree(tpath);
+		try{
+			if(FileBuffer.fileExists(tpath)) custom_tree = FileTreeSaver.loadTree(tpath);
+		}
+		catch(Exception x){
+			System.err.println("Corrupted tree found. Resetting...");
+			x.printStackTrace();
+			resetTree();
+		}
 	}
 	
 	/*----- Serialization -----*/

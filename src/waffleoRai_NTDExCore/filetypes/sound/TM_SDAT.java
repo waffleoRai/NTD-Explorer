@@ -53,15 +53,18 @@ public class TM_SDAT extends TypeManager{
 		
 		try 
 		{
-			FileBuffer buffer = new FileBuffer(path, offset, offset+32, false);
+			FileBuffer buffer = new FileBuffer(path, offset, offset+32, true);
 			long magicoff = buffer.findString(0, 0x10, DSSoundArchive.MAGIC);
 			if(magicoff == 0)
 			{
+				//System.err.println("SDAT magic found");
 				//Make sure size is the same as the header says...
 				int bom = Short.toUnsignedInt(buffer.shortFromFile(4));
 				if(bom == 0xFEFF) buffer.setEndian(true); //Big endian
+				else buffer.setEndian(false);
 				int expsize = buffer.intFromFile(8);
 				if(node.getLength() != expsize) return null;
+				//System.err.println("SDAT file detected!");
 				return new FileTypeDefNode(DSSoundArchive.getTypeDef());
 			}
 			else
@@ -111,6 +114,7 @@ public class TM_SDAT extends TypeManager{
 			DirectoryNode root = arc.getArchiveView();
 			
 			//Scan for known types (icons r sxy)
+			NTDTools.notateTree(root, node);
 			NTDTools.doTypeScan(root, null);
 			
 			//Return panel

@@ -1,7 +1,9 @@
 package waffleoRai_NTDExGUI.panels.preview;
 
 import waffleoRai_NTDExGUI.DisposableJPanel;
+import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
 import waffleoRai_SeqSound.ninseq.NinSeqDataSource;
+import waffleoRai_SeqSound.ninseq.NinSeqSynthPlayer;
 import waffleoRai_SoundSynth.SynthBank;
 import waffleoRai_brseqStudioGUI.FullSeqPanel;
 
@@ -13,7 +15,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+
+import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Frame;
+
 import javax.swing.JButton;
 import javax.swing.border.BevelBorder;
 
@@ -22,8 +29,12 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 	private static final long serialVersionUID = -4917016248817511934L;
 	
 	public static final int MIN_WIDTH = 400;
+	public static final int HEIGHT_CTRLPNL = 50;
+	
+	private Frame parent;
 	
 	private FullSeqPanel pnlView;
+	//private JPanel wbdummy;
 	
 	private NinSeqDataSource sequence;
 	private SynthBank bank;
@@ -34,7 +45,8 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 	private JLabel lblSeqname;
 	private JLabel lblBankname;
 	
-	public NinSeqPreviewPanel(){
+	public NinSeqPreviewPanel(Frame parent){
+		this.parent = parent;
 		initGUI();
 	}
 	
@@ -46,10 +58,12 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 		gridBagLayout.columnWidths = new int[]{0, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0, 0};
 		gridBagLayout.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{1.0, 1.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
 		JPanel pnlControl = new JPanel();
+		pnlControl.setMinimumSize(new Dimension(MIN_WIDTH, HEIGHT_CTRLPNL));
+		pnlControl.setPreferredSize(new Dimension(MIN_WIDTH, HEIGHT_CTRLPNL));
 		pnlControl.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
 		pnlControl.setLayout(null);
 		GridBagConstraints gbc_pnlControl = new GridBagConstraints();
@@ -105,12 +119,14 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 		});
 		
 		pnlView = new FullSeqPanel();
+		//wbdummy = new JPanel();
 		GridBagConstraints gbc_pnlView = new GridBagConstraints();
 		gbc_pnlView.weighty = 1.0;
 		gbc_pnlView.fill = GridBagConstraints.BOTH;
 		gbc_pnlView.gridx = 0;
 		gbc_pnlView.gridy = 1;
 		add(pnlView, gbc_pnlView);
+		//add(wbdummy, gbc_pnlView);
 	}
 
 	public String getSeqName(){
@@ -118,19 +134,57 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 	}
 	
 	public void loadSeq(NinSeqDataSource seq, String name){
-		//TODO
+		sequence = seq;
+		name_seq = name;
+		lblSeqname.setText(name);
+		lblSeqname.repaint();
+		
+		pnlView.loadSeq(sequence);
 	}
 	
 	public void loadBank(SynthBank bnk, String name){
-		//TODO
+		bank = bnk;
+		name_bnk = name;
+		lblBankname.setText(name);
+		lblBankname.repaint();
 	}
 	
 	private void onChangeName(){
-		//TODO
+		//Dialog
+		
+		if(parent == null){
+			System.err.println("Can't launch change name dialog without parent frame!");
+			return;
+		}
+		
+		SetTextDialog dialog = new SetTextDialog(parent, "Set Sequence Name");
+		dialog.setVisible(true);
+		name_seq = dialog.getText();
+		lblSeqname.setText(name_seq);
+		lblSeqname.repaint();
+		dialog.dispose();
 	}
 	
 	private void onLaunchPlayer(){
 		//TODO
+		//If sequence is null, show error and return
+		if(sequence == null){
+			showError("No sequence loaded!");
+			return;
+		}
+		
+		
+		//If there is no bank, scan for banks in ROM and ask user to choose one
+		if(bank == null){
+			
+		}
+		
+		//generate player
+		NinSeqSynthPlayer player = new NinSeqSynthPlayer(sequence, bank, 0);
+		
+		//Generate new frame with the seq panel
+		//Include menu option to change bank
+		
 	}
 	
 	@Override
@@ -139,4 +193,10 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 		
 	}
 
+	public void showError(String text)
+	{
+		JOptionPane.showMessageDialog(this, text, "Error", JOptionPane.ERROR_MESSAGE);
+	}
+	
+	
 }

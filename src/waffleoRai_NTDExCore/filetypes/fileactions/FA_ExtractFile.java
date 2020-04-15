@@ -45,6 +45,7 @@ public class FA_ExtractFile implements FileAction{
 		
 		//Spawn task and dialog
 		String targetpath = dir + File.separator + node.getFileName();
+		NTDProgramFiles.setIniValue(NTDProgramFiles.INIKEY_LAST_EXTRACTED, targetpath);
 		IndefProgressDialog dialog = new IndefProgressDialog(gui_parent, "File Extraction");
 		dialog.setPrimaryString("Extracting Data");
 		dialog.setSecondaryString("Extracting to " + targetpath);
