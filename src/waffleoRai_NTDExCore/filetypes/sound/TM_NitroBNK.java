@@ -161,15 +161,20 @@ public class TM_NitroBNK extends TypeManager{
 		}
 		
 		//Generate playable bank
+		//System.err.println("Generating playable bank...");
 		SynthBank pbnk = bank.generatePlayableBank(warcs, 0);
 		
 		//Determine which banks/programs are valid
+		//System.err.println("Getting playable node numbers...");
 		Collection<Integer> bnos = bank.getUsableBanks();
 		Collection<Integer> pnos = bank.getUsablePrograms();
 		
 		//Spawn panel
+		//System.err.println("Spawning panel...");
+		//root.printMeToStderr(0);
 		SimpleSoundbankTreePanel pnl = new SimpleSoundbankTreePanel(root);
 		pnl.loadPlayer(pbnk, bnos, pnos);
+		pnl.startPlayer();
 		
 		return pnl;
 	}

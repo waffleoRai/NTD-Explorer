@@ -52,18 +52,20 @@ public class SoundbankTreePanel extends JPanel{
 		tree.setCellRenderer(new SoundbankTreeRenderer());
 		tree.addTreeSelectionListener(new TreeSelectionListener(){
 
-			private SoundbankNode last = null;
+			//private SoundbankNode last = null;
 			
 			@Override
 			public void valueChanged(TreeSelectionEvent e) {
+				//System.err.println("Value changed");
 				TreePath path = e.getPath();
 				Object targ = path.getLastPathComponent();
 				if(targ instanceof SoundbankNode){
-					if(targ == last){
+					/*if(targ == last){
 						//Notify listeners
 						for(SoundbankTreeListener l : listeners)l.onDoubleClickSelection(last);
 					}
-					else last = (SoundbankNode)targ;
+					else last = (SoundbankNode)targ;*/
+					for(SoundbankTreeListener l : listeners)l.onDoubleClickSelection((SoundbankNode)targ);
 				}
 			}
 			

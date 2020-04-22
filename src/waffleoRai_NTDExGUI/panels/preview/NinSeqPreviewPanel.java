@@ -1,18 +1,30 @@
 package waffleoRai_NTDExGUI.panels.preview;
 
 import waffleoRai_NTDExGUI.DisposableJPanel;
+import waffleoRai_NTDExGUI.dialogs.BankSelectDialog;
 import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
-import waffleoRai_SeqSound.ninseq.NinSeqDataSource;
-import waffleoRai_SeqSound.ninseq.NinSeqSynthPlayer;
+import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
+import waffleoRai_NTDExGUI.forms.NinSeqPlayerFrame;
+import waffleoRai_SeqSound.ninseq.NinSeq;
 import waffleoRai_SoundSynth.SynthBank;
+import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Utils.FileNode;
 import waffleoRai_brseqStudioGUI.FullSeqPanel;
+import waffleoRai_soundbank.SoundbankDef;
 
 import java.awt.GridBagLayout;
 import javax.swing.JPanel;
+import javax.swing.SwingWorker;
+
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -23,6 +35,10 @@ import java.awt.Frame;
 
 import javax.swing.JButton;
 import javax.swing.border.BevelBorder;
+
+import waffleoRai_Files.FileClass;
+import waffleoRai_Files.FileTypeDefinition;
+import waffleoRai_Files.FileTypeNode;
 
 public class NinSeqPreviewPanel extends DisposableJPanel{
 
@@ -36,7 +52,10 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 	private FullSeqPanel pnlView;
 	//private JPanel wbdummy;
 	
-	private NinSeqDataSource sequence;
+	private FileNode node;
+	
+	//private NinSeqDataSource sequence;
+	private NinSeq sequence;
 	private SynthBank bank;
 	
 	private String name_seq;
@@ -133,20 +152,53 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 		return name_seq;
 	}
 	
-	public void loadSeq(NinSeqDataSource seq, String name){
+	public void loadSeq(FileNode seqnode, NinSeq seq, String name){
+		node = seqnode;
 		sequence = seq;
 		name_seq = name;
-		lblSeqname.setText(name);
+		if(name == null || name.isEmpty()) name_seq = seqnode.getFileName();
+		lblSeqname.setText(name_seq);
 		lblSeqname.repaint();
 		
-		pnlView.loadSeq(sequence);
+		pnlView.loadSeq(sequence.getSequenceData());
 	}
 	
 	public void loadBank(SynthBank bnk, String name){
 		bank = bnk;
 		name_bnk = name;
-		lblBankname.setText(name);
+		lblBankname.setText(name_bnk);
 		lblBankname.repaint();
+	}
+	
+	private static void scanForBanks(DirectoryNode dn, Map<String, SynthBank> bnkmap){
+		List<FileNode> children = dn.getChildren();
+		
+		List<DirectoryNode> dchildren = new LinkedList<DirectoryNode>();
+		for(FileNode child : children){
+			if(child instanceof DirectoryNode){
+				dchildren.add((DirectoryNode)child);
+			}
+			else{
+				FileTypeNode tail = child.getTypeChainTail();
+				if(tail.getFileClass() == FileClass.SOUNDBANK){
+					//Check if definition has methods to read soundbank
+					FileTypeDefinition def = tail.getTypeDefinition();
+					if(def instanceof SoundbankDef){
+						//Get ID and read as bank
+						SoundbankDef sbdef = (SoundbankDef)def;
+						String id = sbdef.getBankIDKey(child);
+						//If already in map, just skip
+						if(bnkmap.get(id) != null)continue;
+						SynthBank bank = sbdef.getPlayableBank(child);
+						bnkmap.put(id, bank);
+					}
+				}
+			}
+		}
+		
+		for(DirectoryNode child : dchildren){
+			scanForBanks(child, bnkmap);
+		}
 	}
 	
 	private void onChangeName(){
@@ -158,32 +210,94 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 		}
 		
 		SetTextDialog dialog = new SetTextDialog(parent, "Set Sequence Name");
+		dialog.setLocationRelativeTo(parent);
 		dialog.setVisible(true);
 		name_seq = dialog.getText();
 		lblSeqname.setText(name_seq);
 		lblSeqname.repaint();
 		dialog.dispose();
+		
+		node.setMetadataValue("TITLE", name_seq);
 	}
 	
 	private void onLaunchPlayer(){
-		//TODO
+	
 		//If sequence is null, show error and return
 		if(sequence == null){
 			showError("No sequence loaded!");
 			return;
 		}
 		
+		//--- Scan ROM for banks and generate bank map
+		Map<String, SynthBank> bnkmap = new HashMap<String, SynthBank>();
+		//Spawn progress dialog in case this takes a lot of time?
+		IndefProgressDialog dialog = new IndefProgressDialog(parent, "Scanning for SoundBanks");
+		dialog.setPrimaryString("Scanning");
+		dialog.setSecondaryString("Searching image tree for marked soundbanks");
 		
-		//If there is no bank, scan for banks in ROM and ask user to choose one
-		if(bank == null){
+		SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+		{
+
+			protected Void doInBackground() throws Exception 
+			{
+				try
+				{
+					scanForBanks(node.getParent(), bnkmap);
+				}
+				catch(Exception x)
+				{
+					x.printStackTrace();
+					JOptionPane.showMessageDialog(parent, 
+							"Unknown Error: Exception thrown during bank scan! See stderr for details.", 
+							"Bank Scan Error", JOptionPane.WARNING_MESSAGE);
+				}
+				
+				return null;
+			}
 			
+			public void done(){
+				dialog.closeMe();
+			}
+		};
+		
+		task.execute();
+		dialog.render();
+		
+		//Wait for task to complete
+		while(!task.isDone()){
+			try {Thread.sleep(10);} 
+			catch (InterruptedException e) {
+				e.printStackTrace();
+				return;
+			}
 		}
 		
-		//generate player
-		NinSeqSynthPlayer player = new NinSeqSynthPlayer(sequence, bank, 0);
+		//--- If there is no default bank, ask user which bank to load
+		SynthBank initbank = bank;
+		if(bank == null){
+			JOptionPane.showMessageDialog(this, "Please choose a soundbank to initialize player.", 
+					"No Default Bank", JOptionPane.WARNING_MESSAGE);
+			
+			List<SynthBank> blist = new LinkedList<SynthBank>();
+			List<String> keys = new LinkedList<String>();
+			keys.addAll(bnkmap.keySet());
+			Collections.sort(keys);
+			for(String k : keys) blist.add(bnkmap.get(k));
+			
+			BankSelectDialog dlg = new BankSelectDialog(parent, blist);
+			dlg.setLocationRelativeTo(parent);
+			dlg.setVisible(true);
+			
+			if(!dlg.getConfirmed()) return;
+			initbank = dlg.getSelection();
+			
+			dlg.dispose();
+		}
 		
-		//Generate new frame with the seq panel
-		//Include menu option to change bank
+		//--- Load the player GUI
+		NinSeqPlayerFrame pframe = new NinSeqPlayerFrame(sequence, initbank);
+		pframe.setLocationRelativeTo(parent);
+		pframe.setVisible(true);
 		
 	}
 	
@@ -193,8 +307,7 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 		
 	}
 
-	public void showError(String text)
-	{
+	public void showError(String text){
 		JOptionPane.showMessageDialog(this, text, "Error", JOptionPane.ERROR_MESSAGE);
 	}
 	

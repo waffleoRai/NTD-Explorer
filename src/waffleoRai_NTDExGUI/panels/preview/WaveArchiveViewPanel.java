@@ -13,14 +13,15 @@ import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.JScrollPane;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.border.BevelBorder;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 
 import waffleoRai_NTDExGUI.DisposableJPanel;
 import waffleoRai_Sound.Sound;
@@ -76,12 +77,13 @@ public class WaveArchiveViewPanel extends DisposableJPanel{
 		
 		list = new JList<WaveSelection>();
 		scrollPane.setViewportView(list);
-		list.addListSelectionListener(new ListSelectionListener(){
+		/*list.addListSelectionListener(new ListSelectionListener(){
 
 			private int last = -1;
 			
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
+				System.err.println("Value changed: last = " + last);
 				int idx = list.getSelectedIndex();
 				if(idx == last){
 					WaveSelection wave = list.getSelectedValue();
@@ -92,7 +94,7 @@ public class WaveArchiveViewPanel extends DisposableJPanel{
 				else last = idx;
 			}
 			
-		});
+		});*/
 		
 		btnPlay = new JButton("Play");
 		setPlayIcon();
@@ -122,7 +124,11 @@ public class WaveArchiveViewPanel extends DisposableJPanel{
 			list.setModel(model);
 			return;
 		}
-		for(String k : sounds.keySet()){
+		//Er... let's sort that first...
+		List<String> names = new ArrayList<String>(sounds.size());
+		names.addAll(sounds.keySet());
+		Collections.sort(names);
+		for(String k : names){
 			model.addElement(new WaveSelection(sounds.get(k), k));	
 		}
 		list.setModel(model);
@@ -155,6 +161,7 @@ public class WaveArchiveViewPanel extends DisposableJPanel{
 			try {
 				playback_line = AudioSystem.getSourceDataLine(fmt);
 				playback_line.open();
+				playback_line.start();
 			}
 			catch(Exception x){
 				showError("Sound playback could not be initialized!");
@@ -192,12 +199,14 @@ public class WaveArchiveViewPanel extends DisposableJPanel{
 				catch (InterruptedException e) {
 					showError("ERROR: Playback was unexpectedly interrupted!");
 					e.printStackTrace();
+					playback_line.stop();
 					playback_line.close();
 					running = false;
 					return;
 				}
 			}
 			
+			playback_line.stop();
 			playback_line.close();
 			running = false;
 			if(autostop) setPlayIcon();

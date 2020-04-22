@@ -15,7 +15,7 @@ public class MidiKeyboardPanel extends JPanel{
 
 	private static final long serialVersionUID = 4706137093758464598L;
 	
-	public static final int KEYOFFSET_BLACK = 3;
+	public static final int KEYOFFSET_BLACK = -2;
 	public static final int KEYWIDTH_BLACK = 4;
 	public static final int KEYWIDTH_WHITE = 7;
 	public static final int KEYHEIGHT_BLACK = 20;
@@ -23,8 +23,8 @@ public class MidiKeyboardPanel extends JPanel{
 	
 	public static final int TOTAL_WHITEKEYS = 75;
 	
-	public static final Color COLOR_WHITE_DOWN = new Color(240,240,240);
-	public static final Color COLOR_BLACK_DOWN = new Color(32,32,32);
+	public static final Color COLOR_WHITE_DOWN = new Color(200,200,200);
+	public static final Color COLOR_BLACK_DOWN = new Color(64,64,64);
 	
 	public static final int[] BLACK_KEYS = {1,3,6,8,10};
 	
@@ -129,7 +129,7 @@ public class MidiKeyboardPanel extends JPanel{
 			}
 			
 			//Construct key
-			keys[i] = new BoardKey(black, new Rectangle(x, y, w, h));
+			keys[i-1] = new BoardKey(black, new Rectangle(x, y, w, h));
 			
 			k++;
 			if(k>=12)k = 0;
@@ -166,14 +166,21 @@ public class MidiKeyboardPanel extends JPanel{
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				//Find note and turn on
+				/*int note = determinePressedKey(e.getX(), e.getY());
+				if(note >= 0 && note < 128){
+					for(KeyboardListener l : listeners) l.onNotePressed(note, 100);
+				}*/
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+				//System.err.println("Mouse press detected: " + e.getX() + "," + e.getY());
 				int note = determinePressedKey(e.getX(), e.getY());
+				//System.err.println("Note: " + note);
 				if(note >= 0 && note < 128){
 					for(KeyboardListener l : listeners) l.onNotePressed(note, 100);
 				}
 			}
-
-			@Override
-			public void mousePressed(MouseEvent e) {}
 
 			@Override
 			public void mouseReleased(MouseEvent e) {
@@ -194,18 +201,22 @@ public class MidiKeyboardPanel extends JPanel{
 	
 	public int determinePressedKey(int x, int y){
 		//Determine approximate scan start location
-		int stnote = (x/KEYWIDTH_WHITE) - 1;
+		//System.err.println("Mouse press detected: " + x + "," +y);
+		int stnote = (x/KEYWIDTH_WHITE);
 		if(stnote < 0) stnote = 0;
+		stnote = ((stnote/7) * 12) - 1;
+		//System.err.println("stnote: " + stnote);
 		if(y < KEYHEIGHT_BLACK){
 			//Check black keys THEN white keys
-			for(int i = 0; i < 12; i++){
+			//System.err.println("Black key height");
+			for(int i = 0; i < 13; i++){
 				int v = stnote+i;
 				if(v >= 128) break;
 				BoardKey k = keys[v];
 				if(k.whiteKey()) continue;
 				if(k.insideKey(x, y)) return v;
 			}
-			for(int i = 0; i < 12; i++){
+			for(int i = 0; i < 13; i++){
 				int v = stnote+i;
 				if(v >= 128) break;
 				BoardKey k = keys[v];
@@ -215,7 +226,8 @@ public class MidiKeyboardPanel extends JPanel{
 		}
 		else{
 			//Check only white keys
-			for(int i = 0; i < 12; i++){
+			//System.err.println("Not black key height");
+			for(int i = 0; i < 13; i++){
 				int v = stnote+i;
 				if(v >= 128) break;
 				BoardKey k = keys[v];
@@ -250,7 +262,6 @@ public class MidiKeyboardPanel extends JPanel{
 		drawBlackKeys(g);
 		
 	}
-
 	
 	public void addListener(KeyboardListener l){
 		listeners.add(l);

@@ -183,7 +183,7 @@ public class TM_NitroSAR extends TypeManager{
 		Frame p = null;
 		if(gui_parent instanceof Frame) p = (Frame)gui_parent;
 		NinSeqPreviewPanel pnl = new NinSeqPreviewPanel(p);
-		pnl.loadSeq(seq.getSequenceData(), seqname);
+		pnl.loadSeq(node, seq, seqname);
 		pnl.loadBank(playbank, bnkname);
 		
 		return pnl;

@@ -26,6 +26,7 @@ import javax.swing.JOptionPane;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+
 import javax.swing.JComboBox;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
@@ -49,7 +50,7 @@ public class SoundPreviewPanel extends DisposableJPanel{
 	private JButton btnPlay;
 	private JButton btnLoop;
 	private JTextPane txpInfo;
-	private JPanel pnlWav;
+	private ResizableMultiWavePanel pnlWav;
 	
 	private boolean psIconState; //false = play, true = stop
 	
@@ -69,11 +70,9 @@ public class SoundPreviewPanel extends DisposableJPanel{
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0, 0, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0, 0};
-		gridBagLayout.columnWeights = new double[]{1.0, 1.0, Double.MIN_VALUE};
+		gridBagLayout.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
 		gridBagLayout.rowWeights = new double[]{1.0, 1.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
-		
-		drawWaveforms();
 		
 		JPanel pnlControl = new JPanel();
 		pnlControl.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
@@ -84,6 +83,8 @@ public class SoundPreviewPanel extends DisposableJPanel{
 		gbc_pnlControl.gridx = 0;
 		gbc_pnlControl.gridy = 1;
 		add(pnlControl, gbc_pnlControl);
+		pnlControl.setMinimumSize(new Dimension(200, 120));
+		pnlControl.setPreferredSize(new Dimension(200, 120));
 		
 		JLabel lblTrack = new JLabel("Track:");
 		lblTrack.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -142,14 +143,10 @@ public class SoundPreviewPanel extends DisposableJPanel{
 		pnlInfo.add(spInfo, gbc_spInfo);
 		
 		txpInfo = new JTextPane();
+		txpInfo.setFont(new Font("Courier New", Font.PLAIN, 11));
 		spInfo.setViewportView(txpInfo);
-	}
-	
-	private void drawWaveforms(){
 		
-		//TODO more accurate size retrieval
-		
-		pnlWav = new JPanel();
+		pnlWav = new ResizableMultiWavePanel(1);
 		GridBagConstraints gbc_pnlWav = new GridBagConstraints();
 		gbc_pnlWav.gridwidth = 2;
 		gbc_pnlWav.insets = new Insets(0, 0, 5, 5);
@@ -157,59 +154,32 @@ public class SoundPreviewPanel extends DisposableJPanel{
 		gbc_pnlWav.gridx = 0;
 		gbc_pnlWav.gridy = 0;
 		add(pnlWav, gbc_pnlWav);
-		GridBagLayout gbl_pnlWav = new GridBagLayout();
-		gbl_pnlWav.columnWidths = new int[]{0};
-		gbl_pnlWav.rowHeights = new int[]{0};
-		gbl_pnlWav.columnWeights = new double[]{Double.MIN_VALUE};
-		gbl_pnlWav.rowWeights = new double[]{Double.MIN_VALUE};
-		pnlWav.setLayout(gbl_pnlWav);
 		
-		//Get my size
-		Dimension mysize = pnlWav.getSize();
+		drawWaveforms();
+	}
+	
+	private void drawWaveforms(){
 		
-		//Determine whether sound is mono or stereo...
 		if(sound == null){
-			GridBagConstraints gbc = new GridBagConstraints();
-			gbc.fill = GridBagConstraints.BOTH;
-			gbc.gridx = 0;
-			gbc.gridy = 0;
-			pnlWav.add(new WaveRenderPanel(mysize.width, mysize.height), gbc);
-			
+			pnlWav.clearData();
+			pnlWav.repaint();
 			return;
 		}
-		
-		
-		//add one or two WaveRenderPanels, load in data
-		int ch = sound.totalChannels();
-		if(ch == 1){
-			GridBagConstraints gbc = new GridBagConstraints();
-			gbc.fill = GridBagConstraints.BOTH;
-			gbc.gridx = 0;
-			gbc.gridy = 0;
-			WaveRenderPanel ch0 = new WaveRenderPanel(mysize.width, mysize.height);
-			ch0.setData(getDataSamples(0));
-			pnlWav.add(ch0, gbc);
-		}
 		else{
-			GridBagConstraints gbc = new GridBagConstraints();
-			gbc.fill = GridBagConstraints.BOTH;
-			gbc.gridx = 0;
-			gbc.gridy = 0;
-			gbc.insets = new Insets(0, 0, 2, 0);
-			WaveRenderPanel ch0 = new WaveRenderPanel(mysize.width, (mysize.height/2)-4);
-			ch0.setData(getDataSamples(0));
-			pnlWav.add(ch0, gbc);
 			
-			gbc = new GridBagConstraints();
-			gbc.fill = GridBagConstraints.BOTH;
-			gbc.gridx = 0;
-			gbc.gridy = 1;
-			gbc.insets = new Insets(2, 0, 0, 0);
-			WaveRenderPanel ch1 = new WaveRenderPanel(mysize.width, (mysize.height/2)-4);
-			ch1.setData(getDataSamples(1));
-			pnlWav.add(ch1, gbc);
+			int ccount = sound.totalChannels();
+			if(pnlWav.getChannelCount() != ccount){
+				pnlWav.changeChannelCount(ccount);
+			}
+			
+			for(int c = 0; c < ccount; c++){
+				pnlWav.loadWaveData(c, getDataSamples(c));
+			}
+			
+			pnlWav.repaint();
 		}
 		
+				
 	}
 	
 	private void updateControlButtons(){
@@ -266,15 +236,19 @@ public class SoundPreviewPanel extends DisposableJPanel{
 	private double[] getDataSamples(int channel){
 
 		if(sdat == null) return null;
-		if(sdat.get(channel) != null) return sdat.get(channel);
+		if(sdat.size() > channel){
+			if(sdat.get(channel) != null) return sdat.get(channel);	
+		}
 		
 		int ch = sound.totalChannels();
 		for(int c = 0; c < ch; c++){
+			//System.err.println("Channel " + c);
 			int[] raw = sound.getSamples_16Signed(c);
 			double[] targ = new double[raw.length];
 			for(int i = 0; i < raw.length; i++){
 				double val = (double)raw[i]/(double)0x7FFF;
 				targ[i] = val;
+				//System.err.println(targ[i]);
 			}
 			sdat.add(targ);	
 		}
@@ -315,10 +289,13 @@ public class SoundPreviewPanel extends DisposableJPanel{
 			
 			AudioSampleStream strm = sound.createSampleStream(loopme);
 			AudioFormat fmt = new AudioFormat(strm.getSampleRate(), strm.getBitDepth(), strm.getChannelCount(), true, false);
+			//AudioFormat fmt = new AudioFormat(48000, strm.getBitDepth(), strm.getChannelCount(), true, false);
 			bytes_per_samp = strm.getBitDepth() >>> 3;
+			//System.err.println("Bytes per sample: " + bytes_per_samp);
 			try {
 				playback_line = AudioSystem.getSourceDataLine(fmt);
-				playback_line.open();
+				playback_line.open(fmt);
+				playback_line.start();
 			}
 			catch(Exception x){
 				showError("Sound playback could not be initialized!");
@@ -326,26 +303,29 @@ public class SoundPreviewPanel extends DisposableJPanel{
 				running = false;
 				return;
 			}
+			int framesize = strm.getChannelCount() * bytes_per_samp;
 			
 			//Runs until either sound is done playing
 			//or worker is terminated by user
 			while(!killme){
 				try {
 					int[] samps = strm.nextSample();
+					byte[] frame = new byte[framesize];
+					int j = 0;
 					for(int c = 0; c < samps.length; c++){
 						int s = samps[c];
 						
 						int mask = 0xFF;
 						int shift = 0;
-						byte[] bytes = new byte[bytes_per_samp];
+						//byte[] bytes = new byte[bytes_per_samp];
 						for(int i = 0; i < bytes_per_samp; i++){
-							bytes[i] = (byte)((s & mask) >>> shift);
+							frame[j+i] = (byte)((s & mask) >>> shift);
 							mask = mask << 8;
 							shift += 8;
 						}
-						
-						playback_line.write(bytes, 0, bytes_per_samp);
-					}
+						j += bytes_per_samp;
+					}					
+					playback_line.write(frame, 0, framesize);
 					
 					if(strm.done()) {
 						synchronized(this){killme = true;}
@@ -356,12 +336,14 @@ public class SoundPreviewPanel extends DisposableJPanel{
 				catch (InterruptedException e) {
 					showError("ERROR: Playback was unexpectedly interrupted!");
 					e.printStackTrace();
+					playback_line.stop();
 					playback_line.close();
 					running = false;
 					return;
 				}
 			}
 			
+			playback_line.stop();
 			playback_line.close();
 			running = false;
 			if(autostop) setIconStatePlay();
@@ -384,6 +366,7 @@ public class SoundPreviewPanel extends DisposableJPanel{
 	private void setPlayIcon(){
 		btnPlay.setText("Play");
 		btnPlay.setForeground(Color.green);
+		btnPlay.repaint();
 	}
 	
 	private void setStopIcon(){

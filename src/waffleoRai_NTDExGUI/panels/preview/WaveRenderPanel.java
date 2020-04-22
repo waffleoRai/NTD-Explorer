@@ -5,6 +5,10 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 import javax.swing.JPanel;
 
@@ -18,10 +22,14 @@ public class WaveRenderPanel extends JPanel implements MouseListener{
 	
 	private int zoom_l;
 	private int zoom_r;
+	
+	private double normalize_factor;
+	
+	//private int mywidth;
+	//private int myheight;
 
 	public WaveRenderPanel(int w, int h){
-		setMinimumSize(new Dimension(w, h));
-		setPreferredSize(new Dimension(w, h));
+		setInternalSize(new Dimension(w,h));
 		setBackground(Color.BLACK);
 		setForeground(Color.GREEN);
 		
@@ -34,7 +42,22 @@ public class WaveRenderPanel extends JPanel implements MouseListener{
 		zoom_r = fullwave.length;
 		loop_st = 0;
 		loop_ed = zoom_r;
+		calculateNormalization();
 		repaint();
+	}
+	
+	private void calculateNormalization(){
+		double max = 0.0;
+		for(double d : wavedat){
+			double abs = Math.abs(d);
+			if(abs > max){
+				max = abs;
+			}
+		}
+		
+		normalize_factor = 1.0/max;
+		//System.err.println("Max: " + max);
+		//System.err.println("Normalize factor: " + normalize_factor);
 	}
 	
 	public void setLoop(int st, int ed){
@@ -49,14 +72,76 @@ public class WaveRenderPanel extends JPanel implements MouseListener{
 			repaint();
 			return;
 		}
-		zoom_l = Math.min(0, min);
-		zoom_r = Math.max(wavedat.length, max);
+		zoom_l = Math.max(0, min);
+		zoom_r = Math.min(wavedat.length, max);
 		if(zoom_l >= zoom_r) zoom_l = zoom_r-1;
 		repaint();
 	}
 	
+	public static double sampleAverage(Collection<Double> samps){
+		double sum = 0.0;
+		double ct = 0.0;
+		for(Double d : samps){sum += d; ct++;}
+		
+		return sum/ct;
+	}
+	
+	public static double sampleMax(Collection<Double> samps, boolean ab){
+		double max = 0.0;
+		boolean neg = false;
+		for(Double d : samps){
+			double abs = Math.abs(d);
+			if(abs > max){
+				max = abs;
+				if(d < 0.0) neg = true;
+				else neg = false;
+			}
+		}
+		
+		double val = max;
+		if(ab && neg) val *= -1.0;
+		
+		return val;
+	}
+	
+	public static double sampleMedian(List<Double> samps){
+		Collections.sort(samps);
+		int sz = samps.size();
+		int mid = sz/2;
+		
+		return samps.get(mid);
+	}
+	
+	public static double sampleAbsMedian(List<Double> samps){
+		List<Double> nsamps = new LinkedList<Double>();
+		for(Double d : samps){
+			if(d >= 0.0) nsamps.add(d);
+			else nsamps.add(d * -1.0);
+		}
+		Collections.sort(nsamps);
+		int sz = nsamps.size();
+		int mid = sz/2;
+		
+		return nsamps.get(mid);
+	}
+	
+	public static double sampleAbsAverage(Collection<Double> samps){
+		double sum = 0.0;
+		double ct = 0.0;
+		for(Double d : samps){sum += Math.abs(d); ct++;}
+		
+		return sum/ct;
+	}
+	
+	public double generateValue(List<Double> samps){
+		//return sampleAverage(samps);
+		return sampleMax(samps, true);
+		//return sampleMedian(samps);
+		//return sampleAbsMedian(samps);
+		//return sampleAbsAverage(samps);
+	}
+	
 	public void paintComponent(Graphics g){
-		//TODO more accurate size retrieval
 		
 		super.paintComponent(g);
 		
@@ -64,6 +149,8 @@ public class WaveRenderPanel extends JPanel implements MouseListener{
 		
 		//Horizontal line through
 		Dimension size = this.getSize();
+		//int h = myheight;
+		//int w = mywidth;
 		int h = size.height;
 		int w = size.width;
 		if(h % 2 == 0) h--;
@@ -77,36 +164,37 @@ public class WaveRenderPanel extends JPanel implements MouseListener{
 		int samps = zoom_r - zoom_l;
 		double px_per_samp = (double)w/(double)samps;
 		if(px_per_samp < 1){
+			//System.err.println("Multi x per sample");
 			//Multiple samples per x
-			double samp_per_px = 1.0/px_per_samp;
+			double samp_per_px = (double)samps/(double)w;
 			int lasty = midpix;
 			int lastx = 0;
 			double nxt = samp_per_px;
-			double sum = 0.0;
-			int ctx = 0;
+			List<Double> slist = new LinkedList<Double>();
 			for(int s = zoom_l; s < zoom_r; s++){
 				
 				//Count
-				sum += wavedat[s];
+				slist.add(wavedat[s]);
 				if(s == loop_st || s == loop_ed){
 					g.setColor(Color.red);
 					g.drawLine(lastx+1, 0, lastx+1, h);
 					g.setColor(Color.green);
 				}
 				
-				if(++ctx >= nxt){
+				if(s >= nxt){
 					nxt += samp_per_px;
-					double avg = sum/(double)ctx;
-					ctx = 0;
-					sum = 0.0;
-					
-					double off = (midpix-1) * avg;
-					int y = midpix + (int)Math.round(off);
+
 					int x = lastx+1;
+					double val = generateValue(slist);
+					double off = (midpix-1) * val * normalize_factor;
+					if(x % 2 == 0) off *= -1.0;
+					int y = midpix + (int)Math.round(off);
 					
 					g.drawLine(lastx, lasty, x, y);
 					lastx = x;
 					lasty = y;
+					//System.err.println(x + "," + y);
+					slist.clear();
 				}
 			}
 		}
@@ -161,11 +249,27 @@ public class WaveRenderPanel extends JPanel implements MouseListener{
 		
 		
 	}
+	
+	public void setInternalSize(Dimension d){
+		//mywidth = d.width;
+		//myheight = d.height;
+		this.setMinimumSize(d);
+		this.setPreferredSize(d);
+	}
 
+	public void setSize(Dimension d){
+		super.setSize(d);
+		setInternalSize(d);
+	}
+	
+	public void clearData(){
+		setData(new double[1]);
+	}
 	
 	public void mouseClicked(MouseEvent e) {
 		//If right click, zoom out 5x
 		if(e.getButton() == MouseEvent.BUTTON3){
+			//System.err.println("Right click");
 			int nowzoom = zoom_r - zoom_l;
 			int zoomout = nowzoom * 5;
 			int side = zoomout/2;
@@ -176,6 +280,7 @@ public class WaveRenderPanel extends JPanel implements MouseListener{
 			setZoom(left, right);
 		}
 		else if(e.getButton() == MouseEvent.BUTTON1){
+			//System.err.println("Left click");
 			int nowzoom = zoom_r - zoom_l;
 			int zoomin = nowzoom/5;
 			int side = zoomin/2;
@@ -187,15 +292,11 @@ public class WaveRenderPanel extends JPanel implements MouseListener{
 		}
 	}
 
-
 	public void mousePressed(MouseEvent e) {}
-
 
 	public void mouseReleased(MouseEvent e) {}
 
-
 	public void mouseEntered(MouseEvent e) {}
-
 
 	public void mouseExited(MouseEvent e) {}
 

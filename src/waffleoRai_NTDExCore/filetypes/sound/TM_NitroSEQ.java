@@ -133,7 +133,7 @@ public class TM_NitroSEQ extends TypeManager{
 		if(bnkpath == null){
 			bnkpath = DSSoundArchive.findLinkedBank(node);
 		}
-		
+		//System.err.println("bnkpath = " + bnkpath);
 		FileNode bnknode = node.getParent().getNodeAt(bnkpath);
 		if(bnknode == null){
 			JOptionPane.showMessageDialog(gui_parent, 
@@ -167,13 +167,14 @@ public class TM_NitroSEQ extends TypeManager{
 						"Parser Error", JOptionPane.WARNING_MESSAGE);
 				e.printStackTrace();
 			}
+			if(bnkname == null || bnkname.isEmpty()) bnkname = bnknode.getFileName();
 		}
 		
 		//Generate panel
 		Frame p = null;
 		if(gui_parent instanceof Frame) p = (Frame)gui_parent;
 		NinSeqPreviewPanel pnl = new NinSeqPreviewPanel(p);
-		pnl.loadSeq(seq.getSequenceData(), seqname);
+		pnl.loadSeq(node, seq, seqname);
 		pnl.loadBank(playbank, bnkname);
 		
 		return pnl;

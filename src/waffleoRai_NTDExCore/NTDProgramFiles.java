@@ -92,6 +92,9 @@ public class NTDProgramFiles {
 	public static final String INIKEY_LAST_EXPORTED = "LAST_EXPORT_PATH";
 	public static final String INIKEY_LAST_EXTRACTED = "LAST_EXTRACT_PATH";
 	
+	public static final String INIKEY_LAST_MIDI_EXPORT = "LAST_MIDIEXP_PATH";
+	public static final String INIKEY_LAST_SEQWAV_EXPORT = "LAST_SEQWAVEXP_PATH";
+	
 	/*----- Font -----*/
 	
 	private static final String[] TRYFONTS = {"Arial Unicode MS", "MS PGothic", "MS Gothic", 

@@ -136,15 +136,17 @@ public class SoundbankKeyboardPanel extends JPanel implements KeyboardListener{
 				try 
 				{
 					int[] samps = channel.nextSample();
+					byte[] bytes = new byte[samps.length * 2];
 					
+					int j = 0;
 					for(int c = 0; c < samps.length; c++){
 						int s = samps[c];
-						byte[] bytes = new byte[2];
-						bytes[0] = (byte)(s & 0xFF);
-						bytes[1] = (byte)((s >>> 8) & 0xFF);
-						outline.write(bytes, 0, bytes.length);
+						//byte[] bytes = new byte[2];
+						bytes[j] = (byte)(s & 0xFF);
+						bytes[j+1] = (byte)((s >>> 8) & 0xFF);
+						j+=2;
 					}
-					
+					outline.write(bytes, 0, bytes.length);
 				} 
 				catch (InterruptedException e) {
 					e.printStackTrace();
@@ -182,11 +184,14 @@ public class SoundbankKeyboardPanel extends JPanel implements KeyboardListener{
 		{
 			outline = AudioSystem.getSourceDataLine(fmt);
 			outline.open();
+			outline.start();
 		} 
 		catch (LineUnavailableException e) {
 			e.printStackTrace();
 			showError("Could not initialize playback!");
 			channel = null;
+			outline.stop();
+			outline.close();
 			outline = null;
 		}
 		
@@ -199,17 +204,22 @@ public class SoundbankKeyboardPanel extends JPanel implements KeyboardListener{
 	
 	public void closePlayChannel(){
 
-		channel.allNotesOff();
+		if(channel != null) channel.allNotesOff();
 		
-		if(player != null) player.terminate();
-		while(!player.isDone()){
-			try {Thread.sleep(10);} 
-			catch (InterruptedException e) {e.printStackTrace(); break;}
+		if(player != null){
+			player.terminate();
+			while(!player.isDone()){
+				try {Thread.sleep(10);} 
+				catch (InterruptedException e) {e.printStackTrace(); break;}
+			}
 		}
 		
 		channel = null;
-		outline.close();
-		outline = null;
+		if(outline != null){
+			outline.stop();
+			outline.close();
+			outline = null;
+		}
 		player = null;
 	}
 	
@@ -254,7 +264,9 @@ public class SoundbankKeyboardPanel extends JPanel implements KeyboardListener{
 	}
 	
 	public void onNotePressed(int note, int vel){
+		//System.err.println("Note pressed: " + note);
 		if(channel == null) return;
+		//System.err.println("Channel non null");
 		try {channel.noteOn((byte)note, (byte)vel);} 
 		catch (InterruptedException e) {e.printStackTrace();}
 	}

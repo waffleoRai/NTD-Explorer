@@ -32,7 +32,7 @@ public class SimpleSoundbankTreePanel extends DisposableJPanel implements Soundb
 		gridBagLayout.columnWidths = new int[]{0, 0, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0, 0};
 		gridBagLayout.columnWeights = new double[]{1.0, 1.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{1.0, 1.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{1.0, 1.0, 0.0};
 		setLayout(gridBagLayout);
 		
 		pnlTree = new SoundbankTreePanel(root);
@@ -87,6 +87,7 @@ public class SimpleSoundbankTreePanel extends DisposableJPanel implements Soundb
 
 	
 	public void onDoubleClickSelection(SoundbankNode selection) {
+		//System.err.println("Double click!");
 		loadInfo(selection);
 	}
 

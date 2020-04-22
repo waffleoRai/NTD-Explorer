@@ -5,7 +5,9 @@ import java.awt.Frame;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -29,8 +31,8 @@ import waffleoRai_NTDExCore.filetypes.fileactions.FA_ExtractFile;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ViewHex;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.panels.preview.SoundPreviewPanel;
-import waffleoRai_Sound.Sound;
 import waffleoRai_Sound.nintendo.DSStream;
+import waffleoRai_Sound.nintendo.NinSound;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBufferStreamer;
 import waffleoRai_Utils.FileNode;
@@ -107,7 +109,7 @@ public class TM_NitroSTM extends TypeManager{
 	public JPanel generatePreviewPanel(FileNode node, Component gui_parent) {
 		
 		//Try to load sound
-		Sound snd = null;
+		DSStream snd = null;
 		try {
 			FileBuffer dat = node.loadDecompressedData();
 			snd = DSStream.readSTRM(dat, 0);
@@ -137,6 +139,25 @@ public class TM_NitroSTM extends TypeManager{
 		//Generate panel
 		SoundPreviewPanel pnl = new SoundPreviewPanel();
 		pnl.setSound(snd);
+		
+		//Add metadata
+		Map<String, String> meta = new HashMap<String, String>();
+		meta.put("Sample Rate", snd.getSampleRate() + " hz");
+		meta.put("Bit Depth", snd.getBitDepth().getBitCount() + " bits");
+		if(snd.totalChannels() == 2) meta.put("Channels", "Stereo");
+		else meta.put("Channels", "Mono");
+		
+		int encoding = snd.getEncodingType();
+		switch(encoding){
+		case NinSound.ENCODING_TYPE_PCM8: 
+			meta.put("Encoding", "8-bit PCM"); break;
+		case NinSound.ENCODING_TYPE_PCM16:
+			meta.put("Encoding", "16-bit PCM"); break;
+		case NinSound.ENCODING_TYPE_IMA_ADPCM:
+			meta.put("Encoding", "IMA ADPCM"); break;
+		}
+		
+		pnl.setSoundInfo(meta);
 		
 		return pnl;
 	}
