@@ -40,6 +40,7 @@ import waffleoRai_Executable.nintendo.DSExeDefs;
 import waffleoRai_Files.EncryptionDefinitions;
 import waffleoRai_Files.FileDefinitions;
 import waffleoRai_Files.FileTypeNode;
+import waffleoRai_SeqSound.misc.SMD;
 import waffleoRai_SeqSound.ninseq.DSMultiSeq;
 import waffleoRai_SeqSound.ninseq.DSSeq;
 import waffleoRai_Sound.nintendo.DSStream;
@@ -51,6 +52,7 @@ import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.StreamWrapper;
 import waffleoRai_fdefs.nintendo.DSSysFileDefs;
 import waffleoRai_soundbank.nintendo.DSBank;
+import waffleoRai_soundbank.procyon.SWD;
 
 
 /*
@@ -311,6 +313,8 @@ public class NTDProgramFiles {
 		FileDefinitions.registerDefinition(DSBank.getDefinition());
 		FileDefinitions.registerDefinition(DSSeq.getDefinition());
 		FileDefinitions.registerDefinition(DSMultiSeq.getDefinition());
+		FileDefinitions.registerDefinition(SMD.getDefinition());
+		FileDefinitions.registerDefinition(SWD.getDefinition());
 		
 		EncryptionDefinitions.registerDefinition(NDS.getModcryptDef());
 		EncryptionDefinitions.registerDefinition(NDS.getBlowfishDef());

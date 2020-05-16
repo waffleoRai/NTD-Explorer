@@ -20,19 +20,11 @@ import waffleoRai_Executable.nintendo.DSExeDefs;
 import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.FileAction;
-import waffleoRai_NTDExCore.filetypes.archive.TM_NARC;
-import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM7;
-import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM7i;
-import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM9;
-import waffleoRai_NTDExCore.filetypes.bincode.TM_DSARM9i;
-import waffleoRai_NTDExCore.filetypes.sound.TM_NitroBNK;
-import waffleoRai_NTDExCore.filetypes.sound.TM_NitroSAR;
-import waffleoRai_NTDExCore.filetypes.sound.TM_NitroSEQ;
-import waffleoRai_NTDExCore.filetypes.sound.TM_NitroSTM;
-import waffleoRai_NTDExCore.filetypes.sound.TM_NitroWAR;
-import waffleoRai_NTDExCore.filetypes.sound.TM_NitroWAV;
-import waffleoRai_NTDExCore.filetypes.sound.TM_SDAT;
+import waffleoRai_NTDExCore.filetypes.archive.*;
+import waffleoRai_NTDExCore.filetypes.bincode.*;
+import waffleoRai_NTDExCore.filetypes.sound.*;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
+import waffleoRai_SeqSound.misc.SMD;
 import waffleoRai_SeqSound.ninseq.DSMultiSeq;
 import waffleoRai_SeqSound.ninseq.DSSeq;
 import waffleoRai_Sound.nintendo.DSStream;
@@ -42,6 +34,7 @@ import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 import waffleoRai_soundbank.nintendo.DSBank;
+import waffleoRai_soundbank.procyon.SWD;
 import waffleoRai_Utils.FileNode;
 
 public abstract class TypeManager {
@@ -109,7 +102,12 @@ public abstract class TypeManager {
 		elist.add("ssar"); elist.add("bnseq"); elist.add("nseq");
 		registerTypeManager(DSMultiSeq.TYPE_ID, elist, new TM_NitroSAR());
 		elist.clear();
-		
+		elist.add("smd"); elist.add("smdl");
+		registerTypeManager(SMD.TYPE_ID, elist, new TM_ProcyonSMD());
+		elist.clear();
+		elist.add("swd"); elist.add("swdl");
+		registerTypeManager(SWD.TYPE_ID, elist, new TM_ProcyonSWD());
+		elist.clear();
 	}
 	
 	public static boolean registerTypeManager(int id, String ext, TypeManager manager)

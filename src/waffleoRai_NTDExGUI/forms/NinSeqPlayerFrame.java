@@ -1,7 +1,10 @@
 package waffleoRai_NTDExGUI.forms;
 
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +40,9 @@ public class NinSeqPlayerFrame extends JFrame{
 
 	private static final long serialVersionUID = 2621467896838617387L;
 	
+	public static final int MIN_WIDTH = 700;
+	public static final int MIN_HEIGHT = 400;
+	
 	private SeqPlayerPanel pnlSeqPlay;
 	private NinSeqRegisterViewPanel regpnl;
 	
@@ -45,6 +51,9 @@ public class NinSeqPlayerFrame extends JFrame{
 	private NinSeq sequence;
 	private SynthBank bnkDefo;
 	private SynthBank current_bank;
+	
+	private String s_name;
+	private String b_name;
 	
 	private long address;
 	private int lbl_idx;
@@ -60,6 +69,9 @@ public class NinSeqPlayerFrame extends JFrame{
 	
 	private void initGUI(){
 		setTitle("Sequence Player");
+		
+		setMinimumSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
+		setPreferredSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
 		
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -120,6 +132,13 @@ public class NinSeqPlayerFrame extends JFrame{
 			}
 		}
 		initializePlayerPanel(bnkDefo, address);
+		
+		this.addWindowListener(new WindowAdapter(){
+			
+			public void windowClosing(WindowEvent e){
+				onClose();
+			}
+		});
 	}
 	
 	public void render(){
@@ -131,13 +150,23 @@ public class NinSeqPlayerFrame extends JFrame{
 		
 		current_bank = bank;
 		player = new NinSeqSynthPlayer(sequence.getSequenceData(), bank, addr);
+		
+		if(s_name != null && !s_name.isEmpty()) player.setSequenceName(s_name);
+		else player.setSequenceName(sequence.getName());
+		
+		if(b_name != null && !b_name.isEmpty()) player.setSequenceName(b_name);
+		else player.setSequenceName(bank.getName());
+		
 		regpnl = new NinSeqRegisterViewPanel();
 		regpnl.loadPlayer(player);
 		
 		pnlSeqPlay = new SeqPlayerPanel(player, regpnl);
-		this.removeAll();
-		this.setContentPane(pnlSeqPlay);
-		this.repaint();
+		//this.removeAll();
+		//this.setContentPane(pnlSeqPlay);
+		//this.repaint();
+		
+		this.getContentPane().removeAll();
+		this.getContentPane().add(pnlSeqPlay);
 	}
 	
 	public void addAlternateBanks(Map<String, SynthBank> banks){
@@ -149,6 +178,18 @@ public class NinSeqPlayerFrame extends JFrame{
 		//other_banks.addAll(banks);
 		other_banks.clear();
 		for(String k : banks.keySet()) other_banks.put(k, banks.get(k)); 
+	}
+	
+	public void setSequenceName(String name){
+		s_name = name;
+		player.setSequenceName(name);
+		pnlSeqPlay.refresh();
+	}
+	
+	public void setBankName(String name){
+		b_name = name;
+		player.setBankName(name);
+		pnlSeqPlay.refresh();
 	}
 	
 	private void onChangeBank(){
@@ -410,6 +451,26 @@ public class NinSeqPlayerFrame extends JFrame{
 
 	public void showInfo(String text){
 		JOptionPane.showMessageDialog(this, text, "Info", JOptionPane.INFORMATION_MESSAGE);
+	}
+	
+	public void disposePlayerPanel(){
+		pnlSeqPlay.dispose();
+		this.getContentPane().removeAll();
+		pnlSeqPlay = null;
+	}
+	
+	public void onClose(){
+		//Clean player
+		if(player != null) {
+			player.stop();
+			player.dispose();
+		}
+		other_banks.clear();
+		other_banks = null;
+		
+		//Clean up
+		disposePlayerPanel();
+		this.dispose();
 	}
 	
 }

@@ -296,6 +296,9 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 		
 		//--- Load the player GUI
 		NinSeqPlayerFrame pframe = new NinSeqPlayerFrame(sequence, initbank);
+		pframe.setSequenceName(name_seq);
+		pframe.setBankName(name_bnk);
+		pframe.addAlternateBanks(bnkmap);
 		pframe.setLocationRelativeTo(parent);
 		pframe.setVisible(true);
 		

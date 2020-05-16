@@ -291,4 +291,34 @@ public class NTDTools {
 		
 	}
 	
+	private static void scanForType(DirectoryNode dir, FileClass type, List<FileNode> list){
+
+		List<FileNode> children = dir.getChildren();
+		for(FileNode child : children){
+			if(child instanceof DirectoryNode){
+				scanForType((DirectoryNode)child, type, list);
+			}
+			else{
+				if(child.getTypeChainTail().getFileClass() == type) list.add(child);
+			}
+		}
+		
+	}
+	
+	public static List<FileNode> scanForType(FileNode node, FileClass type){
+		//Backtrack to root.
+		DirectoryNode dn = node.getParent();
+		if(dn == null && (node instanceof DirectoryNode)){
+			dn = (DirectoryNode)node;
+		}
+		else{
+			while(dn.getParent() != null) dn = dn.getParent();
+		}
+		
+		List<FileNode> list = new LinkedList<FileNode>();
+		scanForType(dn, type, list);
+		
+		return list;
+	}
+	
 }
