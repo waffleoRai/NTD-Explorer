@@ -22,4 +22,9 @@ public class GenSeqTrack {
 	public void clearEvents(){events.clear();}
 	public List<GenSeqEvent> getEventList(){return events;}
 	
+	public boolean isEmpty(){
+		if(events == null) return true;
+		return events.isEmpty();
+	}
+	
 }

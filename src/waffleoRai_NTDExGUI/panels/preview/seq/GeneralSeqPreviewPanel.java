@@ -158,7 +158,9 @@ public class GeneralSeqPreviewPanel extends DisposableJPanel{
 		cmbxTrack.addActionListener(new ActionListener(){
 
 			public void actionPerformed(ActionEvent e) {
-				loadTable(cmbxTrack.getItemAt(cmbxTrack.getSelectedIndex()));
+				int idx = cmbxTrack.getSelectedIndex();
+				//System.err.println("Track at idx " + idx + " is null? " + (cmbxTrack.getItemAt(idx) == null));
+				loadTable(cmbxTrack.getItemAt(idx));
 			}
 			
 		});

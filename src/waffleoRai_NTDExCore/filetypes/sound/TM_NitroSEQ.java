@@ -12,19 +12,13 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingWorker;
 
-import waffleoRai_Compression.definitions.AbstractCompDef;
-import waffleoRai_Compression.definitions.CompDefNode;
-import waffleoRai_Compression.nintendo.DSCompHeader;
-import waffleoRai_Compression.nintendo.DSRLE;
-import waffleoRai_Compression.nintendo.NinHuff;
-import waffleoRai_Compression.nintendo.NinLZ;
 import waffleoRai_Containers.nintendo.sar.DSSoundArchive;
 import waffleoRai_Files.Converter;
-import waffleoRai_Files.FileTypeDefNode;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.filetypes.NitroFiles;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ExtractFile;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ViewHex;
@@ -34,76 +28,13 @@ import waffleoRai_SeqSound.ninseq.DSSeq;
 import waffleoRai_SoundSynth.SynthBank;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileBufferStreamer;
 import waffleoRai_Utils.FileNode;
-import waffleoRai_Utils.StreamWrapper;
 import waffleoRai_soundbank.nintendo.DSBank;
 
 public class TM_NitroSEQ extends TypeManager{
 	
-	private boolean checkDecompMagic(StreamWrapper in)
-	{
-		if(in == null) return false;
-		byte[] magic_bytes = DSSeq.MAGIC.getBytes();
-		for(int i = 0; i < magic_bytes.length; i++)
-		{
-			if(in.get() != magic_bytes[i]) return false;
-		}
-		return true;
-	}
-	
 	public FileTypeNode detectFileType(FileNode node) {
-		
-		String path = node.getSourcePath();
-		long offset = node.getOffset();
-		
-		try 
-		{
-			FileBuffer buffer = new FileBuffer(path, offset, offset+32, true);
-			long magicoff = buffer.findString(0, 0x10, DSSeq.MAGIC);
-			if(magicoff == 0)
-			{
-				//Make sure size is the same as the header says...
-				int bom = Short.toUnsignedInt(buffer.shortFromFile(4));
-				if(bom == 0xFEFF) buffer.setEndian(true); //Big endian
-				else buffer.setEndian(false);
-				int expsize = buffer.intFromFile(8);
-				if(node.getLength() != expsize) return null;
-				return new FileTypeDefNode(DSSeq.getDefinition());
-			}
-			else
-			{
-				//Look for DS compression header...
-
-				DSCompHeader chead = DSCompHeader.read(buffer, 0);
-				CompDefNode cnode = null;
-				switch(chead.getType())
-				{
-				case DSCompHeader.TYPE_LZ77: 
-					AbstractCompDef def = NinLZ.getDefinition();
-					cnode = new CompDefNode(def);
-					String buffpath = def.decompressToDiskBuffer(new FileBufferStreamer(node.loadData()));
-					StreamWrapper decomp = new FileBufferStreamer(new FileBuffer(buffpath, 0, 0x10));
-					if(checkDecompMagic(decomp)) cnode.setChild(new FileTypeDefNode(DSSeq.getDefinition()));
-					return cnode;
-				case DSCompHeader.TYPE_HUFFMAN: return new CompDefNode(NinHuff.getDefinition());
-				case DSCompHeader.TYPE_RLE: 
-					AbstractCompDef rle = DSRLE.getDefinition();
-					cnode = new CompDefNode(rle);
-					String buffpath_rle = rle.decompressToDiskBuffer(new FileBufferStreamer(node.loadData()));
-					StreamWrapper decomp_rle = new FileBufferStreamer(new FileBuffer(buffpath_rle, 0, 0x10));
-					if(checkDecompMagic(decomp_rle)) cnode.setChild(new FileTypeDefNode(DSSeq.getDefinition()));
-					return cnode;
-				default:
-					return null;
-				}
-			}
-		} 
-		catch (IOException e) 
-		{
-			e.printStackTrace();
-			return null;
-		}
+		return NitroFiles.detectNitroFile(node, DSSeq.MAGIC, DSSeq.getDefinition(), false);
 	}
 
 	public JPanel generatePreviewPanel(FileNode node, Component gui_parent) {

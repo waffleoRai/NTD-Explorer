@@ -131,6 +131,7 @@ public class SMDLoader implements SeqLoader{
 					break;
 				}
 				ev.setName(e.toString());
+				tr.addEvent(ev);
 			}
 			
 			

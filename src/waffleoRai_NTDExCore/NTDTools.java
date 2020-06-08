@@ -1,5 +1,6 @@
 package waffleoRai_NTDExCore;
 
+import java.awt.Frame;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -7,6 +8,10 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 
 import waffleoRai_Compression.definitions.AbstractCompDef;
 import waffleoRai_Compression.definitions.CompDefNode;
@@ -16,6 +21,7 @@ import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileClass;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
+import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
@@ -319,6 +325,51 @@ public class NTDTools {
 		scanForType(dn, type, list);
 		
 		return list;
+	}
+	
+	public static void runExport(Frame gui_parent, ExportAction exp, String failmsg){
+		
+		JFileChooser fc = new JFileChooser(NTDProgramFiles.getIniValue(NTDProgramFiles.INIKEY_LAST_EXPORTED));
+		fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		
+		int select = fc.showSaveDialog(gui_parent);
+		
+		if(select != JFileChooser.APPROVE_OPTION) return;
+		String dir = fc.getSelectedFile().getAbsolutePath();
+		NTDProgramFiles.setIniValue(NTDProgramFiles.INIKEY_LAST_EXPORTED, dir);
+		
+		IndefProgressDialog dialog = new IndefProgressDialog(gui_parent, "Data Export");
+		dialog.setPrimaryString("Exporting Data");
+		dialog.setSecondaryString("Writing to " + dir);
+		
+		SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+		{
+
+			protected Void doInBackground() throws Exception 
+			{
+				try{
+					exp.doExport(dir, dialog);
+				}
+				catch(Exception x)
+				{
+					x.printStackTrace();
+					JOptionPane.showMessageDialog(gui_parent, failmsg, 
+							"Export Failed", JOptionPane.ERROR_MESSAGE);
+				}
+				
+				return null;
+			}
+			
+			public void done()
+			{
+				dialog.closeMe();
+			}
+		};
+		
+		task.execute();
+		dialog.render();
+		
+		
 	}
 	
 }

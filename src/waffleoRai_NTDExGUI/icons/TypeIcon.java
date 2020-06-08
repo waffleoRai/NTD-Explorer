@@ -22,9 +22,13 @@ public class TypeIcon {
 		icon_map.put(FileClass.ARCHIVE, i);
 		
 		icon_map.put(FileClass.SYSTEM, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_sys.png")));
+		icon_map.put(FileClass.CONFIG_FILE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_cfg.png")));
+		icon_map.put(FileClass.TEXT_FILE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_txt.png")));
+		icon_map.put(FileClass.XML, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_xml.png")));
 		
 		icon_map.put(FileClass.EXECUTABLE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_exe.png")));
 		icon_map.put(FileClass.CODELIB, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_lib.png")));
+		icon_map.put(FileClass.CODESCRIPT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_scr.png")));
 		
 		icon_map.put(FileClass.SOUND_ARC, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_sar.png")));
 		icon_map.put(FileClass.SOUND_STREAM, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_stm.png")));
@@ -33,6 +37,32 @@ public class TypeIcon {
 		icon_map.put(FileClass.SOUND_SEQ, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_seq.png")));
 		icon_map.put(FileClass.SOUND_WAVEARC, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_war.png")));
 		//icon_map.put(FileClass.SOUNDBANK, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_wsd.png")));
+		
+		icon_map.put(FileClass.IMG_ANIM_2D, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_2an.png")));
+		icon_map.put(FileClass.IMG_FONT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_fnt.png")));
+		icon_map.put(FileClass.IMG_ICON, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_ico.png")));
+		icon_map.put(FileClass.IMG_IMAGE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_img.png")));
+		icon_map.put(FileClass.IMG_PALETTE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_plt.png")));
+		icon_map.put(FileClass.IMG_SPRITE_SHEET, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_spr.png")));
+		icon_map.put(FileClass.IMG_TEXTURE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_txr.png")));
+		icon_map.put(FileClass.IMG_TILE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_tle.png")));
+		icon_map.put(FileClass.IMG_TILEMAP, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_tlm.png")));
+		
+		icon_map.put(FileClass._3D_ANIM_3D, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_3an.png")));
+		icon_map.put(FileClass._3D_LIGHTING_DAT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_lit.png")));
+		icon_map.put(FileClass._3D_MESH, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_msh.png")));
+		icon_map.put(FileClass._3D_MODEL, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_mdl.png")));
+		icon_map.put(FileClass._3D_MORPH_DAT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_mph.png")));
+		icon_map.put(FileClass._3D_RIG_DAT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_rig.png")));
+		icon_map.put(FileClass._3D_UVMAP, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_uvm.png")));
+
+		icon_map.put(FileClass.DAT_COLLISION, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_cls.png")));
+		icon_map.put(FileClass.DAT_LAYOUT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_lay.png")));
+		icon_map.put(FileClass.DAT_STRINGTBL, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_str.png")));
+		icon_map.put(FileClass.DAT_TABLE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_tbl.png")));
+		
+		icon_map.put(FileClass.MOV_MOVIE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_mov.png")));
+		icon_map.put(FileClass.MOV_VIDEO, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_vid.png")));
 	}
 	
 	public static Icon getTypeIcon(FileClass type){

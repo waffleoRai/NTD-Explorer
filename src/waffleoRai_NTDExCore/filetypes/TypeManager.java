@@ -19,9 +19,15 @@ import waffleoRai_Containers.nintendo.sar.DSSoundArchive;
 import waffleoRai_Executable.nintendo.DSExeDefs;
 import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileTypeNode;
+import waffleoRai_Image.nintendo.nitro.NCGR;
+import waffleoRai_Image.nintendo.nitro.NCLR;
+import waffleoRai_Image.nintendo.nitro.NSCR;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.filetypes.archive.*;
 import waffleoRai_NTDExCore.filetypes.bincode.*;
+import waffleoRai_NTDExCore.filetypes.img.TM_NitroCGR;
+import waffleoRai_NTDExCore.filetypes.img.TM_NitroCLR;
+import waffleoRai_NTDExCore.filetypes.img.TM_NitroSCR;
 import waffleoRai_NTDExCore.filetypes.sound.*;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_SeqSound.misc.SMD;
@@ -108,6 +114,18 @@ public abstract class TypeManager {
 		elist.add("swd"); elist.add("swdl");
 		registerTypeManager(SWD.TYPE_ID, elist, new TM_ProcyonSWD());
 		elist.clear();
+		
+		//DS Image
+		elist.add("nclr");
+		registerTypeManager(NCLR.TYPE_ID, elist, new TM_NitroCLR());
+		elist.clear();
+		elist.add("ncgr");
+		registerTypeManager(NCGR.TYPE_ID, elist, new TM_NitroCGR());
+		elist.clear();
+		elist.add("nscr");
+		registerTypeManager(NSCR.TYPE_ID, elist, new TM_NitroSCR());
+		elist.clear();
+		
 	}
 	
 	public static boolean registerTypeManager(int id, String ext, TypeManager manager)
@@ -163,16 +181,18 @@ public abstract class TypeManager {
 		if(lastdot >= 0)
 		{
 			String ext = fname.substring(lastdot + 1).trim().toLowerCase();
-			//System.err.println("ext = " + ext);
-			List<TypeManager> list = ext_map.get(ext);
-			if(list != null){
-				for(TypeManager tm : list){
-					if(tm.isOfType(node))
-					{
-						d = tm;
-						break;
-					}
-				}	
+			if(!ext.equals("bin")){
+				//System.err.println("ext = " + ext);
+				List<TypeManager> list = ext_map.get(ext);
+				if(list != null){
+					for(TypeManager tm : list){
+						if(tm.isOfType(node))
+						{
+							d = tm;
+							break;
+						}
+					}	
+				}
 			}
 		}
 		

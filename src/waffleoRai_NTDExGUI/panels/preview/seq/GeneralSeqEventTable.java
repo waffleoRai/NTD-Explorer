@@ -45,10 +45,12 @@ public class GeneralSeqEventTable extends JPanel{
 	
 	private void updateTable(GenSeqTrack track){
 		
+		//System.err.println("Setting track... track is null? " + (track == null));
 		String[] cols = {"Tick", "Event", "Binary"};
 		
-		if(track == null){
-			String[][] data = new String[0][3];
+		if(track == null || track.isEmpty()){
+			//if(track != null) System.err.println("Track is empty: " + track.isEmpty());
+			String[][] data = new String[1][3];
 			data[0][0] = ""; data[0][1] = ""; data[0][2] = "";
 			DefaultTableModel model = new DefaultTableModel(data, cols);
 			table.setModel(model);
