@@ -22,6 +22,8 @@ public class TreePopupMenu extends JPopupMenu{
 	public static final int MENU_OP_EXPORT = 6;
 	public static final int MENU_OP_VIEW = 7;
 	public static final int MENU_OP_REFRESH = 8;
+	public static final int MENU_OP_ASSIGNTYPE = 9;
+	public static final int MENU_OP_CLEARTYPE = 10;
 	
 	private boolean isDir;
 	private Collection<TreePanelListener> list;
@@ -104,6 +106,22 @@ public class TreePopupMenu extends JPopupMenu{
 
 		JSeparator separator = new JSeparator();
 		add(separator);
+		
+		JMenuItem opClearType = new JMenuItem("Clear Type Assignment");
+		add(opClearType);
+		opClearType.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_CLEARTYPE);
+				//closeMe();
+			}
+			
+		});
+		
+		JSeparator separator2 = new JSeparator();
+		add(separator2);
 		
 		if(isDir)
 		{

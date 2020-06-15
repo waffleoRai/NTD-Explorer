@@ -1,4 +1,4 @@
-package waffleoRai_NTDExCore.filetypes.sound;
+package waffleoRai_NTDTypes.nitro;
 
 import java.awt.Component;
 import java.io.IOException;
@@ -13,7 +13,6 @@ import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDTools;
-import waffleoRai_NTDExCore.filetypes.NitroFiles;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ArcToTree;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_DumpArc;

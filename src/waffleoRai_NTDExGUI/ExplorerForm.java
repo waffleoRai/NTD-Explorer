@@ -186,6 +186,12 @@ public class ExplorerForm extends JFrame {
 			public void actionPerformed(ActionEvent e){onToolsScanTypes();}
 		});
 		
+		JMenuItem mntmMatchExts = new JMenuItem("Change Extensions to Match Types");
+		mnTools.add(mntmMatchExts);
+		mntmMatchExts.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onToolsMatchExt();}
+		});
+		
 		JMenuItem mntmClearTypeNotations = new JMenuItem("Clear Type Notations");
 		mnTools.add(mntmClearTypeNotations);
 		mntmClearTypeNotations.addActionListener(new ActionListener(){
@@ -748,6 +754,53 @@ public class ExplorerForm extends JFrame {
 		task.execute();
 		dialog.render();
 		
+	}
+	
+	private void onToolsMatchExt(){
+		if(!checkSourcePath()) return;
+		
+		//Dumps all known archive formats to tree
+		int op = JOptionPane.showConfirmDialog(this, 
+				"Change file extensions to match type notations?", 
+				"Type Extension Match", 
+				JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+		
+		if(op == JOptionPane.YES_OPTION)
+		{
+			IndefProgressDialog dialog = new IndefProgressDialog(this, "Type Extension Match");
+			
+			dialog.setPrimaryString("Scanning");
+			dialog.setSecondaryString("Matching file extensions...");
+			
+			SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+			{
+
+				protected Void doInBackground() throws Exception 
+				{
+					try
+					{
+						NTDTools.matchExtensionsToType(loaded_project.getTreeRoot(), dialog);
+						loaded_project.stampModificationTime();
+					}
+					catch(Exception x)
+					{
+						x.printStackTrace();
+						showError("Unknown Error: Operation aborted. See stderr for details.");
+					}
+					
+					return null;
+				}
+				
+				public void done()
+				{
+					pnlMain.updateTree();
+					dialog.closeMe();
+				}
+			};
+			
+			task.execute();
+			dialog.render();
+		}
 	}
 	
 	private void onDecryptKeyAdd()

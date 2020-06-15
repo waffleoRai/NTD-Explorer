@@ -1,15 +1,13 @@
-package waffleoRai_NTDExCore.filetypes.img;
+package waffleoRai_NTDTypes.nitro;
 
 import java.awt.Component;
 import java.awt.Frame;
-import java.io.BufferedWriter;
+import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -18,39 +16,38 @@ import javax.swing.JPanel;
 
 import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileTypeNode;
-import waffleoRai_Image.Palette;
-import waffleoRai_Image.nintendo.nitro.NCLR;
+import waffleoRai_Image.nintendo.nitro.NCGR;
 import waffleoRai_NTDExCore.ExportAction;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.NTDTools;
-import waffleoRai_NTDExCore.filetypes.NitroFiles;
+import waffleoRai_NTDExCore.NTDValues;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ExtractFile;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ViewHex;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.panels.preview.HexPreviewPanel;
-import waffleoRai_NTDExGUI.panels.preview.PaletteViewPanel;
+import waffleoRai_NTDExGUI.panels.preview.TilesetViewPanel;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileNode;
 
-public class TM_NitroCLR extends TypeManager{
+public class TM_NitroCGR extends TypeManager {
 	
 	public FileTypeNode detectFileType(FileNode node) {
-		return NitroFiles.detectNitroFile(node, NCLR.MAGIC, NCLR.getTypeDef(), false);
+		return NitroFiles.detectNitroFile(node, NCGR.MAGIC, NCGR.getTypeDef(), false);
 	}
 
 	public JPanel generatePreviewPanel(FileNode node, Component gui_parent) {
 		
 		try{
-			NCLR nclr = NCLR.readNCLR(node.loadDecompressedData());
-			int pcount = nclr.getPaletteCount();
-			List<Palette> plist = new LinkedList<Palette>();
-			for(int i = 0; i < pcount; i++) plist.add(nclr.getPalette(i));
+			NCGR ncgr = NCGR.readNCGR(node.loadDecompressedData());
 			
-			PaletteViewPanel pvp = new PaletteViewPanel();
-			pvp.loadPalettes(plist);
-			return pvp;
+			List<BufferedImage> list = ncgr.getTileset().renderTileData();
+			//System.err.println("Rendered tiles: " + list.size());
+			TilesetViewPanel tvpnl = new TilesetViewPanel();
+			tvpnl.setTilesPerRow(ncgr.getTileset().getWidthInTiles());
+			tvpnl.loadTiles(list);
+			return tvpnl;
 		}
 		catch(Exception x){
 			x.printStackTrace();
@@ -75,11 +72,10 @@ public class TM_NitroCLR extends TypeManager{
 	}
 
 	public List<FileAction> getFileActions() {
-		//Extract, Export to csv, export to png
 		List<FileAction> alist = new ArrayList<FileAction>(4);
 		alist.add(FA_ExtractFile.getAction());
-		alist.add(new FA_ExportCSV());
-		alist.add(new FA_ExportImage());
+		alist.add(new FA_ExportSingle());
+		alist.add(new FA_ExportMulti());
 		alist.add(FA_ViewHex.getAction());
 		return alist;
 	}
@@ -94,9 +90,9 @@ public class TM_NitroCLR extends TypeManager{
 
 	/*----- Actions -----*/
 	
-	public static class FA_ExportCSV implements FileAction{
+	public static class FA_ExportSingle implements FileAction{
 		
-		private String str = "Export CSV";
+		private String str = "Export as Single Image";
 
 		public void doAction(FileNode node, NTDProject project, Frame gui_parent) {
 			
@@ -104,39 +100,18 @@ public class TM_NitroCLR extends TypeManager{
 
 				public void doExport(String dirpath, IndefProgressDialog dialog) throws IOException {
 					
-					dialog.setPrimaryString("Tabling Palette Data");
-					String targetpath = dirpath + File.separator + node.getFileName().replace(".nclr", ".csv");
+					dialog.setPrimaryString("Rendering Tile Image");
+					String targetpath = dirpath + File.separator + node.getFileName().replace(".ncgr", ".png");
 					dialog.setSecondaryString("Writing to " + targetpath);
-					NCLR nclr = NCLR.readNCLR(node.loadDecompressedData());
 					
-					BufferedWriter bw = new BufferedWriter(new FileWriter(targetpath));
-					bw.write("Palette,Index,Value(Hexcode),Red8,Green8,Blue8,Value(Raw),Red5,Green5,Blue5\n");
-					int pcount = nclr.getPaletteCount();
-					for(int i = 0; i < pcount; i++){
-						Palette p = nclr.getPalette(i);
-						short[] raw = nclr.getRawColors(i);
-						int ccount = raw.length;
-						for(int j = 0; j < ccount; j++){
-							bw.write(i + ","); bw.write(j + ",");
-							bw.write("#" + String.format("%06x", (p.getPixel(j).getARGB()&0xFFFFFF)) + ",");
-							bw.write(p.getRed(j) + ","); bw.write(p.getGreen(j) + ","); bw.write(p.getBlue(j) + ",");
-							if(raw == null) bw.write("NULL,NULL,NULL,NULL");
-							else{
-								int five = raw[j];
-								bw.write(String.format("%04x", five) + ",");
-								bw.write((five & 0x1F) + ",");
-								bw.write(((five >>> 5) & 0x1F) + ",");
-								bw.write(((five >>> 10) & 0x1F));
-							}
-							bw.write("\n");
-						}
-					}
-					bw.close();
+					NCGR ncgr = NCGR.readNCGR(node.loadDecompressedData());
+					BufferedImage img = ncgr.getTileset().renderImageData(NTDValues.getTLE_ExportWidth());
+					ImageIO.write(img, "png", new File(targetpath));
 					
 				}
 				
 			};
-			NTDTools.runExport(gui_parent, action, "I/O Error: Could not read NCLR or export as CSV!");
+			NTDTools.runExport(gui_parent, action, "I/O Error: Could not read NCGR or export to PNG!");
 			
 		}
 
@@ -145,34 +120,33 @@ public class TM_NitroCLR extends TypeManager{
 		
 	}
 	
-	public static class FA_ExportImage implements FileAction{
+	public static class FA_ExportMulti implements FileAction{
 		
-		private String str = "Save Palette Image";
+		private String str = "Export Tiles to PNG";
 
 		public void doAction(FileNode node, NTDProject project, Frame gui_parent) {
-		
+			
 			ExportAction action = new ExportAction(){
 
 				public void doExport(String dirpath, IndefProgressDialog dialog) throws IOException {
 					
-					dialog.setPrimaryString("Rendering Palette Data");
+					dialog.setPrimaryString("Rendering Tile Image");
 					String targetpath = dirpath + File.separator + node.getFileName();
 					dialog.setSecondaryString("Writing to " + targetpath);
-					NCLR nclr = NCLR.readNCLR(node.loadDecompressedData());
 					
 					if(!FileBuffer.directoryExists(targetpath)) Files.createDirectories(Paths.get(targetpath));
 					
-					int pcount = nclr.getPaletteCount();
-					for(int i = 0; i < pcount; i++){
-						String path = dirpath + File.separator + String.format("nclr_%03d.png", i);
-						ImageIO.write(nclr.getPalette(i).renderVisual(), "png", new File(path));
+					NCGR ncgr = NCGR.readNCGR(node.loadDecompressedData());
+					int tcount = ncgr.getTileCount();
+					for(int i = 0; i < tcount; i++){
+						String outpath = targetpath + File.separator + String.format("tile_%05d.png", i);
+						BufferedImage img = ncgr.getTileset().renderTileData(i);
+						ImageIO.write(img, "png", new File(outpath));
 					}
-					
 				}
 				
 			};
-			NTDTools.runExport(gui_parent, action, "I/O Error: Could not read NCLR or export image!");
-			
+			NTDTools.runExport(gui_parent, action, "I/O Error: Could not read NCGR or export to PNG!");
 			
 		}
 
@@ -181,5 +155,5 @@ public class TM_NitroCLR extends TypeManager{
 		
 	}
 	
-	
+
 }

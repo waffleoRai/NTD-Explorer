@@ -1,4 +1,4 @@
-package waffleoRai_NTDExCore.filetypes.bincode;
+package waffleoRai_NTDTypes.nitro;
 
 import java.awt.Component;
 import java.io.IOException;
@@ -18,17 +18,17 @@ import waffleoRai_NTDExCore.filetypes.fileactions.FA_ExtractFile;
 import waffleoRai_NTDExGUI.panels.preview.HexPreviewPanel;
 import waffleoRai_Utils.FileNode;
 
-public class TM_DSARM9i extends TypeManager{
+public class TM_DSARM7i extends TypeManager{
 	
 	public FileTypeNode detectFileType(FileNode node) {
 		if(!isOfType(node)) return null;
-		return new FileTypeDefNode(DSExeDefs.getDefARM9i());
+		return new FileTypeDefNode(DSExeDefs.getDefARM7i());
 	}
 	
 	public boolean isOfType(FileNode node) {
 		//No internal test for now
 		//To avoid auto-detection, just use extension
-		return node.getFileName().endsWith(".arm9i");
+		return node.getFileName().endsWith(".arm7i");
 	}
 
 	public JPanel generatePreviewPanel(FileNode node, Component gui_parent) {
@@ -50,5 +50,6 @@ public class TM_DSARM9i extends TypeManager{
 	}
 
 	public Converter getStandardConverter() {return null;}
+
 
 }

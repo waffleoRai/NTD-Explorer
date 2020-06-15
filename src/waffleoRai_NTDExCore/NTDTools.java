@@ -19,6 +19,7 @@ import waffleoRai_Compression.definitions.CompressionInfoNode;
 import waffleoRai_Containers.ArchiveDef;
 import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileClass;
+import waffleoRai_Files.FileTypeDefinition;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
@@ -273,6 +274,11 @@ public class NTDTools {
 					FileTypeNode ftn = TypeManager.detectType(child);
 					if(ftn != null) child.setTypeChainHead(ftn);
 				}
+				else if(child.getTypeChainTail().isCompression()){
+					//Try again, maybe the type is known now.
+					FileTypeNode ftn = TypeManager.detectType(child);
+					if(ftn != null) child.setTypeChainHead(ftn);
+				}
 			}
 		}
 	}
@@ -325,6 +331,42 @@ public class NTDTools {
 		scanForType(dn, type, list);
 		
 		return list;
+	}
+	
+	public static void matchExtensionsToType(DirectoryNode dir, ProgressListeningDialog listener){
+		
+		listener.setSecondaryString("Scanning " + dir.getFullPath());
+		List<FileNode> children = dir.getChildren();
+		for(FileNode child : children){
+			if(child instanceof DirectoryNode){
+				matchExtensionsToType((DirectoryNode)child, listener);
+			}
+			else{
+				listener.setSecondaryString("Scanning " + child.getFullPath());
+				FileTypeNode head = child.getTypeChainHead();
+				if(head == null) continue;
+				//Generate extension from chain of type definitions
+				String newext = "";
+				while(head != null){
+					FileTypeDefinition def = head.getTypeDefinition();
+					if(def != null){
+						String dext = def.getDefaultExtension();
+						if(dext != null && !dext.isEmpty()){
+							newext = newext + "." + dext;		
+						}
+					}
+					head = head.getChild();
+				}
+				//Replace extension
+				int lastdot = child.getFileName().lastIndexOf('.');
+				String newname = null;
+				if(lastdot < 0) newname = child.getFileName();
+				else newname = child.getFileName().substring(0, lastdot);
+				newname += newext;
+				child.setFileName(newname);
+			}
+		}
+		
 	}
 	
 	public static void runExport(Frame gui_parent, ExportAction exp, String failmsg){

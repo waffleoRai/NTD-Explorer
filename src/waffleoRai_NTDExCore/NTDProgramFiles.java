@@ -31,31 +31,11 @@ import javax.imageio.ImageIO;
 import waffleoRai_Compression.definitions.AbstractCompDef;
 import waffleoRai_Compression.definitions.CompDefNode;
 import waffleoRai_Compression.definitions.CompressionDefs;
-import waffleoRai_Compression.nintendo.DSRLE;
-import waffleoRai_Compression.nintendo.NinLZ;
-import waffleoRai_Containers.nintendo.NARC;
-import waffleoRai_Containers.nintendo.NDS;
-import waffleoRai_Containers.nintendo.sar.DSSoundArchive;
-import waffleoRai_Executable.nintendo.DSExeDefs;
-import waffleoRai_Files.EncryptionDefinitions;
-import waffleoRai_Files.FileDefinitions;
 import waffleoRai_Files.FileTypeNode;
-import waffleoRai_Image.nintendo.nitro.NCGR;
-import waffleoRai_Image.nintendo.nitro.NCLR;
-import waffleoRai_Image.nintendo.nitro.NSCR;
-import waffleoRai_SeqSound.misc.SMD;
-import waffleoRai_SeqSound.ninseq.DSMultiSeq;
-import waffleoRai_SeqSound.ninseq.DSSeq;
-import waffleoRai_Sound.nintendo.DSStream;
-import waffleoRai_Sound.nintendo.DSWarc;
-import waffleoRai_Sound.nintendo.DSWave;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBufferStreamer;
 import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.StreamWrapper;
-import waffleoRai_fdefs.nintendo.DSSysFileDefs;
-import waffleoRai_soundbank.nintendo.DSBank;
-import waffleoRai_soundbank.procyon.SWD;
 
 
 /*
@@ -120,6 +100,7 @@ public class NTDProgramFiles {
 	
 	public static final String DIRNAME_PROJECTS = "projects";
 	public static final String DIRNAME_TEMP = "temp";
+	public static final String DIRNAME_PLUGINS = "plugins";
 	
 	public static final String PROJECTS_FILE_NAME = "proj.bin";
 	
@@ -159,6 +140,10 @@ public class NTDProgramFiles {
 	public static String getUsername()
 	{
 		return System.getProperty("user.name");
+	}
+	
+	public static String getPluginsDirectoryPath(){
+		return getInstallDir() + File.separator + DIRNAME_PLUGINS;
 	}
 	
 	/*----- Crypto -----*/
@@ -295,35 +280,14 @@ public class NTDProgramFiles {
 
 	/*----- Type Definitions -----*/
 	
-	public static void registerTypeDefinitions()
+	public static void registerTypeDefinitions() throws IOException
 	{
-		//-- DS/DSi
-		CompressionDefs.registerDefinition(NinLZ.getDefinition());
-		CompressionDefs.registerDefinition(DSRLE.getDefinition());
+		List<String> plugin_dirs = new LinkedList<String>();
+		plugin_dirs.add(NTDProgramFiles.getPluginsDirectoryPath());
 		
-		FileDefinitions.registerDefinition(NARC.getTypeDef());
-		FileDefinitions.registerDefinition(DSExeDefs.getDefARM7());
-		FileDefinitions.registerDefinition(DSExeDefs.getDefARM7i());
-		FileDefinitions.registerDefinition(DSExeDefs.getDefARM9());
-		FileDefinitions.registerDefinition(DSExeDefs.getDefARM9i());
-		FileDefinitions.registerDefinition(DSSysFileDefs.getHeaderDef());
-		FileDefinitions.registerDefinition(DSSysFileDefs.getBannerDef());
-		FileDefinitions.registerDefinition(DSSysFileDefs.getRSACertDef());
-		FileDefinitions.registerDefinition(DSSoundArchive.getTypeDef());
-		FileDefinitions.registerDefinition(DSWave.getDefinition());
-		FileDefinitions.registerDefinition(DSWarc.getDefinition());
-		FileDefinitions.registerDefinition(DSStream.getDefinition());
-		FileDefinitions.registerDefinition(DSBank.getDefinition());
-		FileDefinitions.registerDefinition(DSSeq.getDefinition());
-		FileDefinitions.registerDefinition(DSMultiSeq.getDefinition());
-		FileDefinitions.registerDefinition(SMD.getDefinition());
-		FileDefinitions.registerDefinition(SWD.getDefinition());
-		FileDefinitions.registerDefinition(NCLR.getTypeDef());
-		FileDefinitions.registerDefinition(NCGR.getTypeDef());
-		FileDefinitions.registerDefinition(NSCR.getTypeDef());
-		
-		EncryptionDefinitions.registerDefinition(NDS.getModcryptDef());
-		EncryptionDefinitions.registerDefinition(NDS.getBlowfishDef());
+		NTDTypeLoader.registerTypes(plugin_dirs, true);
+		NTDCompTypeLoader.registerTypes(plugin_dirs, true);
+		NTDEncTypeLoader.registerTypes(plugin_dirs, true);
 	}
 	
 	/*----- Init Values -----*/
@@ -540,6 +504,9 @@ public class NTDProgramFiles {
 		if(!FileBuffer.directoryExists(ndir)) Files.createDirectory(Paths.get(ndir));
 		
 		ndir = installDir + File.separator + DIRNAME_TEMP;
+		if(!FileBuffer.directoryExists(ndir)) Files.createDirectory(Paths.get(ndir));
+		
+		ndir = installDir + File.separator + DIRNAME_PLUGINS;
 		if(!FileBuffer.directoryExists(ndir)) Files.createDirectory(Paths.get(ndir));
 		
 		readIni();

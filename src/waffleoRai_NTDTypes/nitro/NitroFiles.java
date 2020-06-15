@@ -1,4 +1,4 @@
-package waffleoRai_NTDExCore.filetypes;
+package waffleoRai_NTDTypes.nitro;
 
 import java.io.IOException;
 
@@ -99,6 +99,7 @@ public class NitroFiles {
 					cnode = new CompDefNode(lzdef);
 					String buffpath = lzdef.decompressToDiskBuffer(new FileBufferStreamer(node.loadData()));
 					StreamWrapper decomp = new FileBufferStreamer(new FileBuffer(buffpath, 0, 0x10));
+					//System.err.println("Decompressed to " + buffpath);
 					if(checkNitroMagic(decomp, magic)){
 						cnode.setChild(new FileTypeDefNode(def));
 						return cnode;

@@ -305,6 +305,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		case TreePopupMenu.MENU_OP_EXPORT: onTreeActionExport(path); break;
 		case TreePopupMenu.MENU_OP_VIEW: onTreeActionViewNode(path); break;
 		case TreePopupMenu.MENU_OP_REFRESH: resetTree(); break;
+		case TreePopupMenu.MENU_OP_CLEARTYPE: onTreeActionClearType(path); break;
 		}
 	}
 	
@@ -604,7 +605,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 				try
 				{
 					//setWait();
-					if(node.getTypeChainHead() == null){
+					if(node.getTypeChainHead() == null || node.getTypeChainTail().isCompression()){
 						//Detect...
 						//System.err.println("Node: " + node.getFileName() + " | 0x" + Long.toHexString(node.getOffset()) + ": 0x" + Long.toHexString(node.getLength()));
 						dialog.setPrimaryString("Type Unknown");
@@ -637,6 +638,25 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		task.execute();
 		dialog.render();
 		
+	}
+	
+	private void onTreeActionClearType(String path){
+		
+		//Dummy checks
+		if(myproject == null){
+			showError("No project loaded!");
+			return;
+		}
+		if(path == null) return;
+		FileNode node = myproject.getNodeAt(path);
+		if(node == null){
+			System.err.println("ERR -- Tree path \"" + path + "\" could not be matched to a node.");
+			return;
+		}
+		
+		//We'll just do it on this thread since it should be fast...
+		node.clearTypeChain();
+		updateTree();
 	}
 	
 	/*----- Messages -----*/

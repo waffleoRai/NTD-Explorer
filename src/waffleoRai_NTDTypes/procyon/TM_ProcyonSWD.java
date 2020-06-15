@@ -1,4 +1,4 @@
-package waffleoRai_NTDExCore.filetypes.sound;
+package waffleoRai_NTDTypes.procyon;
 
 import java.awt.Component;
 import java.awt.Frame;

@@ -1,4 +1,4 @@
-package waffleoRai_NTDExCore.filetypes.bincode;
+package waffleoRai_NTDTypes.nitro;
 
 import java.awt.Component;
 import java.io.IOException;

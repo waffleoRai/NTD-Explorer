@@ -1,4 +1,4 @@
-package waffleoRai_NTDExCore.filetypes.sound;
+package waffleoRai_NTDTypes.nitro;
 
 import java.awt.Component;
 import java.awt.Frame;
@@ -23,7 +23,6 @@ import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
-import waffleoRai_NTDExCore.filetypes.NitroFiles;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ExtractFile;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ViewHex;

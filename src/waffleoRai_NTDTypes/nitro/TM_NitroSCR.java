@@ -1,6 +1,7 @@
-package waffleoRai_NTDExCore.filetypes.img;
+package waffleoRai_NTDTypes.nitro;
 
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -24,7 +25,6 @@ import waffleoRai_NTDExCore.ExportAction;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.NTDTools;
-import waffleoRai_NTDExCore.filetypes.NitroFiles;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ExtractFile;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ViewHex;
@@ -54,9 +54,10 @@ public class TM_NitroSCR extends TypeManager {
 			}
 			else{
 				NCLR nclr = NSCR.loadLinkedPalette(node);
-				BufferedImage img = nscr.renderImage(nclr, ncgr);
+				BufferedImage img = nscr.renderImage(nclr.getPalettes(), ncgr.getTileset());
 				ScrollingImageViewPanel vpnl = new ScrollingImageViewPanel();
 				CheckeredImagePane pane = vpnl.getImagePanel();
+				pane.setDrawingAreaSize(new Dimension(img.getWidth()+10, img.getHeight()+10));
 				pane.addItem(new ImagePaneDrawer(){
 					
 					public int getX() {return 0;}
@@ -138,7 +139,7 @@ public class TM_NitroSCR extends TypeManager {
 					if(ncgr == null) throw new IOException("No linked tile data!");
 					
 					NCLR nclr = NSCR.loadLinkedPalette(node);
-					BufferedImage img = nscr.renderImage(nclr, ncgr);
+					BufferedImage img = nscr.renderImage(nclr.getPalettes(), ncgr.getTileset());
 					ImageIO.write(img, "png", new File(targetpath));
 					
 				}
@@ -204,7 +205,7 @@ public class TM_NitroSCR extends TypeManager {
 					try{
 						NCGR ncgr = NCGR.readNCGR(selected.loadDecompressedData());
 						
-						BufferedImage img = nscr.renderImage(ncgr);
+						BufferedImage img = nscr.renderImage(ncgr.getTileset());
 						pane.addItem(new ImagePaneDrawer(){
 
 							public int getX() {return 0;}
@@ -315,7 +316,7 @@ public class TM_NitroSCR extends TypeManager {
 					try{
 						NCLR nclr = NCLR.readNCLR(selected.loadDecompressedData());
 						
-						BufferedImage img = nscr.renderImage(nclr, tileset);
+						BufferedImage img = nscr.renderImage(nclr.getPalettes(), tileset.getTileset());
 						pane.addItem(new ImagePaneDrawer(){
 
 							public int getX() {return 0;}
