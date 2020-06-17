@@ -21,6 +21,7 @@ import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.importer.DSParserOption;
+import waffleoRai_NTDExCore.importer.PSXParserOption;
 import waffleoRai_NTDExCore.importer.ParserOption;
 
 import javax.swing.DefaultComboBoxModel;
@@ -131,6 +132,7 @@ public class ImportDialog extends JDialog{
 		DefaultComboBoxModel<ParserOption> model2 = new DefaultComboBoxModel<ParserOption>();
 		
 		model2.addElement(new DSParserOption());
+		model2.addElement(new PSXParserOption());
 		
 		cmbxParser.setModel(model2);
 		cmbxParser.setSelectedIndex(0);

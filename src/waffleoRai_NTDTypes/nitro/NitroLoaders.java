@@ -8,7 +8,6 @@ import waffleoRai_Image.nintendo.nitro.NCGR;
 import waffleoRai_Image.nintendo.nitro.NCLR;
 import waffleoRai_Image.nintendo.nitro.NSCR;
 import waffleoRai_NTDExCore.NTDTypeLoader;
-import waffleoRai_NTDExCore.filetypes.TM_BIN;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_SeqSound.ninseq.DSMultiSeq;
 import waffleoRai_SeqSound.ninseq.DSSeq;
@@ -23,17 +22,17 @@ public class NitroLoaders {
 	//Sys
 	
 	public static class DSHeaderDefLoader implements NTDTypeLoader{
-		public TypeManager getTypeManager() {return new TM_BIN();}
+		public TypeManager getTypeManager() {return TypeManager.getDefaultManager();}
 		public FileTypeDefinition getDefinition() {return DSSysFileDefs.getHeaderDef();}
 	}
 	
 	public static class DSCertDefLoader implements NTDTypeLoader{
-		public TypeManager getTypeManager() {return new TM_BIN();}
+		public TypeManager getTypeManager() {return TypeManager.getDefaultManager();}
 		public FileTypeDefinition getDefinition() {return DSSysFileDefs.getRSACertDef();}
 	}
 	
 	public static class DSBannerDefLoader implements NTDTypeLoader{
-		public TypeManager getTypeManager() {return new TM_BIN();}
+		public TypeManager getTypeManager() {return TypeManager.getDefaultManager();}
 		public FileTypeDefinition getDefinition() {return DSSysFileDefs.getBannerDef();}
 	}
 	

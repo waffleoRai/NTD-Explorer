@@ -18,6 +18,8 @@ import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_GUITools.CheckeredImagePane;
 import waffleoRai_GUITools.ImagePaneDrawer;
+import waffleoRai_Image.Palette;
+import waffleoRai_Image.Tileset;
 import waffleoRai_Image.nintendo.nitro.NCGR;
 import waffleoRai_Image.nintendo.nitro.NCLR;
 import waffleoRai_Image.nintendo.nitro.NSCR;
@@ -45,16 +47,16 @@ public class TM_NitroSCR extends TypeManager {
 		
 		try{
 			NSCR nscr = NSCR.readNSCR(node.loadDecompressedData());
-			NCGR ncgr = NSCR.loadLinkedTileset(node);
+			Tileset tiles = NSCR.loadLinkedTileset(node);
 			
-			if(ncgr == null){
+			if(tiles == null){
 				JOptionPane.showMessageDialog(gui_parent, 
 						"Screen data has no linked tile data (NCGR/NBGR)!", 
 						"No Tile Data", JOptionPane.WARNING_MESSAGE);
 			}
 			else{
-				NCLR nclr = NSCR.loadLinkedPalette(node);
-				BufferedImage img = nscr.renderImage(nclr.getPalettes(), ncgr.getTileset());
+				Palette[] plts = NSCR.loadLinkedPalette(node);
+				BufferedImage img = nscr.renderImage(plts, tiles);
 				ScrollingImageViewPanel vpnl = new ScrollingImageViewPanel();
 				CheckeredImagePane pane = vpnl.getImagePanel();
 				pane.setDrawingAreaSize(new Dimension(img.getWidth()+10, img.getHeight()+10));
@@ -134,12 +136,12 @@ public class TM_NitroSCR extends TypeManager {
 					dialog.setSecondaryString("Writing to " + targetpath);
 					
 					NSCR nscr = NSCR.readNSCR(node.loadDecompressedData());
-					NCGR ncgr = NSCR.loadLinkedTileset(node);
+					Tileset tiles = NSCR.loadLinkedTileset(node);
 					
-					if(ncgr == null) throw new IOException("No linked tile data!");
+					if(tiles == null) throw new IOException("No linked tile data!");
 					
-					NCLR nclr = NSCR.loadLinkedPalette(node);
-					BufferedImage img = nscr.renderImage(nclr.getPalettes(), ncgr.getTileset());
+					Palette[] plts = NSCR.loadLinkedPalette(node);
+					BufferedImage img = nscr.renderImage(plts, tiles);
 					ImageIO.write(img, "png", new File(targetpath));
 					
 				}
@@ -186,10 +188,10 @@ public class TM_NitroSCR extends TypeManager {
 				}
 				
 				public List<FileNode> getResourceList() {
-					if(nscr == null) readMe();
-					if(nscr == null) return null;
+					//if(nscr == null) readMe();
+					//if(nscr == null) return null;
 					
-					try{return nscr.searchForTilesets(me);}
+					try{return NSCR.findTilesetCandidates(me);}
 					catch(IOException x){
 						x.printStackTrace();
 						displayIOError();
@@ -226,7 +228,7 @@ public class TM_NitroSCR extends TypeManager {
 				}
 
 				public void applySelected(FileNode selected) {
-					NSCR.linkTilesetNode(me, selected);
+					NSCR.linkTileset(node, selected);
 				}
 
 				public String getDialogTitle() {
@@ -258,9 +260,9 @@ public class TM_NitroSCR extends TypeManager {
 
 		public void doAction(FileNode node, NTDProject project, Frame gui_parent) {
 			
-			//Load the linked NCGR
-			NCGR ncgr = null;
-			try{ncgr = NSCR.loadLinkedTileset(node);}
+			//Load the linked tileset
+			Tileset tiles = null;
+			try{tiles = NSCR.loadLinkedTileset(node);}
 			catch(IOException x){
 				x.printStackTrace();
 				JOptionPane.showMessageDialog(gui_parent, "I/O Error: Linked tileset could not be loaded!", 
@@ -268,14 +270,14 @@ public class TM_NitroSCR extends TypeManager {
 				return;
 			}
 			
-			if(ncgr == null){
+			if(tiles == null){
 				JOptionPane.showMessageDialog(gui_parent, "No linked tileset found! Tileset is required to render image!", 
 						"No Tileset", JOptionPane.ERROR_MESSAGE);
 				return;
 			}
 			
 			//Define dialog behavior
-			final NCGR tileset = ncgr;
+			final Tileset tileset = tiles;
 			ImageResourceMatcher matcher = new ImageResourceMatcher(){
 
 				private FileNode me = node;
@@ -300,7 +302,7 @@ public class TM_NitroSCR extends TypeManager {
 					if(nscr == null) readMe();
 					if(nscr == null) return null;
 					
-					try{return nscr.searchForPalettes(me, false);}
+					try{return NSCR.findPaletteCandidates(node);}
 					catch(IOException x){
 						x.printStackTrace();
 						displayIOError();
@@ -316,7 +318,7 @@ public class TM_NitroSCR extends TypeManager {
 					try{
 						NCLR nclr = NCLR.readNCLR(selected.loadDecompressedData());
 						
-						BufferedImage img = nscr.renderImage(nclr.getPalettes(), tileset.getTileset());
+						BufferedImage img = nscr.renderImage(nclr.getPalettes(), tileset);
 						pane.addItem(new ImagePaneDrawer(){
 
 							public int getX() {return 0;}
@@ -337,7 +339,7 @@ public class TM_NitroSCR extends TypeManager {
 				}
 
 				public void applySelected(FileNode selected) {
-					NSCR.linkPaletteNode(me, selected);
+					NSCR.linkPalette(node, selected);
 				}
 
 				public String getDialogTitle() {

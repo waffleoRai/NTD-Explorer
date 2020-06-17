@@ -2,6 +2,7 @@ package waffleoRai_NTDExCore;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -14,8 +15,12 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import waffleoRai_Containers.CDTable.CDInvalidRecordException;
+import waffleoRai_Containers.ISO;
+import waffleoRai_Containers.ISOXAImage;
 import waffleoRai_Containers.nintendo.NDS;
 import waffleoRai_Files.EncryptionDefinitions;
+import waffleoRai_Files.FileBufferReader;
 import waffleoRai_Files.FileTypeDefNode;
 import waffleoRai_Utils.BinFieldSize;
 import waffleoRai_Utils.DirectoryNode;
@@ -26,6 +31,7 @@ import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.FileTreeSaver;
 import waffleoRai_Utils.SerializedString;
 import waffleoRai_fdefs.nintendo.DSSysFileDefs;
+import waffleoRai_fdefs.psx.PSXSysDefs;
 
 public class NTDProject implements Comparable<NTDProject>{
 	
@@ -34,13 +40,21 @@ public class NTDProject implements Comparable<NTDProject>{
 	 * 
 	 * Flags [1]
 	 * 	7 - ROM has encrypted regions
-	 * Console Enum[1]
+	 * Console Enum[1] - Determines length of game codes (V3+)
 	 * Region Enum [1]
 	 * Language Enum [1]
 	 * 
-	 * GameCode [4]
-	 * MakerCode [2]
-	 * FullCode [10] (No dashes/underscores...)
+	 * Game Code...
+	 * 	For all except PSX and HAC...
+	 * 		GameCode [4]
+	 * 		MakerCode [2]
+	 * 		FullCode [10] (No dashes/underscores...)
+	 * 	For PSX (v3+)
+	 * 		GameCode [10] (9 + null character)
+	 * 	For HAC (v3+)
+	 * 		GameCode [6] (5 + null)
+	 * 		MakerCode [2]
+	 * 		FullCode [12] (11 + null)		
 	 * 
 	 * ROM Path [VLS 2x2]
 	 * Decrypted ROM Path [VLS 2x2] (This is just a short 0 if N/A) (V1 only)
@@ -253,6 +267,79 @@ public class NTDProject implements Comparable<NTDProject>{
 		return proj;
 	}
 	
+	public static NTDProject createFromPSXTrack(String imgpath, GameRegion region) throws CDInvalidRecordException, IOException, UnsupportedFileTypeException{
+
+		ISOXAImage image = new ISOXAImage(new ISO(FileBuffer.createBuffer(imgpath), true));
+		NTDProject proj = new NTDProject();
+		proj.imported_time = OffsetDateTime.now();
+		proj.modified_time = OffsetDateTime.now();
+		proj.rom_path = imgpath;
+		
+		proj.console = Console.PS1;
+		proj.region = region;
+		//Guess language from region...
+		switch(proj.region){
+		case JPN: proj.language =DefoLanguage.JAPANESE; break;
+		case NOE: proj.language = DefoLanguage.ENGLISH; break;
+		case UNKNOWN: proj.language = DefoLanguage.JAPANESE; break;
+		case USA: proj.language = DefoLanguage.ENGLISH; break;
+		case USZ: proj.language = DefoLanguage.ENGLISH; break;
+		default: proj.language = DefoLanguage.JAPANESE; break;
+		}
+		
+		//Nab tree (will need config and exe for auto-extracting more info
+		proj.custom_tree = image.getRootNode();
+		scanTreeDir(proj.rom_path, proj.custom_tree); //Set path for all nodes...
+		
+		//Look for SYSTEM.CNF
+		FileNode cnf = proj.custom_tree.getNodeAt("/SYSTEM.CNF");
+		if(cnf == null) cnf = proj.custom_tree.getNodeAt("/system.cnf");
+		if(cnf != null){
+			cnf.setTypeChainHead(new FileTypeDefNode(PSXSysDefs.getConfigDef()));
+			//Load and get more data
+			String exepath = null;
+			BufferedReader br = new BufferedReader(new FileBufferReader(cnf.loadData()));
+			//Look for a line that starts with "BOOT"
+			String line = null;
+			while((line = br.readLine()) != null){
+				if(!line.startsWith("BOOT")) continue;
+				String[] fields = line.replace(" ", "").split("=");
+				if(fields.length < 2) break;
+				String val = fields[1];
+				val = val.substring(val.indexOf('\\') + 1);
+				val = val.substring(0, val.lastIndexOf(';'));
+				exepath = "/" + val;
+			}
+			br.close();
+			
+			if(exepath != null){
+				//Should be able to take out underscores and dots to get game code.
+				proj.gamecode = exepath.substring(1).replace(".", "").replace("_", "");
+				FileNode exe = proj.custom_tree.getNodeAt(exepath);
+				if(exe != null){
+					exe.setTypeChainHead(new FileTypeDefNode(PSXSysDefs.getExeDef()));
+				}
+				else{
+					System.err.println("Executable " + exepath + " not found!");
+				}
+			}
+			else{
+				//Warn and set defaults
+				System.err.println("PS1 ISO import error: executable not found!");
+				proj.gamecode = "SLXX00000";
+			}
+		}
+		else{
+			//Will have to fill in with dummies...
+			System.err.println("PS1 ISO import error: SYSTEM.CNF not found!");
+			proj.gamecode = "SLXX00000";
+		}
+		
+		proj.localName = "PS1Software " + proj.gamecode;
+		
+		return proj;
+	}
+	
 	/*----- Paths -----*/
 	
 	private String my_dir_path;
@@ -299,13 +386,43 @@ public class NTDProject implements Comparable<NTDProject>{
 		int renum = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
 		int lenum = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
 		
-		proj.gamecode = file.getASCII_string(cpos, 4); cpos+=4;
-		proj.makercode = file.getASCII_string(cpos, 2); cpos += 2;
-		String fullcode_raw = file.getASCII_string(cpos, 10); cpos+=10;
+		//Need to resolve up here as needed for game code...
+		proj.console = Console.getConsoleFromIntCode(cenum);
 		
-		proj.fullcode = fullcode_raw.substring(0,3) + "_";
-		proj.fullcode += fullcode_raw.substring(3,7) + "_";
-		proj.fullcode += fullcode_raw.substring(7);
+		if(version >= 3){
+			if(proj.console == Console.PS1){
+				proj.gamecode = file.getASCII_string(cpos, 9); cpos+=10;
+				proj.makercode = proj.gamecode.substring(0,2);
+				proj.fullcode = proj.gamecode;
+			}
+			else if(proj.console == Console.SWITCH){
+				proj.gamecode = file.getASCII_string(cpos, 6); cpos+=6;
+				proj.makercode = file.getASCII_string(cpos, 2); cpos += 2;
+				String fullcode_raw = file.getASCII_string(cpos, 12); cpos+=12;
+				
+				proj.fullcode = fullcode_raw.substring(0,3) + "_";
+				proj.fullcode += fullcode_raw.substring(3,8) + "_";
+				proj.fullcode += fullcode_raw.substring(8);
+			}
+			else{
+				proj.gamecode = file.getASCII_string(cpos, 4); cpos+=4;
+				proj.makercode = file.getASCII_string(cpos, 2); cpos += 2;
+				String fullcode_raw = file.getASCII_string(cpos, 10); cpos+=10;
+				
+				proj.fullcode = fullcode_raw.substring(0,3) + "_";
+				proj.fullcode += fullcode_raw.substring(3,7) + "_";
+				proj.fullcode += fullcode_raw.substring(7);
+			}
+		}
+		else{
+			proj.gamecode = file.getASCII_string(cpos, 4); cpos+=4;
+			proj.makercode = file.getASCII_string(cpos, 2); cpos += 2;
+			String fullcode_raw = file.getASCII_string(cpos, 10); cpos+=10;
+			
+			proj.fullcode = fullcode_raw.substring(0,3) + "_";
+			proj.fullcode += fullcode_raw.substring(3,7) + "_";
+			proj.fullcode += fullcode_raw.substring(7);
+		}
 		
 		SerializedString ss = file.readVariableLengthString(NTDProgramFiles.ENCODING, cpos, BinFieldSize.WORD, 2);
 		proj.rom_path = ss.getString();
@@ -350,7 +467,6 @@ public class NTDProject implements Comparable<NTDProject>{
 		
 		//Resolve enums and flags...
 		proj.is_encrypted = (flag & 0x80) != 0;
-		proj.console = Console.getConsoleFromIntCode(cenum);
 		proj.region = GameRegion.getRegion(renum);
 		proj.language = DefoLanguage.getLanReg((char)lenum);
 		
@@ -415,7 +531,7 @@ public class NTDProject implements Comparable<NTDProject>{
 	private int calculatePrelimSerializedSize()
 	{
 		//Omits VLSs since those need to be serialized first if UTF8
-		int size = 24;
+		int size = 28;
 		
 		//Approximate encryption info data size
 		size += 2; //For enc reg count
@@ -508,13 +624,29 @@ public class NTDProject implements Comparable<NTDProject>{
 		out.addToFile((byte)region.getIntValue());
 		out.addToFile((byte)language.getCharCode());
 		
-		if(gamecode.length() > 4) gamecode = gamecode.substring(0,4);
-		out.printASCIIToFile(gamecode);
-		if(makercode.length() > 2) makercode = makercode.substring(0,2);
-		out.printASCIIToFile(makercode);
-		String fcode = fullcode.replace("_", "");
-		if(fcode.length() > 10) fcode = fcode.substring(0,10);
-		out.printASCIIToFile(fcode);
+		if(console == Console.PS1){
+			if(gamecode.length() > 9) gamecode = gamecode.substring(0,9);
+			out.printASCIIToFile(gamecode);
+		}
+		else if(console == Console.SWITCH){
+			if(gamecode.length() > 6) gamecode = gamecode.substring(0,6);
+			out.printASCIIToFile(gamecode);
+			if(makercode.length() > 2) makercode = makercode.substring(0,2);
+			out.printASCIIToFile(makercode);
+			String fcode = fullcode.replace("_", "");
+			if(fcode.length() > 12) fcode = fcode.substring(0,12);
+			out.printASCIIToFile(fcode);
+		}
+		else{
+			if(gamecode.length() > 4) gamecode = gamecode.substring(0,4);
+			out.printASCIIToFile(gamecode);
+			if(makercode.length() > 2) makercode = makercode.substring(0,2);
+			out.printASCIIToFile(makercode);
+			String fcode = fullcode.replace("_", "");
+			if(fcode.length() > 10) fcode = fcode.substring(0,10);
+			out.printASCIIToFile(fcode);	
+		}
+		
 		
 		out.addToFile(str_rom);
 		//out.addToFile(str_dec);
@@ -707,6 +839,10 @@ public class NTDProject implements Comparable<NTDProject>{
 		NTDTools.doTypeScan(custom_tree, null);
 		
 		stampModificationTime();
+	}
+	
+	public void setBannerIcon(BufferedImage[] img){
+		banner = img;
 	}
 	
 	/*----- Decryption -----*/

@@ -28,8 +28,10 @@ public interface NTDTypeLoader {
 	public FileTypeDefinition getDefinition();
 	
 	public static void registerType(NTDTypeLoader loader){
+		//System.err.println("--DEBUG-- NTDTypeLoader.registerType called || loader null? " + (loader == null));
 		FileTypeDefinition def = loader.getDefinition();
 		if(def == null) return;
+		//System.err.println("--DEBUG-- NTDTypeLoader.registerType || definition is not null!");
 		FileDefinitions.registerDefinition(def);
 		TypeManager.registerTypeManager(def.getTypeID(), 
 				def.getExtensions(), loader.getTypeManager());
@@ -79,7 +81,7 @@ public interface NTDTypeLoader {
 				Class<?> c = cl.loadClass(cname);
 				if(superclass.isAssignableFrom(c)){
 					loaders.add(c);
-					if(verbose)System.err.println(superclass.getName() + " implementation found: " + c.getName());
+					//if(verbose)System.err.println(superclass.getName() + " implementation found: " + c.getName());
 				}
 			} 
 			catch (ClassNotFoundException e) {
@@ -105,11 +107,12 @@ public interface NTDTypeLoader {
 			else prefix = prefix + "." + dirname;
 		}
 		
+		List<Class<?>> passlist = new LinkedList<Class<?>>();
 		Map<String, URL> urlmap = new HashMap<String, URL>();
 		DirectoryStream<Path> dirstr = Files.newDirectoryStream(Paths.get(dirpath));
 		for(Path p : dirstr){
 			String childpath = p.toAbsolutePath().toString();
-			if(FileBuffer.directoryExists(childpath)) scanFileSystemDirectory(childpath, prefix, superclass, verbose);
+			if(FileBuffer.directoryExists(childpath)) passlist.addAll(scanFileSystemDirectory(childpath, prefix, superclass, verbose));
 			else{
 				//See if it's a .class or a .jar
 				if(childpath.endsWith(".class")){
@@ -122,12 +125,13 @@ public interface NTDTypeLoader {
 					//Add to map
 					urlmap.put(classname, url);
 				}
-				else if(childpath.endsWith(".jar")) scanJAR(childpath, superclass, verbose);
+				else if(childpath.endsWith(".jar")) passlist.addAll(scanJAR(childpath, superclass, verbose));
 			}
 		}
 		
 		//Load and check all classes found (if any)
-		List<Class<?>> passlist = loadAndCheckClasses(urlmap, superclass, verbose);
+		passlist.addAll(loadAndCheckClasses(urlmap, superclass, verbose));
+		//System.err.println("--DEBUG-- NTDTypeLoader.scanFileSystemDirectory || match count: " + passlist.size());
 		return passlist;
 		
 	}

@@ -302,7 +302,6 @@ public class NTDProgramFiles {
 	
 	public static boolean readIni() throws IOException
 	{
-		registerTypeDefinitions();
 		init_values = new TreeMap<String, String>();
 		
 		String inipath = getIniPath();
@@ -319,6 +318,7 @@ public class NTDProgramFiles {
 			init_values.put(fields[0], fields[1]);
 		}
 		br.close();
+		registerTypeDefinitions();
 		
 		CompressionDefs.setCompressionTempDir(getTempDir());
 		
@@ -573,7 +573,7 @@ public class NTDProgramFiles {
 	
 	private static String project_list_path;
 	private static Map<Console, Collection<NTDProject>> project_map;
-	public static final int CURRENT_VERSION_PROJBIN = 2;
+	public static final int CURRENT_VERSION_PROJBIN = 3;
 	
 	public static String getProjectBinPath()
 	{
@@ -594,8 +594,10 @@ public class NTDProgramFiles {
 		int version = projbin.intFromFile(cpos); cpos+=4;
 		int bcount = projbin.intFromFile(cpos); cpos+=4;
 		
+		//System.err.println("--DEBUG-- NTDProgramFiles.readProjectBin || Project count: " + bcount);
 		for(int i = 0; i < bcount; i++)
 		{
+			//System.err.println("--DEBUG-- NTDProgramFiles.readProjectBin || Reading project: " + i + " (cpos = 0x" + Long.toHexString(cpos) + ")");
 			long time_import = projbin.longFromFile(cpos); cpos+=8;
 			long time_modify = projbin.longFromFile(cpos); cpos+=8;
 			int bsz = projbin.intFromFile(cpos); cpos+=4;
