@@ -19,6 +19,7 @@ import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.time.OffsetDateTime;
 
 import javax.swing.SwingConstants;
 
@@ -31,13 +32,11 @@ public class InfoPanel extends JPanel{
 	
 	private Image img;
 
-	public InfoPanel(NTDProject proj)
-	{
+	public InfoPanel(NTDProject proj){
 		initGUI(proj);
 	}
 	
-	private void initGUI(NTDProject proj)
-	{
+	private void initGUI(NTDProject proj){
 		setLayout(null);
 		Dimension minsize = new Dimension(MIN_WIDTH, HEIGHT);
 		setMinimumSize(minsize);
@@ -97,6 +96,7 @@ public class InfoPanel extends JPanel{
 			case WII: lblConsole.setText("Nintendo Wii"); break;
 			case WIIU: lblConsole.setText("Nintendo WiiU"); break;
 			case _3DS: lblConsole.setText("Nintendo 3DS"); break;
+			case PS1: lblConsole.setText("Sony PlayStation 1"); break;
 			default: lblConsole.setText("Console Unknown"); break;
 			}
 		}
@@ -126,8 +126,19 @@ public class InfoPanel extends JPanel{
 			String[] lines = btitle.split("\n");
 			if(lines.length == 1)
 			{
-				lblTitle1.setText("");
-				lblTitle2.setText(lines[0]);
+				//lblTitle1.setText("");
+				//lblTitle2.setText(lines[0]);
+				lblTitle1.setText(lines[0]);
+				
+				OffsetDateTime time = proj.getVolumeTime();
+				if(time == null){
+					lblTitle3.setText(proj.getPublisherTag());
+				}
+				else{
+					lblTitle2.setText(proj.getPublisherTag());
+					lblTitle3.setText(NTDProject.getDateTimeString(proj.getVolumeTime()));
+				}
+
 			}
 			else if(lines.length == 2)
 			{

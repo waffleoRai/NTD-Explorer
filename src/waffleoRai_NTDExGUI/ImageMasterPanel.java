@@ -323,7 +323,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 			return;
 		}
 		
-		SetTextDialog dialog = new SetTextDialog(parent, "Set New Name");
+		SetTextDialog dialog = new SetTextDialog(parent, "Set New Name", node.getFileName());
 		dialog.setLocationRelativeTo(this);
 		dialog.setVisible(true);
 		
@@ -359,7 +359,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 			return;
 		}
 		
-		SetTextDialog dialog = new SetTextDialog(parent, "New Directory Name");
+		SetTextDialog dialog = new SetTextDialog(parent, "New Directory Name", "NewFolder");
 		dialog.setVisible(true);
 		
 		if(!dialog.okSelected()) return;
@@ -420,7 +420,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 			return;
 		}
 		
-		SetTextDialog dialog = new SetTextDialog(parent, "Enter Offset (Hex) to Split At");
+		SetTextDialog dialog = new SetTextDialog(parent, "Enter Offset (Hex) to Split At", "0x00");
 		dialog.setVisible(true);
 		
 		if(!dialog.okSelected()) return;

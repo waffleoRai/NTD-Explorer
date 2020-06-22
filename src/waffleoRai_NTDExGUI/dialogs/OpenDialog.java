@@ -1,15 +1,19 @@
 package waffleoRai_NTDExGUI.dialogs;
 
+import javax.imageio.ImageIO;
 import javax.swing.JDialog;
 import javax.swing.JTabbedPane;
 
 import waffleoRai_NTDExCore.Console;
+import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExGUI.panels.DSPreviewPanel;
+import waffleoRai_NTDExGUI.panels.PSXPreviewPanel;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Frame;
+import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import java.util.Collection;
 import java.util.Collections;
@@ -20,10 +24,13 @@ import java.util.Map;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 
 import javax.swing.border.BevelBorder;
 import javax.swing.event.ChangeEvent;
@@ -37,16 +44,16 @@ public class OpenDialog extends JDialog{
 	public static final int SIZE_ADD_SCROLLER = 20;
 	public static final int MAX_BLOCKS_HEIGHT = 5;
 	
-	public static final int GUI_WIDTH_ADD = 10;
+	public static final int GUI_WIDTH_ADD = 15;
 	public static final int GUI_HEIGHT_ADD = 65;
 	
-	public static final int TAB_IDX_GC = 0;
-	public static final int TAB_IDX_DS = 1;
-	public static final int TAB_IDX_WII = 2;
-	public static final int TAB_IDX_3DS = 3;
-	public static final int TAB_IDX_WIIU = 4;
-	public static final int TAB_IDX_SWITCH = 5;
-	//public static final int TAB_IDX_PS1 = 99;
+	public static final int TAB_IDX_GC = 1;
+	public static final int TAB_IDX_DS = 2;
+	public static final int TAB_IDX_WII = 3;
+	public static final int TAB_IDX_3DS = 4;
+	public static final int TAB_IDX_WIIU = 5;
+	public static final int TAB_IDX_SWITCH = 6;
+	public static final int TAB_IDX_PS1 = 0;
 	//public static final int TAB_IDX_N64 = 99;
 	//public static final int TAB_IDX_GB = 99;
 	//public static final int TAB_IDX_GBC = 99;
@@ -59,51 +66,73 @@ public class OpenDialog extends JDialog{
 	private JTabbedPane tabbedPane;
 	private Dimension[] tabSizes;
 	private int[] blockCount;
+	
+	private BufferedImage pnlbkg;
+	private static BufferedImage btnOff;
+	private static BufferedImage btnOn;
 
  	public OpenDialog(Frame parent, Map<Console, Collection<NTDProject>> loadlist) 
 	{
 		super(parent, true);
-		setLocationRelativeTo(parent);
+		//setLocationRelativeTo(parent);
 		setResizable(false);
 		listeners = new LinkedList<ActionListener>();
 		initGUI(loadlist);
+		setLocationRelativeTo(parent);
 	}
 	
 	private void initGUI(Map<Console, Collection<NTDProject>> loadlist)
 	{
 		setTitle("Open");
+		try{
+			pnlbkg = ImageIO.read(OpenDialog.class.getResource("/waffleoRai_NTDExCore/res/general_gradient_bkg_1.png"));
+		}
+		catch(IOException e){
+			e.printStackTrace();
+		}
 		
 		tabbedPane = new JTabbedPane(JTabbedPane.BOTTOM);
 		getContentPane().add(tabbedPane, BorderLayout.CENTER);
+		
+		JScrollPane spPSX = new JScrollPane(){
+			private static final long serialVersionUID = -5907251596864073016L;
+			public void paintComponent(Graphics g){
+				super.paintComponent(g);
+				g.drawImage(pnlbkg, 0, 0, null);
+			}
+		};
+		spPSX.getViewport().setOpaque(false);
+		spPSX.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		tabbedPane.addTab("PS1", null, spPSX, null);
+		tabbedPane.setEnabledAt(TAB_IDX_PS1, false);
+		
+		JPanel pnlPSX = new JPanel();
+		pnlPSX.setOpaque(false);
+		spPSX.setViewportView(pnlPSX);
+		int gcount_psx = loadPSXTab(pnlPSX, loadlist);
 		
 		JScrollPane spGC = new JScrollPane();
 		spGC.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		tabbedPane.addTab("GameCube", null, spGC, null);
 		tabbedPane.setEnabledAt(TAB_IDX_GC, false);
 		
-		JScrollPane spDS = new JScrollPane();
+		JScrollPane spDS = new JScrollPane(){
+			
+			private static final long serialVersionUID = 2446270250180489468L;
+
+			public void paintComponent(Graphics g){
+				super.paintComponent(g);
+				if(pnlbkg != null) g.drawImage(pnlbkg, 0, 0, null);
+			}
+		};
+		spDS.getViewport().setOpaque(false);
 		spDS.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		tabbedPane.addTab("DS/DSi", null, spDS, null);
 		
 		JPanel pnlDS = new JPanel();
 		spDS.setViewportView(pnlDS);
+		pnlDS.setOpaque(false);
 		int gcount_ds = loadDSTab(pnlDS, loadlist);
-		Dimension dim_ds = new Dimension();
-		if(gcount_ds == 0) tabbedPane.setEnabledAt(TAB_IDX_DS, false);
-		else if(gcount_ds < MAX_BLOCKS_HEIGHT)
-		{
-			tabbedPane.setEnabledAt(TAB_IDX_DS, true);
-			dim_ds.width = DSPreviewPanel.WIDTH + SIZE_ADD_NOSCROLLER;
-			dim_ds.height = DSPreviewPanel.HEIGHT * gcount_ds;
-		}
-		else
-		{
-			tabbedPane.setEnabledAt(TAB_IDX_DS, true);
-			dim_ds.width = DSPreviewPanel.WIDTH + SIZE_ADD_SCROLLER;
-			dim_ds.height = DSPreviewPanel.HEIGHT * MAX_BLOCKS_HEIGHT;
-		}
-		spDS.setMinimumSize(dim_ds);
-		spDS.setPreferredSize(dim_ds);
 		
 		JScrollPane spWii = new JScrollPane();
 		spWii.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
@@ -115,10 +144,21 @@ public class OpenDialog extends JDialog{
 		tabbedPane.addTab("3DS", null, sp3DS, null);
 		tabbedPane.setEnabledAt(TAB_IDX_3DS, false);
 		
+		JScrollPane spWiiU = new JScrollPane();
+		spWiiU.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		tabbedPane.addTab("Wii U", null, spWiiU, null);
+		tabbedPane.setEnabledAt(TAB_IDX_WIIU, false);
+		
+		JScrollPane spSwitch = new JScrollPane();
+		spSwitch.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		tabbedPane.addTab("Switch", null, spSwitch, null);
+		tabbedPane.setEnabledAt(TAB_IDX_SWITCH, false);
+		
 		int tabcount = tabbedPane.getTabCount();
 		blockCount = new int[tabcount];
 		tabSizes = new Dimension[tabcount];
-		tabSizes[TAB_IDX_DS] = dim_ds; blockCount[TAB_IDX_DS] = gcount_ds;
+		setSPDimension(gcount_ds, TAB_IDX_DS, DSPreviewPanel.WIDTH, DSPreviewPanel.HEIGHT, spDS);
+		setSPDimension(gcount_psx, TAB_IDX_PS1, PSXPreviewPanel.WIDTH, PSXPreviewPanel.HEIGHT, spPSX);
 		
 		for(int i = 0; i < blockCount.length; i++)
 		{
@@ -141,6 +181,27 @@ public class OpenDialog extends JDialog{
 		adjustMySizeToTab();
 	}
 	
+	private void setSPDimension(int count, int tabidx, int bwidth, int bheight, JScrollPane sp){
+		Dimension dim = new Dimension();
+		if(count == 0) tabbedPane.setEnabledAt(tabidx, false);
+		else if(count < MAX_BLOCKS_HEIGHT)
+		{
+			tabbedPane.setEnabledAt(tabidx, true);
+			dim.width = bwidth + SIZE_ADD_NOSCROLLER + 5;
+			dim.height = bheight * count + 20;
+		}
+		else
+		{
+			tabbedPane.setEnabledAt(tabidx, true);
+			dim.width = bwidth + SIZE_ADD_SCROLLER;
+			dim.height = bheight * MAX_BLOCKS_HEIGHT;
+		}
+		sp.setMinimumSize(dim);
+		sp.setPreferredSize(dim);
+		
+		tabSizes[tabidx] = dim; blockCount[tabidx] = count;
+	}
+	
 	private int loadDSTab(JPanel panel, Map<Console, Collection<NTDProject>> loadlist)
 	{
 		GridBagLayout gbl_pnlDS = new GridBagLayout();
@@ -157,8 +218,8 @@ public class OpenDialog extends JDialog{
 		if(twl != null) addlist.addAll(twl);
 		Collections.sort(addlist);
 		
-		final int pnl_width = DSPreviewPanel.WIDTH;
-		final int pnl_height = DSPreviewPanel.HEIGHT;
+		//final int pnl_width = DSPreviewPanel.WIDTH;
+		//final int pnl_height = DSPreviewPanel.HEIGHT;
 		
 		int row = 0;
 		for(NTDProject proj : addlist)
@@ -174,15 +235,63 @@ public class OpenDialog extends JDialog{
 			gbc.gridx = 0;
 			gbc.gridy = row;
 			gbc.anchor = GridBagConstraints.NORTH;
+			gbc.insets = new Insets(1,0,1,0);
 			row++;
 			panel.add(gamepnl, gbc);
 		}
 		
 		//Set panel size...
-		Dimension sz = new Dimension(pnl_width, (pnl_height * addlist.size()));
-		panel.setMinimumSize(sz);
+		//Dimension sz = new Dimension(pnl_width, (pnl_height * addlist.size()));
+		//panel.setMinimumSize(sz);
 		//panel.setMaximumSize(sz);
-		panel.setPreferredSize(sz);
+		//panel.setPreferredSize(sz);
+		
+		return addlist.size();
+	}
+	
+	private int loadPSXTab(JPanel panel, Map<Console, Collection<NTDProject>> loadlist){
+		
+		GridBagLayout gbl_pnl = new GridBagLayout();
+		panel.setLayout(gbl_pnl);
+		
+		List<NTDProject> addlist = new LinkedList<NTDProject>();
+		Collection<NTDProject> ps1 = loadlist.get(Console.PS1);
+		if(ps1 != null) addlist.addAll(ps1);
+		Collections.sort(addlist);
+		
+		//final int pnl_width = PSXPreviewPanel.WIDTH;
+		//final int pnl_height = PSXPreviewPanel.HEIGHT;
+		
+		int row = 0;
+		for(NTDProject proj : addlist)
+		{
+			PSXPreviewPanel gamepnl = new PSXPreviewPanel();
+			gamepnl.loadMe(proj, null);
+			gamepnl.addActionListener(new ClickyListener(proj));
+			
+			GridBagConstraints gbc = new GridBagConstraints();
+			gbc.gridwidth = 1;
+			gbc.gridheight = 1;
+			gbc.gridx = 0;
+			gbc.gridy = row;
+			gbc.anchor = GridBagConstraints.NORTH;
+			gbc.insets = new Insets(1,0,1,0);
+			row++;
+			panel.add(gamepnl, gbc);
+		}
+		if(addlist.size() < MAX_BLOCKS_HEIGHT){
+			//Add a dummy gridbag row
+			int rcount = row+1;
+			gbl_pnl.rowWeights = new double[rcount+1];
+			gbl_pnl.rowHeights = new int[rcount+1];
+			gbl_pnl.rowWeights[rcount] = Double.MIN_VALUE;
+			gbl_pnl.rowWeights[rcount-1] = 1.0;
+		}
+		
+		//Set panel size...
+		//Dimension sz = new Dimension(pnl_width, (pnl_height * addlist.size()));
+		//panel.setMinimumSize(sz);
+		//panel.setPreferredSize(sz);
 		
 		return addlist.size();
 	}
@@ -223,8 +332,8 @@ public class OpenDialog extends JDialog{
 		dispose();
 	}
 	
-	public void onTabChange()
-	{
+	public void onTabChange(){
+		//System.err.println("Tab change heard!");
 		adjustMySizeToTab();
 	}
 	
@@ -239,8 +348,37 @@ public class OpenDialog extends JDialog{
 		
 		setMinimumSize(dim);
 		setPreferredSize(dim);
+		setMaximumSize(dim);
+		
+		tabbedPane.setMinimumSize(dim);
+		tabbedPane.setPreferredSize(dim);
+		//tabbedPane.setMaximumSize(dim);
 		
 		this.repaint();
+	}
+	
+	public static BufferedImage getButtonImage(){
+		if(btnOff == null){
+			try{
+				btnOff = ImageIO.read(NTDProgramFiles.class.getResource("/waffleoRai_NTDExCore/res/general_gradient_btn_2.png"));
+			}
+			catch(IOException e){
+				e.printStackTrace();
+			}
+		}
+		return btnOff;
+	}
+	
+	public static BufferedImage getSelectedButtonImage(){
+		if(btnOn == null){
+			try{
+				btnOn = ImageIO.read(NTDProgramFiles.class.getResource("/waffleoRai_NTDExCore/res/general_gradient_btn_3.png"));
+			}
+			catch(IOException e){
+				e.printStackTrace();
+			}
+		}
+		return btnOn;
 	}
 	
 }

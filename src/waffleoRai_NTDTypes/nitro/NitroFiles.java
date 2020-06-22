@@ -6,7 +6,6 @@ import waffleoRai_Compression.definitions.AbstractCompDef;
 import waffleoRai_Compression.definitions.CompDefNode;
 import waffleoRai_Compression.nintendo.DSCompHeader;
 import waffleoRai_Compression.nintendo.DSRLE;
-import waffleoRai_Compression.nintendo.NinHuff;
 import waffleoRai_Compression.nintendo.NinLZ;
 import waffleoRai_Files.FileTypeDefNode;
 import waffleoRai_Files.FileTypeDefinition;
@@ -21,14 +20,15 @@ import waffleoRai_Utils.StreamWrapper;
  * 
  * 1.0.0 | June 7, 2020
  * 	Initial writing/documentation
- * 
+ * 1.1.0 | June 21, 2020
+ * 	Uses FileNode to load first 16 bytes instead of doing so directly
  */
 
 /**
  * A utility class for common Nitro (Nintendo DS) file processing.
  * @author Blythe Hospelhorn
- * @version 1.0.0
- * @since June 7, 2020
+ * @version 1.1.0
+ * @since June 21, 2020
  */
 public class NitroFiles {
 	
@@ -67,15 +67,16 @@ public class NitroFiles {
 	 */
 	public static FileTypeNode detectNitroFile(FileNode node, String magic, FileTypeDefinition def, boolean size_strict){
 
-		String path = node.getSourcePath();
-		long offset = node.getOffset();
+		//String path = node.getSourcePath();
+		//long offset = node.getOffset();
 		
 		//If file size is less than 16, then it's probably not what we're looking for...
 		if(node.getLength() < 16) return null;
 		
 		try 
 		{
-			FileBuffer buffer = new FileBuffer(path, offset, offset+16, false);
+			//FileBuffer buffer = new FileBuffer(path, offset, offset+16, false);
+			FileBuffer buffer = node.loadData(0, 0x10);
 			long magicoff = buffer.findString(0, 0x10, magic);
 			if(magicoff == 0)
 			{
@@ -88,6 +89,9 @@ public class NitroFiles {
 			}
 			else
 			{
+				//If we don't find magic in the first 16 bytes, return false.
+				//Will need to change this for Huff when added.
+				
 				//Look for DS compression header...
 
 				DSCompHeader chead = DSCompHeader.read(buffer, 0);
@@ -95,6 +99,7 @@ public class NitroFiles {
 				switch(chead.getType())
 				{
 				case DSCompHeader.TYPE_LZ77: 
+					if(magicoff < 0) return null;
 					AbstractCompDef lzdef = NinLZ.getDefinition();
 					cnode = new CompDefNode(lzdef);
 					String buffpath = lzdef.decompressToDiskBuffer(new FileBufferStreamer(node.loadData()));
@@ -105,8 +110,11 @@ public class NitroFiles {
 						return cnode;
 					}
 					else return null;
-				case DSCompHeader.TYPE_HUFFMAN: return new CompDefNode(NinHuff.getDefinition());
+				case DSCompHeader.TYPE_HUFFMAN: 
+					return null; //Because this can be "found" coincidentally it seems.
+					//return new CompDefNode(NinHuff.getDefinition());
 				case DSCompHeader.TYPE_RLE: 
+					if(magicoff < 0) return null;
 					AbstractCompDef rle = DSRLE.getDefinition();
 					cnode = new CompDefNode(rle);
 					String buffpath_rle = rle.decompressToDiskBuffer(new FileBufferStreamer(node.loadData()));

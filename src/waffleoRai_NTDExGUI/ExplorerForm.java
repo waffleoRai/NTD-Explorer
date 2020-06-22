@@ -157,10 +157,32 @@ public class ExplorerForm extends JFrame {
 			public void actionPerformed(ActionEvent e){onFileExportProject();}
 		});
 		
+		JMenuItem mntmImportCDTrack = new JMenuItem("Import CD Track...");
+		mnFile.add(mntmImportCDTrack);
+		loaded_enabled.addComponent("mntmImportCDTrack", mntmImportCDTrack);
+		mntmImportCDTrack.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileImportCDTrack();}
+		});
 		
 		JMenu mnTools = new JMenu("Tools");
 		menuBar.add(mnTools);
 		loaded_enabled.addComponent("mnTools", mnTools);
+		
+		JMenu mnImportBanner = new JMenu("Import Banner Icon");
+		mnTools.add(mnImportBanner);
+		loaded_enabled.addComponent("mnImportBanner", mnImportBanner);
+		
+		JMenuItem mntmImportBannerMC = new JMenuItem("From Save Data...");
+		mnImportBanner.add(mntmImportBannerMC);
+		mntmImportBannerMC.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onToolsImportBannerFromSave();}
+		});
+		
+		JMenuItem mntmImportBannerPC = new JMenuItem("From Computer...");
+		mnImportBanner.add(mntmImportBannerPC);
+		mntmImportBannerPC.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onToolsImportBannerFromComputer();}
+		});
 		
 		JMenuItem mntmAutoArchiveDump = new JMenuItem("Auto Archive Dump...");
 		mnTools.add(mntmAutoArchiveDump);
@@ -935,6 +957,31 @@ public class ExplorerForm extends JFrame {
 	private void onFileImportProject()
 	{
 		//TODO
+	}
+	
+	private void onFileImportCDTrack(){
+		//TODO
+		//For PS1 games on multiple CD tracks
+	}
+	
+	private void onToolsImportBannerFromSave(){
+		if(loaded_project == null){
+			showError("No project loaded!");
+			return;
+		}
+		
+		NTDTools.importBannerFromSave(this, loaded_project);
+		pnlMain.repaint();
+	}
+	
+	private void onToolsImportBannerFromComputer(){
+		if(loaded_project == null){
+			showError("No project loaded!");
+			return;
+		}
+		
+		NTDTools.importBannerFromLocalFS(this, loaded_project);
+		pnlMain.repaint();
 	}
 	
 	/*----- Checks -----*/

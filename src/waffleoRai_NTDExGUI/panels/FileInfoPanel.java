@@ -7,6 +7,7 @@ import java.awt.Graphics2D;
 import javax.swing.JPanel;
 
 import waffleoRai_Files.FileTypeNode;
+import waffleoRai_Files.ISOFileNode;
 import waffleoRai_Utils.FileNode;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -99,7 +100,7 @@ public class FileInfoPanel extends JPanel{
         
         str = "<null>";
         if(loaded_node != null) str = loaded_node.getFullPath();
-        g2d.setFont(new Font("Courier New", Font.PLAIN, 10));
+        g2d.setFont(new Font("Courier New", Font.PLAIN, 11));
         g2d.drawString(str, x_off, y_off);
         y_off += 15;
         
@@ -139,9 +140,11 @@ public class FileInfoPanel extends JPanel{
         y_off += 30;
         
         str = "ROM Offset: <null>";
-        if(loaded_node != null)
-        {
-        	str = "ROM Offset: 0x" + Long.toHexString(loaded_node.getOffset());
+        if(loaded_node != null){
+        	if(loaded_node instanceof ISOFileNode){
+        		str = "ROM Offset: Sector " + loaded_node.getOffset();
+        	}
+        	else str = "ROM Offset: 0x" + Long.toHexString(loaded_node.getOffset());
         }
         g2d.drawString(str, x_off, y_off);
         y_off += 15;

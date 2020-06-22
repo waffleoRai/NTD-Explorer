@@ -1,6 +1,8 @@
 package waffleoRai_NTDExCore;
 
 import java.awt.Frame;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -8,10 +10,13 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
+import javax.swing.filechooser.FileFilter;
 
 import waffleoRai_Compression.definitions.AbstractCompDef;
 import waffleoRai_Compression.definitions.CompDefNode;
@@ -22,10 +27,17 @@ import waffleoRai_Files.FileClass;
 import waffleoRai_Files.FileTypeDefinition;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
+import waffleoRai_NTDExCore.memcard.BannerImporter;
+import waffleoRai_NTDExCore.memcard.BannerImporter.BannerStruct;
+import waffleoRai_NTDExCore.memcard.PSXMCBannerImporter;
+import waffleoRai_NTDExGUI.ExplorerForm;
+import waffleoRai_NTDExGUI.dialogs.BannerImportDialog;
+import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
+import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.LinkNode;
 
@@ -412,6 +424,212 @@ public class NTDTools {
 		dialog.render();
 		
 		
+	}
+	
+	public static void importBannerFromSave(ExplorerForm gui, NTDProject proj){
+
+		Console c = proj.getConsole();
+		BannerImporter importer = null;
+		switch(c){
+		case PS1: 
+			importer = new PSXMCBannerImporter();
+			break;
+		default: 
+			gui.showWarning("Save data support not available for this console!");
+			return;
+		}
+		
+		//JFileChooser
+		JFileChooser fc = new JFileChooser(NTDProgramFiles.getIniValue(NTDProgramFiles.INIKEY_LAST_SAVEICONPATH));
+		fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+		List<FileFilter> filters = importer.getFileFilters();
+		for(FileFilter f : filters) fc.addChoosableFileFilter(f);
+		
+		int select = fc.showOpenDialog(gui);
+		
+		if(select != JFileChooser.APPROVE_OPTION) return;
+		String abspath = fc.getSelectedFile().getAbsolutePath();
+		NTDProgramFiles.setIniValue(NTDProgramFiles.INIKEY_LAST_SAVEICONPATH, abspath);
+		
+		//Create dialog
+		IndefProgressDialog dialog = new IndefProgressDialog(gui, "Banner Import");
+		dialog.setPrimaryString("Reading");
+		dialog.setSecondaryString("Scanning save data from " + abspath);
+		
+		//Create task for banner retrieval...
+		Collection<BannerStruct> bannerlist = null;
+		BannerImporter fimporter = importer;
+		SwingWorker<Collection<BannerStruct>, Collection<BannerStruct>> task = new SwingWorker<Collection<BannerStruct>, Collection<BannerStruct>>()
+		{
+
+			protected Collection<BannerStruct> doInBackground() throws Exception{
+				Collection<BannerStruct> blist = null;
+				try{
+					blist = fimporter.findBanner(abspath, proj.getGameCode12());
+				}
+				catch (IOException e){
+					e.printStackTrace();
+					gui.showError("I/O Error: File \"" + abspath + "\" could not be loaded!");
+				}
+				catch (UnsupportedFileTypeException e){
+					e.printStackTrace();
+					gui.showError("Parsing Error: File \"" + abspath + "\" could not be read!");
+				}
+				return blist;
+			}
+			
+			public void done(){
+				dialog.closeMe();
+			}
+			
+		};
+		
+		//Run banner retrieval (and wait)...
+		task.execute();
+		dialog.render();
+		try {
+			bannerlist = task.get();
+		} 
+		catch (InterruptedException e) {
+			e.printStackTrace();
+			gui.showError("Task Execution Error: Import task was interrupted! Try again later.");
+			return;
+		} 
+		catch (ExecutionException e) {
+			e.printStackTrace();
+			gui.showError("Task Execution Error: Import task could not be executed! Try again later.");
+			return;
+		}
+		
+		if(bannerlist == null){
+			gui.showError("Unknown Error: Import task failed! See stderr.");
+			return;
+		}
+		
+		//Display icon selection panel
+		BannerImportDialog bidialog = new BannerImportDialog(gui);
+		bidialog.setLocationRelativeTo(gui);
+		bidialog.loadBannerOptions(bannerlist);
+		bidialog.setVisible(true);
+		
+		//Set title (if applicable)
+		if(!bidialog.selectionApproved()) return;
+		BannerStruct banner = bidialog.getSelected();
+		if(banner == null){
+			gui.showWarning("No banner selected!");
+			return;
+		}
+		String title = null;
+		if(c == Console.PS1){
+			//Confirm title to load in
+			SetTextDialog textdialog = new SetTextDialog(gui, "Set Banner Title", banner.title);
+			textdialog.setLocationRelativeTo(gui);
+			textdialog.setVisible(true);
+			if(!textdialog.okSelected()) return;
+			title = textdialog.getText();
+		}
+		
+		//Apply to project
+		proj.setBannerIcon(banner.icon);
+		if(title!=null) proj.setBannerTitle(title);
+		
+	}
+	
+	public static void importBannerFromLocalFS(ExplorerForm gui, NTDProject proj){
+		//Only a single image.
+		
+		//JFileChooser
+		String[] imgexts = {"png", "jpg", "jpeg", "bmp"};
+		JFileChooser fc = new JFileChooser(NTDProgramFiles.getIniValue(NTDProgramFiles.INIKEY_LAST_PCICONPATH));
+		fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+		fc.addChoosableFileFilter(new FileFilter(){
+
+			public boolean accept(File f) {
+				String fname = f.getAbsolutePath();
+				for(String ext : imgexts){
+					if(fname.endsWith("." + ext)) return true;
+				}
+				return false;
+			}
+
+			public String getDescription() {
+				String extlist = "";
+				boolean first = true;
+				for(String ext : imgexts){
+					if(!first)extlist += ",";
+					first = false;
+					extlist += "." + ext;
+				}
+				return "Image File (" + extlist + ")";
+			}
+			
+		});
+		
+		int select = fc.showOpenDialog(gui);
+		
+		if(select != JFileChooser.APPROVE_OPTION) return;
+		String abspath = fc.getSelectedFile().getAbsolutePath();
+		NTDProgramFiles.setIniValue(NTDProgramFiles.INIKEY_LAST_PCICONPATH, abspath);
+		
+		//Create dialog
+		IndefProgressDialog dialog = new IndefProgressDialog(gui, "Banner Icon Import");
+		dialog.setPrimaryString("Reading");
+		dialog.setSecondaryString("Loading image from " + abspath);
+		
+		//Create task
+		BufferedImage img = null;
+		SwingWorker<BufferedImage, BufferedImage> task = new SwingWorker<BufferedImage, BufferedImage>()
+		{
+
+			protected BufferedImage doInBackground() throws Exception{
+				BufferedImage i = null;
+				try{
+					i = ImageIO.read(new File(abspath));
+				}
+				catch (IOException e){
+					e.printStackTrace();
+					gui.showError("I/O Error: File \"" + abspath + "\" could not be read!");
+				}
+				return i;
+			}
+			
+			public void done(){
+				dialog.closeMe();
+			}
+			
+		};
+		
+		//Wait for task to finish
+		task.execute();
+		dialog.render();
+		try {
+			img = task.get();
+		} 
+		catch (InterruptedException e) {
+			e.printStackTrace();
+			gui.showError("Task Execution Error: Import task was interrupted! Try again later.");
+			return;
+		} 
+		catch (ExecutionException e) {
+			e.printStackTrace();
+			gui.showError("Task Execution Error: Import task could not be executed! Try again later.");
+			return;
+		}
+		
+		if(img == null){
+			gui.showError("Error: Import task failed! See stderr.");
+			return;
+		}
+		
+		//Rescale to 32x32
+		BufferedImage scaled = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
+		Image simg = img.getScaledInstance(32, 32, Image.SCALE_DEFAULT);
+		scaled.getGraphics().drawImage(simg, 0, 0, null);
+		
+		//Apply to project
+		BufferedImage[] ico = new BufferedImage[1];
+		ico[0] = scaled;
+		proj.setBannerIcon(ico);
 	}
 	
 }

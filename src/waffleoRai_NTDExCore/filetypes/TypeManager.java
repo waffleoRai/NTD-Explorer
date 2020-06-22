@@ -119,6 +119,7 @@ public abstract class TypeManager {
 			//Try scanning internally...
 			Collection<TypeManager> alltypes = getAllAvailableTypeManagers();
 			for(TypeManager tm : alltypes){
+				//System.err.print("Trying TM: " + tm.toString());
 				if(tm instanceof TM_BIN) continue; //It's always true, we don't need it getting stuck there...
 				if(tm.isOfType(node))
 				{

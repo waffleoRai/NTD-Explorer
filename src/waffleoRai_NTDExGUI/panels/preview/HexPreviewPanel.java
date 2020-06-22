@@ -7,21 +7,22 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.io.IOException;
 
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.border.BevelBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 
+import waffleoRai_NTDExGUI.DisposableJPanel;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileNode;
 
-public class HexPreviewPanel extends JPanel{
+public class HexPreviewPanel extends DisposableJPanel{
 	
 	private static final long serialVersionUID = 4490768211073360323L;
 	
-	public static final int MAX_LOAD_SIZE = 0x4000000; //64MB
+	//public static final int MAX_LOAD_SIZE = 0x4000000; //64MB
+	public static final int MAX_LOAD_SIZE = 0x100000; //1MB
 	
 	public static final int MIN_COL_WIDTH_OFFSET = 40;
 	public static final int MIN_COL_WIDTH_BYTE = 5;
@@ -29,6 +30,8 @@ public class HexPreviewPanel extends JPanel{
 	
 	private JScrollPane scrollPane;
 	private JTable table;
+	
+	private FileBuffer dat;
 	
 	public HexPreviewPanel()
 	{
@@ -72,6 +75,8 @@ public class HexPreviewPanel extends JPanel{
 	
 	private void loadTable(FileBuffer data, long stoff)
 	{
+		//System.err.println("Load data -- size = 0x" + Long.toHexString(data.getFileSize()));
+		dat = data;
 		String[] cols = new String[18];
 		cols[0] = "Offset";
 		for(int i = 0; i < 16; i++) cols[i+1] = String.format("0x%02x", i);
@@ -126,6 +131,17 @@ public class HexPreviewPanel extends JPanel{
 		
 		table.repaint();
 		scrollPane.repaint();
+		
+	}
+	
+	public void dispose(){
+		
+		try {
+			if(dat != null) dat.dispose();
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+		}
 		
 	}
 	

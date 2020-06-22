@@ -3,25 +3,34 @@ package waffleoRai_NTDExCore;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.GregorianCalendar;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
+import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 
 import waffleoRai_Containers.CDTable.CDInvalidRecordException;
 import waffleoRai_Containers.ISO;
 import waffleoRai_Containers.ISOXAImage;
 import waffleoRai_Containers.nintendo.NDS;
 import waffleoRai_Files.EncryptionDefinitions;
-import waffleoRai_Files.FileBufferReader;
 import waffleoRai_Files.FileTypeDefNode;
+import waffleoRai_Image.Animation;
+import waffleoRai_Image.AnimationFrame;
 import waffleoRai_Utils.BinFieldSize;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
@@ -50,7 +59,7 @@ public class NTDProject implements Comparable<NTDProject>{
 	 * 		MakerCode [2]
 	 * 		FullCode [10] (No dashes/underscores...)
 	 * 	For PSX (v3+)
-	 * 		GameCode [10] (9 + null character)
+	 * 		GameCode [10] 
 	 * 	For HAC (v3+)
 	 * 		GameCode [6] (5 + null)
 	 * 		MakerCode [2]
@@ -71,14 +80,17 @@ public class NTDProject implements Comparable<NTDProject>{
 	 * 
 	 * (For Banner)
 	 * Local Game Name [VLS 2x2] 
+	 * Publisher String [VLS 2x2] (V4+)
+	 * Publish Date [8] (V4+)
 	 * # of image frames [1]
 	 * Image width [1]
 	 * Image height [1]
 	 * RESERVED[1] 
 	 * (Icon is max 255x255)
-	 * Image Data
+	 * CompData Size [4] (V5+)
+	 * Image Data (DEFLATEd if V5+ -- Will add but haven't yet) - Decomp size can be calculated
 	 * 	Each pixel is 32 bits (RGBA)
-	 * 
+	 * Padding to 2-bytes (V5+)
 	 * 
 	 * 
 	 * Exported File (ntdpj)
@@ -92,6 +104,10 @@ public class NTDProject implements Comparable<NTDProject>{
 	
 	public static final String EXPORT_MAGIC = "ntd PROJ";
 	public static final short CURRENT_VERSION = 1;
+	
+	public static final String MAKERDS_NINTENDO = "01";
+	public static final String MAKERDS_SQUAREENIX = "DG";
+	public static final String MAKERDS_CAPCOM = "80";
 
 	/*----- Instance Variables -----*/
 	
@@ -109,10 +125,12 @@ public class NTDProject implements Comparable<NTDProject>{
 	private List<EncryptionRegion> encrypted_regs;
 	
 	private String localName;
+	private String pubName;
 	private BufferedImage[] banner;
 	
 	private DirectoryNode custom_tree;
 	
+	private OffsetDateTime volume_time;
 	private OffsetDateTime imported_time;
 	private OffsetDateTime modified_time;
 	
@@ -131,7 +149,7 @@ public class NTDProject implements Comparable<NTDProject>{
 		localName = "unknown game";
 		banner = new BufferedImage[1];
 		try{
-		banner[0] = NTDProgramFiles.getDefaultImage_unknown();}
+		banner[0] = NTDProgramFiles.scaleDefaultImage_unknown(32, 32);}
 		catch(IOException e)
 		{
 			e.printStackTrace();
@@ -181,6 +199,10 @@ public class NTDProject implements Comparable<NTDProject>{
 		if(proj.language == null) proj.language = DefoLanguage.UNKNOWN;
 		
 		proj.makercode = image.getMakerCodeAsASCII();
+		if(proj.makercode.equals(MAKERDS_NINTENDO)) proj.pubName = "Nintendo";
+		else if(proj.makercode.equals(MAKERDS_CAPCOM)) proj.pubName = "Capcom";
+		else if(proj.makercode.equals(MAKERDS_SQUAREENIX)) proj.pubName = "Square Enix";
+		
 		proj.fullcode = proj.console.getShortCode() + "_" + proj.gamecode + "_" + proj.region.getShortCode();
 		
 		int lan = NDS.TITLE_LANGUAGE_ENGLISH;
@@ -269,7 +291,7 @@ public class NTDProject implements Comparable<NTDProject>{
 	
 	public static NTDProject createFromPSXTrack(String imgpath, GameRegion region) throws CDInvalidRecordException, IOException, UnsupportedFileTypeException{
 
-		ISOXAImage image = new ISOXAImage(new ISO(FileBuffer.createBuffer(imgpath), true));
+		ISOXAImage image = new ISOXAImage(new ISO(FileBuffer.createBuffer(imgpath), false));
 		NTDProject proj = new NTDProject();
 		proj.imported_time = OffsetDateTime.now();
 		proj.modified_time = OffsetDateTime.now();
@@ -291,32 +313,44 @@ public class NTDProject implements Comparable<NTDProject>{
 		proj.custom_tree = image.getRootNode();
 		scanTreeDir(proj.rom_path, proj.custom_tree); //Set path for all nodes...
 		
+		//Nab the gamecode from the volume ident
+		String volident = proj.custom_tree.getMetadataValue(ISOXAImage.METAKEY_VOLUMEIDENT);
+		proj.gamecode = volident;
+		proj.custom_tree.setFileName(volident);
+		proj.fullcode = volident;
+		
+		proj.pubName = image.getPublisherIdent().replace(" ", "");
+		GregorianCalendar date = image.getDateCreated();
+		proj.volume_time = OffsetDateTime.ofInstant(date.toInstant(), date.getTimeZone().toZoneId());
+		
 		//Look for SYSTEM.CNF
-		FileNode cnf = proj.custom_tree.getNodeAt("/SYSTEM.CNF");
-		if(cnf == null) cnf = proj.custom_tree.getNodeAt("/system.cnf");
+		FileNode cnf = proj.custom_tree.getNodeAt("/" + volident + "/SYSTEM.CNF");
+		if(cnf == null) cnf = proj.custom_tree.getNodeAt("/" + volident + "/system.cnf");
 		if(cnf != null){
 			cnf.setTypeChainHead(new FileTypeDefNode(PSXSysDefs.getConfigDef()));
 			//Load and get more data
 			String exepath = null;
-			BufferedReader br = new BufferedReader(new FileBufferReader(cnf.loadData()));
+			BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(cnf.loadData().getBytes())));
 			//Look for a line that starts with "BOOT"
 			String line = null;
 			while((line = br.readLine()) != null){
+				//System.err.println(line);
 				if(!line.startsWith("BOOT")) continue;
 				String[] fields = line.replace(" ", "").split("=");
 				if(fields.length < 2) break;
 				String val = fields[1];
 				val = val.substring(val.indexOf('\\') + 1);
 				val = val.substring(0, val.lastIndexOf(';'));
-				exepath = "/" + val;
+				exepath = "/" + volident + "/" + val;
 			}
 			br.close();
 			
 			if(exepath != null){
 				//Should be able to take out underscores and dots to get game code.
-				proj.gamecode = exepath.substring(1).replace(".", "").replace("_", "");
+				//proj.gamecode = exepath.substring(1).replace(".", "").replace("_", "");
 				FileNode exe = proj.custom_tree.getNodeAt(exepath);
 				if(exe != null){
+					System.err.println("Executable " + exepath + " found!");
 					exe.setTypeChainHead(new FileTypeDefNode(PSXSysDefs.getExeDef()));
 				}
 				else{
@@ -326,13 +360,11 @@ public class NTDProject implements Comparable<NTDProject>{
 			else{
 				//Warn and set defaults
 				System.err.println("PS1 ISO import error: executable not found!");
-				proj.gamecode = "SLXX00000";
 			}
 		}
 		else{
 			//Will have to fill in with dummies...
 			System.err.println("PS1 ISO import error: SYSTEM.CNF not found!");
-			proj.gamecode = "SLXX00000";
 		}
 		
 		proj.localName = "PS1Software " + proj.gamecode;
@@ -375,14 +407,14 @@ public class NTDProject implements Comparable<NTDProject>{
 	
 	/*----- Parsing -----*/
 	
-	public static NTDProject readProject(FileBuffer file, long stoff, int version) throws IOException
+	public static NTDProject readProject(FileBuffer file, long stoff, int version) throws IOException, DataFormatException
 	{
 		NTDProject proj = new NTDProject();
 		
 		long cpos = stoff;
 		
 		int flag = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
-		int cenum = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
+		int cenum = (int)file.getByte(cpos); cpos++;
 		int renum = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
 		int lenum = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
 		
@@ -391,7 +423,7 @@ public class NTDProject implements Comparable<NTDProject>{
 		
 		if(version >= 3){
 			if(proj.console == Console.PS1){
-				proj.gamecode = file.getASCII_string(cpos, 9); cpos+=10;
+				proj.gamecode = file.getASCII_string(cpos, 10); cpos+=10;
 				proj.makercode = proj.gamecode.substring(0,2);
 				proj.fullcode = proj.gamecode;
 			}
@@ -475,6 +507,15 @@ public class NTDProject implements Comparable<NTDProject>{
 		proj.localName = ss.getString();
 		cpos += ss.getSizeOnDisk();
 		
+		if(version >= 4){
+			ss = file.readVariableLengthString(NTDProgramFiles.ENCODING, cpos, BinFieldSize.WORD, 2);
+			proj.pubName = ss.getString();
+			cpos += ss.getSizeOnDisk();
+			
+			long time = file.longFromFile(cpos); cpos+=8;
+			proj.volume_time = OffsetDateTime.ofInstant(Instant.ofEpochSecond(time), ZoneId.systemDefault());
+		}
+		
 		int iframes = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
 		int iwidth = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
 		int iheight = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
@@ -490,6 +531,28 @@ public class NTDProject implements Comparable<NTDProject>{
 		else
 		{
 			proj.banner = new BufferedImage[iframes];	
+			FileBuffer imgdat = null;
+			
+			int imgdat_len = iframes * iwidth * iheight * 4;
+			
+			//If v5+, INFLATE
+			if(version >= 5){
+				int complen = file.intFromFile(cpos); cpos+=4;
+				byte[] compdat = file.getBytes(cpos, cpos+complen);
+				Inflater dec = new Inflater();
+				dec.setInput(compdat);
+				byte[] result = new byte[imgdat_len+16];
+				dec.inflate(result);
+				dec.end();
+				
+				imgdat = new FileBuffer(imgdat_len, true);
+				for(int i = 0; i < imgdat_len; i++) imgdat.addToFile(result[i]);
+			}
+			else{
+				imgdat = file.createReadOnlyCopy(cpos, cpos+imgdat_len);
+			}
+			
+			cpos = 0;
 			for(int z = 0; z < iframes; z++)
 			{
 				BufferedImage buff = new BufferedImage(iwidth, iheight, BufferedImage.TYPE_INT_ARGB);
@@ -497,10 +560,10 @@ public class NTDProject implements Comparable<NTDProject>{
 				{
 					for(int x = 0; x < iwidth; x++)
 					{
-						int red = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
-						int green = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
-						int blue = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
-						int alpha = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
+						int red = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
+						int green = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
+						int blue = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
+						int alpha = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
 						
 						int argb = (alpha << 24) | (red << 16) | (green << 8) | blue;
 						buff.setRGB(x, y, argb);
@@ -598,6 +661,19 @@ public class NTDProject implements Comparable<NTDProject>{
 		str_name.addVariableLengthString(NTDProgramFiles.ENCODING, localName, BinFieldSize.WORD, 2);
 		sz += str_name.getFileSize();
 		
+		FileBuffer str_pub = null;
+		if(pubName == null){
+			str_pub = new FileBuffer(2, true);
+			str_pub.addToFile((short)0);
+			sz += 2;
+		}
+		else{
+			str_pub = new FileBuffer(3+(pubName.length() << 1), true);
+			str_pub.addVariableLengthString(NTDProgramFiles.ENCODING, pubName, BinFieldSize.WORD, 2);
+			sz += str_pub.getFileSize();	
+		}
+		sz+=8; //Volume creation time
+		
 		FileBuffer[] epathnames = null;
 		if(encrypted_regs != null)
 		{
@@ -625,7 +701,7 @@ public class NTDProject implements Comparable<NTDProject>{
 		out.addToFile((byte)language.getCharCode());
 		
 		if(console == Console.PS1){
-			if(gamecode.length() > 9) gamecode = gamecode.substring(0,9);
+			if(gamecode.length() > 10) gamecode = gamecode.substring(0,10);
 			out.printASCIIToFile(gamecode);
 		}
 		else if(console == Console.SWITCH){
@@ -674,6 +750,9 @@ public class NTDProject implements Comparable<NTDProject>{
 		}
 		
 		out.addToFile(str_name);
+		out.addToFile(str_pub);
+		if(volume_time == null) out.addToFile(0L);
+		else out.addToFile(volume_time.toEpochSecond());
 		
 		//Banner
 		if(banner == null) out.addToFile(0);
@@ -681,8 +760,7 @@ public class NTDProject implements Comparable<NTDProject>{
 		{
 			out.addToFile((byte)banner.length);
 			BufferedImage banner0 = banner[0];
-			if(banner0 == null)
-			{
+			if(banner0 == null){
 				out.add24ToFile(0);
 			}
 			else
@@ -692,6 +770,11 @@ public class NTDProject implements Comparable<NTDProject>{
 				out.addToFile((byte)width);
 				out.addToFile((byte)height);
 				out.addToFile((byte)0);
+				
+				//DEFLATE!
+				int img_dat_len = width * height * banner.length * 4;
+				byte[] in = new byte[img_dat_len];
+				int i = 0;
 				
 				for(int z = 0; z < banner.length; z++)
 				{
@@ -706,13 +789,27 @@ public class NTDProject implements Comparable<NTDProject>{
 							int green = (argb >>> 8) & 0xFF;
 							int blue = argb & 0xFF;
 							
-							out.addToFile((byte)red);
-							out.addToFile((byte)green);
-							out.addToFile((byte)blue);
-							out.addToFile((byte)alpha);
+							//out.addToFile((byte)red);
+							//out.addToFile((byte)green);
+							//out.addToFile((byte)blue);
+							//out.addToFile((byte)alpha);
+							in[i++] = (byte)red; in[i++] = (byte)green; in[i++] = (byte)blue; in[i++] = (byte)alpha;
 						}
 					}
 				}
+				
+				Deflater comp = new Deflater();
+				comp.setInput(in);
+				comp.finish();
+				byte[] compbytes = new byte[img_dat_len + 16];
+				int complen = comp.deflate(compbytes);
+				comp.end();
+				
+				out.addToFile(complen);
+				for(int j = 0; j < complen; j++){
+					out.addToFile(compbytes[j]);
+				}
+				if(complen % 2 != 0) out.addToFile((byte)0);
 			}
 			
 		}
@@ -766,6 +863,8 @@ public class NTDProject implements Comparable<NTDProject>{
 	//public boolean isEncrypted(){return this.is_encrypted;}
 	public OffsetDateTime getImportTime(){return this.imported_time;}
 	public OffsetDateTime getModifyTime(){return this.modified_time;}
+	public OffsetDateTime getVolumeTime(){return this.volume_time;}
+	public String getPublisherTag(){return this.pubName;}
 	
 	public boolean isEncrypted()
 	{
@@ -830,6 +929,62 @@ public class NTDProject implements Comparable<NTDProject>{
 				if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getRSACertDef()));
 			}
 		}
+		else if (console == Console.PS1){
+			try {
+				ISOXAImage image = new ISOXAImage(new ISO(FileBuffer.createBuffer(rom_path), false));
+				custom_tree = image.getRootNode();
+				String volident = custom_tree.getMetadataValue(ISOXAImage.METAKEY_VOLUMEIDENT);
+				
+				FileNode cnf = custom_tree.getNodeAt("/" + volident + "/SYSTEM.CNF");
+				if(cnf == null) cnf = custom_tree.getNodeAt("/" + volident + "/system.cnf");
+				if(cnf != null){
+					cnf.setTypeChainHead(new FileTypeDefNode(PSXSysDefs.getConfigDef()));
+					//Load and get more data
+					String exepath = null;
+					BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(cnf.loadData().getBytes())));
+					//Look for a line that starts with "BOOT"
+					String line = null;
+					while((line = br.readLine()) != null){
+						//System.err.println(line);
+						if(!line.startsWith("BOOT")) continue;
+						String[] fields = line.replace(" ", "").split("=");
+						if(fields.length < 2) break;
+						String val = fields[1];
+						val = val.substring(val.indexOf('\\') + 1);
+						val = val.substring(0, val.lastIndexOf(';'));
+						exepath = "/" + volident + "/" + val;
+					}
+					br.close();
+					
+					if(exepath != null){
+						//Should be able to take out underscores and dots to get game code.
+						//proj.gamecode = exepath.substring(1).replace(".", "").replace("_", "");
+						FileNode exe = custom_tree.getNodeAt(exepath);
+						if(exe != null){
+							System.err.println("Executable " + exepath + " found!");
+							exe.setTypeChainHead(new FileTypeDefNode(PSXSysDefs.getExeDef()));
+						}
+						else{
+							System.err.println("Executable " + exepath + " not found!");
+						}
+					}
+					else{
+						//Warn and set defaults
+						System.err.println("PS1 ISO import error: executable not found!");
+					}
+				}
+				else{
+					//Will have to fill in with dummies...
+					System.err.println("PS1 ISO import error: SYSTEM.CNF not found!");
+				}
+			} 
+			catch (CDInvalidRecordException e) {
+				e.printStackTrace();
+			} 
+			catch (UnsupportedFileTypeException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		//Note encrypted nodes...
 		scanTreeDir(rom_path, custom_tree);
@@ -843,6 +998,23 @@ public class NTDProject implements Comparable<NTDProject>{
 	
 	public void setBannerIcon(BufferedImage[] img){
 		banner = img;
+	}
+	
+	public void setBannerIcon(Animation a){
+		int fcount = 0;
+		for(int i = 0; i < a.getNumberFrames(); i++) fcount += a.getFrame(i).getLengthInFrames();
+		banner = new BufferedImage[fcount];
+		int j = 0;
+		for(int i = 0; i < a.getNumberFrames(); i++){
+			AnimationFrame f = a.getFrame(i);
+			for(int k = 0; k < f.getLengthInFrames(); k++){
+				banner[j++] = f.getImage();
+			}
+		}
+	}
+	
+	public void setBannerTitle(String str){
+		this.localName = str;
 	}
 	
 	/*----- Decryption -----*/
@@ -1020,6 +1192,19 @@ public class NTDProject implements Comparable<NTDProject>{
 		node.setParent(newparent);
 		
 		return true;
+	}
+	
+	/*----- Misc Utility -----*/
+	
+	public static String getDateTimeString(OffsetDateTime timestamp){
+		if(timestamp == null) return null;
+		StringBuilder sb = new StringBuilder(512);
+		sb.append(String.format("%02d ", timestamp.getDayOfMonth()));
+		sb.append(timestamp.getMonth().getDisplayName(TextStyle.SHORT, Locale.getDefault()) + " ");
+		sb.append(timestamp.getYear() + " ");
+		sb.append(String.format("%02d:%02d:%02d", timestamp.getHour(), timestamp.getMinute(), timestamp.getSecond()));
+		sb.append(" " + timestamp.getOffset().getDisplayName(TextStyle.NARROW, Locale.getDefault()));
+		return sb.toString();
 	}
 	
 	/*----- Comparison -----*/

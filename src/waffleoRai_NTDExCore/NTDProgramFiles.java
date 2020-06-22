@@ -2,6 +2,7 @@ package waffleoRai_NTDExCore;
 
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -25,6 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.zip.DataFormatException;
 
 import javax.imageio.ImageIO;
 
@@ -76,6 +78,8 @@ public class NTDProgramFiles {
 	public static final String INIKEY_LAST_ARCDUMP = "LAST_ARCDUMP_PATH";
 	public static final String INIKEY_LAST_EXPORTED = "LAST_EXPORT_PATH";
 	public static final String INIKEY_LAST_EXTRACTED = "LAST_EXTRACT_PATH";
+	public static final String INIKEY_LAST_SAVEICONPATH = "LAST_SAVE_BANNERIMPORT_PATH";
+	public static final String INIKEY_LAST_PCICONPATH = "LAST_PC_BANNERIMPORT_PATH";
 	
 	public static final String INIKEY_LAST_MIDI_EXPORT = "LAST_MIDIEXP_PATH";
 	public static final String INIKEY_LAST_SEQWAV_EXPORT = "LAST_SEQWAVEXP_PATH";
@@ -278,6 +282,22 @@ public class NTDProgramFiles {
 		return img_lock;
 	}
 
+	public static BufferedImage scaleDefaultImage_unknown(int w, int h) throws IOException{
+		BufferedImage in = getDefaultImage_unknown();
+		BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+		Image s = in.getScaledInstance(w, h, Image.SCALE_DEFAULT);
+		out.getGraphics().drawImage(s, 0, 0, null);
+		return out;
+	}
+	
+	public static BufferedImage scaleDefaultImage_lock(int w, int h) throws IOException{
+		BufferedImage in = getDefaultImage_lock();
+		BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+		Image s = in.getScaledInstance(w, h, Image.SCALE_DEFAULT);
+		out.getGraphics().drawImage(s, 0, 0, null);
+		return out;
+	}
+	
 	/*----- Type Definitions -----*/
 	
 	public static void registerTypeDefinitions() throws IOException
@@ -573,7 +593,7 @@ public class NTDProgramFiles {
 	
 	private static String project_list_path;
 	private static Map<Console, Collection<NTDProject>> project_map;
-	public static final int CURRENT_VERSION_PROJBIN = 3;
+	public static final int CURRENT_VERSION_PROJBIN = 5;
 	
 	public static String getProjectBinPath()
 	{
@@ -582,7 +602,7 @@ public class NTDProgramFiles {
 		return project_list_path;
 	}
 	
-	private static void readProjectBin() throws IOException
+	private static void readProjectBin() throws IOException, DataFormatException
 	{
 		String path = getProjectBinPath();
 		project_map = new TreeMap<Console, Collection<NTDProject>>();
@@ -624,8 +644,11 @@ public class NTDProgramFiles {
 	{
 		if(project_map != null) return project_map;
 		try {readProjectBin();} 
-		catch (IOException e) 
-		{
+		catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+		catch(DataFormatException e){
 			e.printStackTrace();
 			return null;
 		}
@@ -641,8 +664,8 @@ public class NTDProgramFiles {
 		
 		//Prepare queue...
 		List<NTDProject> queue = new LinkedList<NTDProject>();
-		Console[] consoles = {Console.GAMECUBE, Console.DS, Console.DSi, Console.WII, Console._3DS,
-							Console.NEW_3DS};
+		Console[] consoles = {Console.PS1, Console.GAMECUBE, Console.DS, Console.DSi, Console.WII, Console._3DS,
+							Console.NEW_3DS, Console.WIIU, Console.SWITCH};
 		for(Console c : consoles)
 		{
 			Collection<NTDProject> list = project_map.get(c);
@@ -657,7 +680,7 @@ public class NTDProgramFiles {
 		out.write(header.getBytes());
 		for(NTDProject proj : queue)
 		{
-			//System.err.println("Saving project: " + proj.getGameCode12());
+			System.err.println("Saving project: " + proj.getGameCode12());
 			header = new FileBuffer(20, true);
 			header.addToFile(proj.getImportTime().toEpochSecond());
 			header.addToFile(proj.getModifyTime().toEpochSecond());

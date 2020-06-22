@@ -197,7 +197,7 @@ public class GeneralSeqPreviewPanel extends DisposableJPanel{
 			return;
 		}
 		
-		SetTextDialog dialog = new SetTextDialog(parent, "Set Sequence Name");
+		SetTextDialog dialog = new SetTextDialog(parent, "Set Sequence Name", seq_data.getSequenceName());
 		dialog.setLocationRelativeTo(parent);
 		dialog.setVisible(true);
 		String name_seq = dialog.getText();

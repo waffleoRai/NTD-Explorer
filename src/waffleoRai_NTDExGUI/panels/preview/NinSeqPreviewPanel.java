@@ -209,7 +209,7 @@ public class NinSeqPreviewPanel extends DisposableJPanel{
 			return;
 		}
 		
-		SetTextDialog dialog = new SetTextDialog(parent, "Set Sequence Name");
+		SetTextDialog dialog = new SetTextDialog(parent, "Set Sequence Name", name_seq);
 		dialog.setLocationRelativeTo(parent);
 		dialog.setVisible(true);
 		name_seq = dialog.getText();
