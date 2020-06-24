@@ -15,6 +15,7 @@ import waffleoRai_Containers.psx.PSXMemoryCard.PSXMemoryCardReadErrorException;
 import waffleoRai_Image.Animation;
 import waffleoRai_Image.AnimationFrame;
 import waffleoRai_Image.SimpleAnimation;
+import waffleoRai_NTDExGUI.dialogs.BannerButton;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 
@@ -108,6 +109,10 @@ public class PSXMCBannerImporter implements BannerImporter{
 		
 		return list;
 	}
+	
+	public int getImportDialogButtonSizeEnum(){return BannerButton.SIZE_SMALL;}
+	public String getImportDialogButtonColor(){return BannerButton.COLOR_GREY;}
+	public String getImportDialogBackgroundColor(){return BannerButton.COLOR_GREY;}
 	
 
 }

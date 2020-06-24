@@ -7,8 +7,7 @@ import javax.swing.JTabbedPane;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
-import waffleoRai_NTDExGUI.panels.DSPreviewPanel;
-import waffleoRai_NTDExGUI.panels.PSXPreviewPanel;
+import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -35,6 +34,8 @@ import java.io.IOException;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
+import waffleoRai_Containers.nintendo.GCMemCard;
 
 public class OpenDialog extends JDialog{
 
@@ -111,10 +112,22 @@ public class OpenDialog extends JDialog{
 		spPSX.setViewportView(pnlPSX);
 		int gcount_psx = loadPSXTab(pnlPSX, loadlist);
 		
-		JScrollPane spGC = new JScrollPane();
+		JScrollPane spGC = new JScrollPane(){
+			private static final long serialVersionUID = -5907251596864073016L;
+			public void paintComponent(Graphics g){
+				super.paintComponent(g);
+				g.drawImage(pnlbkg, 0, 0, null);
+			}
+		};
+		spGC.getViewport().setOpaque(false);
 		spGC.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		tabbedPane.addTab("GameCube", null, spGC, null);
 		tabbedPane.setEnabledAt(TAB_IDX_GC, false);
+		
+		JPanel pnlGC = new JPanel();
+		pnlGC.setOpaque(false);
+		spGC.setViewportView(pnlGC);
+		int gcount_gc = loadGCTab(pnlGC, loadlist);
 		
 		JScrollPane spDS = new JScrollPane(){
 			
@@ -157,13 +170,13 @@ public class OpenDialog extends JDialog{
 		int tabcount = tabbedPane.getTabCount();
 		blockCount = new int[tabcount];
 		tabSizes = new Dimension[tabcount];
-		setSPDimension(gcount_ds, TAB_IDX_DS, DSPreviewPanel.WIDTH, DSPreviewPanel.HEIGHT, spDS);
-		setSPDimension(gcount_psx, TAB_IDX_PS1, PSXPreviewPanel.WIDTH, PSXPreviewPanel.HEIGHT, spPSX);
+		setSPDimension(gcount_ds, TAB_IDX_DS, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spDS);
+		setSPDimension(gcount_psx, TAB_IDX_PS1, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spPSX);
+		setSPDimension(gcount_gc, TAB_IDX_GC, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spGC);
 		
 		for(int i = 0; i < blockCount.length; i++)
 		{
-			if(blockCount[i] > 0)
-			{
+			if(blockCount[i] > 0){
 				tabbedPane.setSelectedIndex(i);
 				break;
 			}
@@ -205,10 +218,6 @@ public class OpenDialog extends JDialog{
 	private int loadDSTab(JPanel panel, Map<Console, Collection<NTDProject>> loadlist)
 	{
 		GridBagLayout gbl_pnlDS = new GridBagLayout();
-		//gbl_pnlDS.columnWidths = new int[] {0};
-		//gbl_pnlDS.rowHeights = new int[] {0};
-		//gbl_pnlDS.columnWeights = new double[]{0.0};
-		//gbl_pnlDS.rowWeights = new double[]{0.0, Double.MIN_VALUE};
 		panel.setLayout(gbl_pnlDS);
 		
 		List<NTDProject> addlist = new LinkedList<NTDProject>();
@@ -218,33 +227,33 @@ public class OpenDialog extends JDialog{
 		if(twl != null) addlist.addAll(twl);
 		Collections.sort(addlist);
 		
-		//final int pnl_width = DSPreviewPanel.WIDTH;
-		//final int pnl_height = DSPreviewPanel.HEIGHT;
-		
 		int row = 0;
 		for(NTDProject proj : addlist)
 		{
-			//System.err.println("Adding proj panel: " + proj.getGameCode12());
-			DSPreviewPanel gamepnl = new DSPreviewPanel();
-			gamepnl.loadMe(proj, null);
+			DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
+			int millis = 0;
+			if(proj.getBannerIcon() != null && proj.getBannerIcon().length > 1){
+				millis = (int)Math.round(1000.0/30.0);
+			}
+			gamepnl.loadMe(proj, millis);
 			gamepnl.addActionListener(new ClickyListener(proj));
 			
 			GridBagConstraints gbc = new GridBagConstraints();
-			gbc.gridwidth = 1;
-			gbc.gridheight = 1;
-			gbc.gridx = 0;
-			gbc.gridy = row;
+			gbc.gridwidth = 1; gbc.gridheight = 1;
+			gbc.gridx = 0; gbc.gridy = row;
 			gbc.anchor = GridBagConstraints.NORTH;
 			gbc.insets = new Insets(1,0,1,0);
 			row++;
 			panel.add(gamepnl, gbc);
 		}
-		
-		//Set panel size...
-		//Dimension sz = new Dimension(pnl_width, (pnl_height * addlist.size()));
-		//panel.setMinimumSize(sz);
-		//panel.setMaximumSize(sz);
-		//panel.setPreferredSize(sz);
+		if(addlist.size() < MAX_BLOCKS_HEIGHT){
+			//Add a dummy gridbag row
+			int rcount = row+1;
+			gbl_pnlDS.rowWeights = new double[rcount+1];
+			gbl_pnlDS.rowHeights = new int[rcount+1];
+			gbl_pnlDS.rowWeights[rcount] = Double.MIN_VALUE;
+			gbl_pnlDS.rowWeights[rcount-1] = 1.0;
+		}
 		
 		return addlist.size();
 	}
@@ -259,14 +268,20 @@ public class OpenDialog extends JDialog{
 		if(ps1 != null) addlist.addAll(ps1);
 		Collections.sort(addlist);
 		
-		//final int pnl_width = PSXPreviewPanel.WIDTH;
-		//final int pnl_height = PSXPreviewPanel.HEIGHT;
-		
 		int row = 0;
 		for(NTDProject proj : addlist)
 		{
-			PSXPreviewPanel gamepnl = new PSXPreviewPanel();
-			gamepnl.loadMe(proj, null);
+			DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
+			int millis = 0;
+			if(proj.getBannerIcon() != null){
+				if(proj.getBannerIcon().length == 2){
+					millis = (int)Math.round((16.0/50.0) * 1000.0);
+				}
+				else if(proj.getBannerIcon().length == 3){
+					millis = (int)Math.round((11.0/50.0) * 1000.0);
+				}
+			}
+			gamepnl.loadMe(proj, millis);
 			gamepnl.addActionListener(new ClickyListener(proj));
 			
 			GridBagConstraints gbc = new GridBagConstraints();
@@ -288,10 +303,44 @@ public class OpenDialog extends JDialog{
 			gbl_pnl.rowWeights[rcount-1] = 1.0;
 		}
 		
-		//Set panel size...
-		//Dimension sz = new Dimension(pnl_width, (pnl_height * addlist.size()));
-		//panel.setMinimumSize(sz);
-		//panel.setPreferredSize(sz);
+		return addlist.size();
+	}
+
+	private int loadGCTab(JPanel panel, Map<Console, Collection<NTDProject>> loadlist){
+		GridBagLayout gbl_pnl = new GridBagLayout();
+		panel.setLayout(gbl_pnl);
+		
+		List<NTDProject> addlist = new LinkedList<NTDProject>();
+		Collection<NTDProject> projs = loadlist.get(Console.GAMECUBE);
+		if(projs != null) addlist.addAll(projs);
+		Collections.sort(addlist);
+		
+		int row = 0;
+		for(NTDProject proj : addlist)
+		{
+			DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
+			int millis = GCMemCard.ICO_FRAME_MILLIS * 4;
+			gamepnl.loadMe(proj, millis);
+			gamepnl.addActionListener(new ClickyListener(proj));
+			
+			GridBagConstraints gbc = new GridBagConstraints();
+			gbc.gridwidth = 1;
+			gbc.gridheight = 1;
+			gbc.gridx = 0;
+			gbc.gridy = row;
+			gbc.anchor = GridBagConstraints.NORTH;
+			gbc.insets = new Insets(1,0,1,0);
+			row++;
+			panel.add(gamepnl, gbc);
+		}
+		if(addlist.size() < MAX_BLOCKS_HEIGHT){
+			//Add a dummy gridbag row
+			int rcount = row+1;
+			gbl_pnl.rowWeights = new double[rcount+1];
+			gbl_pnl.rowHeights = new int[rcount+1];
+			gbl_pnl.rowWeights[rcount] = Double.MIN_VALUE;
+			gbl_pnl.rowWeights[rcount-1] = 1.0;
+		}
 		
 		return addlist.size();
 	}
@@ -341,7 +390,7 @@ public class OpenDialog extends JDialog{
 	{
 		int tidx = tabbedPane.getSelectedIndex();
 		Dimension d = tabSizes[tidx];
-		Dimension dim = new Dimension(DSPreviewPanel.WIDTH + GUI_WIDTH_ADD, GUI_HEIGHT_ADD);
+		Dimension dim = new Dimension(DefaultGameOpenButton.WIDTH + GUI_WIDTH_ADD, GUI_HEIGHT_ADD);
 		if(d != null){
 			dim = new Dimension(d.width + GUI_WIDTH_ADD, d.height + GUI_HEIGHT_ADD);
 		}

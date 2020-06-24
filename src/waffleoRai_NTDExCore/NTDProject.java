@@ -26,7 +26,10 @@ import java.util.zip.Inflater;
 import waffleoRai_Containers.CDTable.CDInvalidRecordException;
 import waffleoRai_Containers.ISO;
 import waffleoRai_Containers.ISOXAImage;
+import waffleoRai_Containers.nintendo.GCWiiDisc;
+import waffleoRai_Containers.nintendo.GCWiiHeader;
 import waffleoRai_Containers.nintendo.NDS;
+import waffleoRai_Executable.nintendo.DolExe;
 import waffleoRai_Files.EncryptionDefinitions;
 import waffleoRai_Files.FileTypeDefNode;
 import waffleoRai_Image.Animation;
@@ -40,6 +43,7 @@ import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.FileTreeSaver;
 import waffleoRai_Utils.SerializedString;
 import waffleoRai_fdefs.nintendo.DSSysFileDefs;
+import waffleoRai_fdefs.nintendo.PowerGCSysFileDefs;
 import waffleoRai_fdefs.psx.PSXSysDefs;
 
 public class NTDProject implements Comparable<NTDProject>{
@@ -108,6 +112,7 @@ public class NTDProject implements Comparable<NTDProject>{
 	public static final String MAKERDS_NINTENDO = "01";
 	public static final String MAKERDS_SQUAREENIX = "DG";
 	public static final String MAKERDS_CAPCOM = "80";
+	public static final String MAKERDS_SEGA = "8P";
 
 	/*----- Instance Variables -----*/
 	
@@ -368,6 +373,48 @@ public class NTDProject implements Comparable<NTDProject>{
 		}
 		
 		proj.localName = "PS1Software " + proj.gamecode;
+		
+		return proj;
+	}
+	
+	public static NTDProject createFromGCM(String imgpath, GameRegion region) throws IOException, UnsupportedFileTypeException{
+		GCWiiDisc gcimg = new GCWiiDisc(imgpath);
+		GCWiiHeader header = gcimg.getHeader();
+		
+		NTDProject proj = new NTDProject();
+		proj.imported_time = OffsetDateTime.now();
+		proj.modified_time = OffsetDateTime.now();
+		
+		proj.console = Console.GAMECUBE;
+		proj.region = region;
+		proj.gamecode = header.get4DigitGameCode();
+		proj.makercode = header.getMakerCode();
+		proj.language = DefoLanguage.getLanReg(proj.gamecode.charAt(3));
+		proj.fullcode = "DOL_" + proj.gamecode + "_" + region.getShortCode();
+		proj.rom_path = imgpath;
+		
+		proj.localName = header.getGameTitle();
+		switch(proj.makercode){
+		case MAKERDS_NINTENDO: proj.pubName = "Nintendo"; break;
+		case MAKERDS_SQUAREENIX: proj.pubName = "SquareEnix"; break;
+		case MAKERDS_CAPCOM: proj.pubName = "Capcom"; break;
+		case MAKERDS_SEGA: proj.pubName = "Sega"; break;
+		}
+		
+		proj.custom_tree = gcimg.getDiscTree();
+		scanTreeDir(proj.rom_path, proj.custom_tree);
+		
+		//Type tags
+		FileNode fn = proj.custom_tree.getNodeAt("/sys/boot.bin");
+		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getHeaderDef()));
+		fn = proj.custom_tree.getNodeAt("/sys/bi2.bin");
+		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getBi2Def()));
+		fn = proj.custom_tree.getNodeAt("/sys/fst.bin");
+		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getFSTDef()));
+		fn = proj.custom_tree.getNodeAt("/sys/apploader.img");
+		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getApploaderDef()));
+		fn = proj.custom_tree.getNodeAt("/sys/main.dol");
+		fn.setTypeChainHead(new FileTypeDefNode(DolExe.getDefinition()));
 		
 		return proj;
 	}
@@ -912,6 +959,22 @@ public class NTDProject implements Comparable<NTDProject>{
 		console = c;
 	}
 	
+	private void resetTree_gcm() throws IOException{
+		GCWiiDisc gcimg = new GCWiiDisc(rom_path);
+		custom_tree = gcimg.getDiscTree();
+		//scanTreeDir(proj.rom_path, proj.custom_tree);
+		FileNode fn = custom_tree.getNodeAt("/sys/boot.bin");
+		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getHeaderDef()));
+		fn = custom_tree.getNodeAt("/sys/bi2.bin");
+		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getBi2Def()));
+		fn = custom_tree.getNodeAt("/sys/fst.bin");
+		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getFSTDef()));
+		fn = custom_tree.getNodeAt("/sys/apploader.img");
+		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getApploaderDef()));
+		fn = custom_tree.getNodeAt("/sys/main.dol");
+		fn.setTypeChainHead(new FileTypeDefNode(DolExe.getDefinition()));
+	}
+	
 	public void resetTree() throws IOException
 	{
 		if(console == Console.DS || console == Console.DSi)
@@ -984,6 +1047,9 @@ public class NTDProject implements Comparable<NTDProject>{
 			catch (UnsupportedFileTypeException e) {
 				e.printStackTrace();
 			}
+		}
+		else if (console == Console.GAMECUBE){
+			resetTree_gcm();
 		}
 		
 		//Note encrypted nodes...

@@ -226,6 +226,14 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		this.repaint();
 	}
 	
+	public void updateBannerPanel(){
+		pnlTop.removeAll();
+		InfoPanel pnlInfo = new InfoPanel(myproject);
+		pnlTop.add(pnlInfo);
+		pnlTop.updateUI();
+		repaint();
+	}
+	
 	public void resetTree()
 	{
 		//System.err.println("Refreshin'");

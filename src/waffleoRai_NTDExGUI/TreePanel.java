@@ -136,6 +136,8 @@ public class TreePanel extends JPanel{
 	
 	public void updateGUITree()
 	{
+		//FFS don't collapse if don't need to! (So annoying)
+		
 		//Sync tree 
 		disableAll();
 		DefaultTreeModel model = new DefaultTreeModel(tree_root);

@@ -20,4 +20,8 @@ public interface BannerImporter {
 	public Collection<BannerStruct> findBanner(String mcpath, String gamecode) throws IOException, UnsupportedFileTypeException;
 	public List<FileFilter> getFileFilters();
 	
+	public int getImportDialogButtonSizeEnum();
+	public String getImportDialogButtonColor();
+	public String getImportDialogBackgroundColor();
+	
 }

@@ -29,6 +29,7 @@ import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExCore.memcard.BannerImporter;
 import waffleoRai_NTDExCore.memcard.BannerImporter.BannerStruct;
+import waffleoRai_NTDExCore.memcard.GCMCBannerImporter;
 import waffleoRai_NTDExCore.memcard.PSXMCBannerImporter;
 import waffleoRai_NTDExGUI.ExplorerForm;
 import waffleoRai_NTDExGUI.dialogs.BannerImportDialog;
@@ -434,6 +435,9 @@ public class NTDTools {
 		case PS1: 
 			importer = new PSXMCBannerImporter();
 			break;
+		case GAMECUBE:
+			importer = new GCMCBannerImporter();
+			break;
 		default: 
 			gui.showWarning("Save data support not available for this console!");
 			return;
@@ -507,8 +511,9 @@ public class NTDTools {
 		}
 		
 		//Display icon selection panel
-		BannerImportDialog bidialog = new BannerImportDialog(gui);
+		BannerImportDialog bidialog = new BannerImportDialog(gui, importer.getImportDialogButtonSizeEnum(), importer.getImportDialogButtonColor());
 		bidialog.setLocationRelativeTo(gui);
+		bidialog.setBackgroundColor(importer.getImportDialogBackgroundColor());
 		bidialog.loadBannerOptions(bannerlist);
 		bidialog.setVisible(true);
 		
@@ -520,7 +525,7 @@ public class NTDTools {
 			return;
 		}
 		String title = null;
-		if(c == Console.PS1){
+		if(c == Console.PS1 || c == Console.GAMECUBE){
 			//Confirm title to load in
 			SetTextDialog textdialog = new SetTextDialog(gui, "Set Banner Title", banner.title);
 			textdialog.setLocationRelativeTo(gui);

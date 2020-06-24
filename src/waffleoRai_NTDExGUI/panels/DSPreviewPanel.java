@@ -29,6 +29,7 @@ import java.util.List;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.TitledBorder;
 
+@Deprecated
 public class DSPreviewPanel extends JPanel implements ActionListener {
 
 	private static final long serialVersionUID = 3784246391258766887L;
@@ -222,8 +223,7 @@ public class DSPreviewPanel extends JPanel implements ActionListener {
 		if(current_frame >= iframes.length) current_frame = 0;
 	}
 	
-	public void dispose()
-	{
+	public void dispose(){
 		if(timer.isRunning()) timer.stop();
 	}
 	

@@ -21,6 +21,7 @@ import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.importer.DSParserOption;
+import waffleoRai_NTDExCore.importer.GCParserOption;
 import waffleoRai_NTDExCore.importer.PSXParserOption;
 import waffleoRai_NTDExCore.importer.ParserOption;
 
@@ -133,6 +134,7 @@ public class ImportDialog extends JDialog{
 		
 		model2.addElement(new DSParserOption());
 		model2.addElement(new PSXParserOption());
+		model2.addElement(new GCParserOption());
 		
 		cmbxParser.setModel(model2);
 		cmbxParser.setSelectedIndex(0);

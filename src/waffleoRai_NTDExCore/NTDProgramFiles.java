@@ -680,7 +680,7 @@ public class NTDProgramFiles {
 		out.write(header.getBytes());
 		for(NTDProject proj : queue)
 		{
-			System.err.println("Saving project: " + proj.getGameCode12());
+			//System.err.println("Saving project: " + proj.getGameCode12());
 			header = new FileBuffer(20, true);
 			header.addToFile(proj.getImportTime().toEpochSecond());
 			header.addToFile(proj.getModifyTime().toEpochSecond());

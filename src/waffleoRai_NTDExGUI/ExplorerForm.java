@@ -971,7 +971,7 @@ public class ExplorerForm extends JFrame {
 		}
 		
 		NTDTools.importBannerFromSave(this, loaded_project);
-		pnlMain.repaint();
+		pnlMain.updateBannerPanel();
 	}
 	
 	private void onToolsImportBannerFromComputer(){
@@ -981,7 +981,7 @@ public class ExplorerForm extends JFrame {
 		}
 		
 		NTDTools.importBannerFromLocalFS(this, loaded_project);
-		pnlMain.repaint();
+		pnlMain.updateBannerPanel();
 	}
 	
 	/*----- Checks -----*/

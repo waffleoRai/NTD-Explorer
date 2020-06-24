@@ -26,6 +26,7 @@ import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExGUI.dialogs.OpenDialog;
 
+@Deprecated
 public class PSXPreviewPanel extends JPanel implements ActionListener{
 
 	private static final long serialVersionUID = 3150105546323350433L;
@@ -111,23 +112,10 @@ public class PSXPreviewPanel extends JPanel implements ActionListener{
 		
 		this.addMouseListener(new MouseListener(){
 
-			@Override
 			public void mouseClicked(MouseEvent e) {}
-
-			@Override
-			public void mousePressed(MouseEvent e) {
-				onMouseDown();
-			}
-
-			@Override
-			public void mouseReleased(MouseEvent e) {
-				onMouseRelease();
-			}
-
-			@Override
+			public void mousePressed(MouseEvent e) {onMouseDown();}
+			public void mouseReleased(MouseEvent e) {onMouseRelease();}
 			public void mouseEntered(MouseEvent e) {}
-
-			@Override
 			public void mouseExited(MouseEvent e) {}
 			
 		});
