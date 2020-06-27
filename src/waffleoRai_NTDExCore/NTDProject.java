@@ -1,13 +1,12 @@
 package waffleoRai_NTDExCore;
 
+import java.awt.Frame;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -15,7 +14,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
-import java.util.GregorianCalendar;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -23,30 +21,44 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
-import waffleoRai_Containers.CDTable.CDInvalidRecordException;
-import waffleoRai_Containers.ISO;
-import waffleoRai_Containers.ISOXAImage;
-import waffleoRai_Containers.nintendo.GCWiiDisc;
-import waffleoRai_Containers.nintendo.GCWiiHeader;
-import waffleoRai_Containers.nintendo.NDS;
-import waffleoRai_Executable.nintendo.DolExe;
 import waffleoRai_Files.EncryptionDefinitions;
-import waffleoRai_Files.FileTypeDefNode;
 import waffleoRai_Image.Animation;
 import waffleoRai_Image.AnimationFrame;
+import waffleoRai_Image.SimpleAnimation;
+import waffleoRai_NTDExCore.consoleproj.DSProject;
+import waffleoRai_NTDExCore.consoleproj.GCProject;
+import waffleoRai_NTDExCore.consoleproj.PSXProject;
+import waffleoRai_NTDExGUI.banners.Animator;
+import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_Utils.BinFieldSize;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileBufferStreamer;
 import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.FileTreeSaver;
 import waffleoRai_Utils.SerializedString;
-import waffleoRai_fdefs.nintendo.DSSysFileDefs;
-import waffleoRai_fdefs.nintendo.PowerGCSysFileDefs;
-import waffleoRai_fdefs.psx.PSXSysDefs;
 
-public class NTDProject implements Comparable<NTDProject>{
+/*
+ * UPDATES
+ * 1.0.0
+ * 
+ * 2020.06.25 | 1.?.? -> 2.0.0
+ * 	Initial Documentation
+ * 	Moved console specific methods to subclasses (cleans it up)
+ *  Also changed banner to Animation which meant parse/serialization overhaul
+ */
+
+/**
+ * A class containing information for a software file system exploration
+ * project. File tree consists of references to location on disk where files
+ * can be found allowing for flexibility and memory conservation. Also includes
+ * many fields for metadata such as software title and region.
+ * @author Blythe Hospelhorn
+ * @version 2.0.0
+ * @since June 25, 2020
+ *
+ */
+public abstract class NTDProject implements Comparable<NTDProject>{
 	
 	/*
 	 * Block Format
@@ -89,8 +101,14 @@ public class NTDProject implements Comparable<NTDProject>{
 	 * # of image frames [1]
 	 * Image width [1]
 	 * Image height [1]
-	 * RESERVED[1] 
 	 * (Icon is max 255x255)
+	 * Animation Sequence Nodes [1] (V6+) / RESERVED (V5-) [1]
+	 * 		(If this is 0 or there is only one image, the animation fields are not present)
+	 * Animation Flags [2] (V6+)
+	 * 		15 - Is Ping-pong
+	 * Animation Nodes [2n] (V6+)
+	 * 		Image Index [1]
+	 * 		# Frames [1]
 	 * CompData Size [4] (V5+)
 	 * Image Data (DEFLATEd if V5+ -- Will add but haven't yet) - Decomp size can be calculated
 	 * 	Each pixel is 32 bits (RGBA)
@@ -109,10 +127,28 @@ public class NTDProject implements Comparable<NTDProject>{
 	public static final String EXPORT_MAGIC = "ntd PROJ";
 	public static final short CURRENT_VERSION = 1;
 	
-	public static final String MAKERDS_NINTENDO = "01";
-	public static final String MAKERDS_SQUAREENIX = "DG";
-	public static final String MAKERDS_CAPCOM = "80";
-	public static final String MAKERDS_SEGA = "8P";
+	public static final String MAKERCODE_NINTENDO = "01";
+	public static final String MAKERCODE_NINTENDO_DS = "10";
+	public static final String MAKERCODE_SQUAREENIX = "DG";
+	public static final String MAKERCODE_CAPCOM = "80";
+	public static final String MAKERCODE_SEGA = "8P";
+	public static final String MAKERCODE_DESTINEER = "RN";
+	public static final String MAKERCODE_ALCHEMIST = "AK";
+	public static final String MAKERCODE_UBISOFT = "";
+	public static final String MAKERCODE_CDPR = "";
+	public static final String MAKERCODE_EA = "69"; //lol nice
+	
+	public static final String MAKERNAME_NINTENDO = "Nintendo";
+	public static final String MAKERNAME_SQUAREENIX = "Square Enix";
+	public static final String MAKERNAME_CAPCOM = "Capcom";
+	public static final String MAKERNAME_SEGA = "SEGA";
+	public static final String MAKERNAME_DESTINEER = "Destineer";
+	public static final String MAKERNAME_ALCHEMIST = "Alchemist";
+	public static final String MAKERNAME_UBISOFT = "Ubisoft";
+	public static final String MAKERNAME_CDPR = "CD Projekt Red";
+	public static final String MAKERNAME_EA = "Electronic Arts";
+	
+	public static final String PATH_PLACEHOLDER = "<NA>";
 
 	/*----- Instance Variables -----*/
 	
@@ -131,7 +167,7 @@ public class NTDProject implements Comparable<NTDProject>{
 	
 	private String localName;
 	private String pubName;
-	private BufferedImage[] banner;
+	private Animation banner;
 	
 	private DirectoryNode custom_tree;
 	
@@ -141,7 +177,12 @@ public class NTDProject implements Comparable<NTDProject>{
 	
 	/*----- Construction -----*/
 	
-	private NTDProject()
+	/**
+	 * Construct a default NTDProject superclass instance.
+	 * This instance is generated with the default single frame banner
+	 * icon and enums being set to their "unknown" values.
+	 */
+	protected NTDProject()
 	{
 		console = Console.UNKNOWN;
 		region = GameRegion.UNKNOWN;
@@ -152,271 +193,39 @@ public class NTDProject implements Comparable<NTDProject>{
 		fullcode = "UNK_XXXX_UNK";
 		
 		localName = "unknown game";
-		banner = new BufferedImage[1];
+		banner = new SimpleAnimation(1);
 		try{
-		banner[0] = NTDProgramFiles.scaleDefaultImage_unknown(32, 32);}
-		catch(IOException e)
-		{
+			banner.setFrame(NTDProgramFiles.scaleDefaultImage_unknown(32, 32), 0);
+		}
+		catch(IOException e){
 			e.printStackTrace();
 		}
+		
 		encrypted_regs = new LinkedList<EncryptionRegion>();
-	}
-	
-	public static NTDProject createEmptyProject()
-	{
-		return new NTDProject();
 	}
 	
 	/*----- Console Specific Project Creators -----*/
 	
-	private static void scanTreeDir(String defo, DirectoryNode dn)
+	/**
+	 * Scan through the provided directory recursively and set all
+	 * source path links for all nodes to the provided String if there
+	 * is no source path already set for a node.
+	 * @param defo Path to set as "default" source path.
+	 * @param dn Topmost directory to scan.
+	 */
+	protected static void scanTreeDir(String defo, DirectoryNode dn)
 	{
 		List<FileNode> children = dn.getChildren();
-		for(FileNode child : children)
-		{
-			if(!child.isDirectory())
-			{
-				if(child.getSourcePath() == null || child.getSourcePath().isEmpty())
-				{
+		for(FileNode child : children){
+			if(!child.isDirectory()){
+				if(child.getSourcePath() == null || child.getSourcePath().isEmpty()){
 					child.setSourcePath(defo);
 				}
 			}
-			else
-			{
+			else{
 				if(child instanceof DirectoryNode)scanTreeDir(defo, (DirectoryNode)child);
 			}
 		}
-	}
-	
-	public static NTDProject createFromNDSImage(NDS image, GameRegion region)
-	{
-		//TODO
-		NTDProject proj = new NTDProject();
-		proj.imported_time = OffsetDateTime.now();
-		proj.modified_time = OffsetDateTime.now();
-		
-		if(image.hasTWL()) proj.console = Console.DSi;
-		else proj.console = Console.DS;
-		proj.region = region;
-		
-		proj.gamecode = image.getGameCode();
-		proj.language = DefoLanguage.getLanReg(proj.gamecode.charAt(3));
-		if(proj.language == null) proj.language = DefoLanguage.UNKNOWN;
-		
-		proj.makercode = image.getMakerCodeAsASCII();
-		if(proj.makercode.equals(MAKERDS_NINTENDO)) proj.pubName = "Nintendo";
-		else if(proj.makercode.equals(MAKERDS_CAPCOM)) proj.pubName = "Capcom";
-		else if(proj.makercode.equals(MAKERDS_SQUAREENIX)) proj.pubName = "Square Enix";
-		
-		proj.fullcode = proj.console.getShortCode() + "_" + proj.gamecode + "_" + proj.region.getShortCode();
-		
-		int lan = NDS.TITLE_LANGUAGE_ENGLISH;
-		switch(proj.language)
-		{
-		case FRENCH: lan = NDS.TITLE_LANGUAGE_FRENCH; break;
-		case GERMAN: lan = NDS.TITLE_LANGUAGE_GERMAN; break;
-		case ITALIAN: lan = NDS.TITLE_LANGUAGE_ITALIAN; break;
-		case JAPANESE: lan = NDS.TITLE_LANGUAGE_JAPANESE; break;
-		case KOREAN: lan = NDS.TITLE_LANGUAGE_KOREAN; break;
-		case SPANISH: lan = NDS.TITLE_LANGUAGE_SPANISH; break;
-		default: lan = NDS.TITLE_LANGUAGE_ENGLISH; break;
-		}
-		
-		proj.rom_path = image.getROMPath();
-		proj.is_encrypted = image.hasModcryptRegions();
-		
-		if(proj.is_encrypted)
-		{
-			proj.encrypted_regs = new ArrayList<EncryptionRegion>(2);
-			
-			EncryptionRegion reg = new EncryptionRegion();
-			String ddir = proj.getDecryptedDataDir();
-			String stem = ddir + File.separator + NTDProgramFiles.DECSTEM_DSI_MC;
-			String path = stem + "01.bin";
-			
-			long off = image.getMC1Offset();
-			long size = image.getMC1Size();
-			
-			reg.setDecryptBufferPath(path);
-			reg.setOffset(off);
-			reg.setSize(size);
-			reg.setDefintion(NDS.getModcryptDef());
-			
-			//WARNING!! The secure key is NOT currently accurate (20/03/31)!
-			//I'm still testing the key derivation!!!!
-			byte[] aeskey = null;
-			if(image.usesSecureKey()){
-				//aeskey = image.getSecureKey();
-				aeskey = new byte[16];
-			}
-			else aeskey = image.getInsecureKey();
-			
-			reg.addKeyData(aeskey);
-			reg.addKeyData(image.getModcryptCTR1());
-			proj.encrypted_regs.add(reg);
-			
-			reg = new EncryptionRegion();
-			path = stem + "02.bin";
-			reg.setDecryptBufferPath(path);
-			reg.setOffset(image.getMC2Offset());
-			reg.setSize(image.getMC2Size());
-			reg.setDefintion(NDS.getModcryptDef());
-			reg.addKeyData(aeskey);
-			reg.addKeyData(image.getModcryptCTR2());
-			proj.encrypted_regs.add(reg);
-		}
-		
-		proj.localName = image.getBannerTitle(lan);
-		proj.banner = image.getBannerIcon();
-		
-		//Get main tree...
-		proj.custom_tree = image.getArchiveTree();
-		
-		//Scan for empty paths...
-		scanTreeDir(proj.rom_path, proj.custom_tree);
-		
-		//Note encrypted nodes...
-		if(proj.is_encrypted) proj.markEncryptedNodes(proj.custom_tree);
-		
-		//Run initial type scan
-		NTDTools.doTypeScan(proj.custom_tree, null);
-		
-		//Mark system files...
-		FileNode sys = proj.custom_tree.getNodeAt("/header.bin");
-		if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getHeaderDef()));
-		sys = proj.custom_tree.getNodeAt("/icon.bin");
-		if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getBannerDef()));
-		if(image.hasTWL()){
-			sys = proj.custom_tree.getNodeAt("/rsa.bin");
-			if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getRSACertDef()));
-		}
-		
-		return proj;
-	}
-	
-	public static NTDProject createFromPSXTrack(String imgpath, GameRegion region) throws CDInvalidRecordException, IOException, UnsupportedFileTypeException{
-
-		ISOXAImage image = new ISOXAImage(new ISO(FileBuffer.createBuffer(imgpath), false));
-		NTDProject proj = new NTDProject();
-		proj.imported_time = OffsetDateTime.now();
-		proj.modified_time = OffsetDateTime.now();
-		proj.rom_path = imgpath;
-		
-		proj.console = Console.PS1;
-		proj.region = region;
-		//Guess language from region...
-		switch(proj.region){
-		case JPN: proj.language =DefoLanguage.JAPANESE; break;
-		case NOE: proj.language = DefoLanguage.ENGLISH; break;
-		case UNKNOWN: proj.language = DefoLanguage.JAPANESE; break;
-		case USA: proj.language = DefoLanguage.ENGLISH; break;
-		case USZ: proj.language = DefoLanguage.ENGLISH; break;
-		default: proj.language = DefoLanguage.JAPANESE; break;
-		}
-		
-		//Nab tree (will need config and exe for auto-extracting more info
-		proj.custom_tree = image.getRootNode();
-		scanTreeDir(proj.rom_path, proj.custom_tree); //Set path for all nodes...
-		
-		//Nab the gamecode from the volume ident
-		String volident = proj.custom_tree.getMetadataValue(ISOXAImage.METAKEY_VOLUMEIDENT);
-		proj.gamecode = volident;
-		proj.custom_tree.setFileName(volident);
-		proj.fullcode = volident;
-		
-		proj.pubName = image.getPublisherIdent().replace(" ", "");
-		GregorianCalendar date = image.getDateCreated();
-		proj.volume_time = OffsetDateTime.ofInstant(date.toInstant(), date.getTimeZone().toZoneId());
-		
-		//Look for SYSTEM.CNF
-		FileNode cnf = proj.custom_tree.getNodeAt("/" + volident + "/SYSTEM.CNF");
-		if(cnf == null) cnf = proj.custom_tree.getNodeAt("/" + volident + "/system.cnf");
-		if(cnf != null){
-			cnf.setTypeChainHead(new FileTypeDefNode(PSXSysDefs.getConfigDef()));
-			//Load and get more data
-			String exepath = null;
-			BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(cnf.loadData().getBytes())));
-			//Look for a line that starts with "BOOT"
-			String line = null;
-			while((line = br.readLine()) != null){
-				//System.err.println(line);
-				if(!line.startsWith("BOOT")) continue;
-				String[] fields = line.replace(" ", "").split("=");
-				if(fields.length < 2) break;
-				String val = fields[1];
-				val = val.substring(val.indexOf('\\') + 1);
-				val = val.substring(0, val.lastIndexOf(';'));
-				exepath = "/" + volident + "/" + val;
-			}
-			br.close();
-			
-			if(exepath != null){
-				//Should be able to take out underscores and dots to get game code.
-				//proj.gamecode = exepath.substring(1).replace(".", "").replace("_", "");
-				FileNode exe = proj.custom_tree.getNodeAt(exepath);
-				if(exe != null){
-					System.err.println("Executable " + exepath + " found!");
-					exe.setTypeChainHead(new FileTypeDefNode(PSXSysDefs.getExeDef()));
-				}
-				else{
-					System.err.println("Executable " + exepath + " not found!");
-				}
-			}
-			else{
-				//Warn and set defaults
-				System.err.println("PS1 ISO import error: executable not found!");
-			}
-		}
-		else{
-			//Will have to fill in with dummies...
-			System.err.println("PS1 ISO import error: SYSTEM.CNF not found!");
-		}
-		
-		proj.localName = "PS1Software " + proj.gamecode;
-		
-		return proj;
-	}
-	
-	public static NTDProject createFromGCM(String imgpath, GameRegion region) throws IOException, UnsupportedFileTypeException{
-		GCWiiDisc gcimg = new GCWiiDisc(imgpath);
-		GCWiiHeader header = gcimg.getHeader();
-		
-		NTDProject proj = new NTDProject();
-		proj.imported_time = OffsetDateTime.now();
-		proj.modified_time = OffsetDateTime.now();
-		
-		proj.console = Console.GAMECUBE;
-		proj.region = region;
-		proj.gamecode = header.get4DigitGameCode();
-		proj.makercode = header.getMakerCode();
-		proj.language = DefoLanguage.getLanReg(proj.gamecode.charAt(3));
-		proj.fullcode = "DOL_" + proj.gamecode + "_" + region.getShortCode();
-		proj.rom_path = imgpath;
-		
-		proj.localName = header.getGameTitle();
-		switch(proj.makercode){
-		case MAKERDS_NINTENDO: proj.pubName = "Nintendo"; break;
-		case MAKERDS_SQUAREENIX: proj.pubName = "SquareEnix"; break;
-		case MAKERDS_CAPCOM: proj.pubName = "Capcom"; break;
-		case MAKERDS_SEGA: proj.pubName = "Sega"; break;
-		}
-		
-		proj.custom_tree = gcimg.getDiscTree();
-		scanTreeDir(proj.rom_path, proj.custom_tree);
-		
-		//Type tags
-		FileNode fn = proj.custom_tree.getNodeAt("/sys/boot.bin");
-		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getHeaderDef()));
-		fn = proj.custom_tree.getNodeAt("/sys/bi2.bin");
-		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getBi2Def()));
-		fn = proj.custom_tree.getNodeAt("/sys/fst.bin");
-		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getFSTDef()));
-		fn = proj.custom_tree.getNodeAt("/sys/apploader.img");
-		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getApploaderDef()));
-		fn = proj.custom_tree.getNodeAt("/sys/main.dol");
-		fn.setTypeChainHead(new FileTypeDefNode(DolExe.getDefinition()));
-		
-		return proj;
 	}
 	
 	/*----- Paths -----*/
@@ -424,8 +233,12 @@ public class NTDProject implements Comparable<NTDProject>{
 	private String my_dir_path;
 	private String tdecrypt_path;
 	
-	public String getCustomDataDirPath()
-	{
+	/**
+	 * Get the path on local system to the directory storing the save
+	 * data for this project external to <i>proj.bin</i>.
+	 * @return Path to project directory, or null if there is an error in derivation.
+	 */
+	public String getCustomDataDirPath(){
 		if(my_dir_path != null) return my_dir_path;
 		my_dir_path = NTDProgramFiles.getInstallDir() + File.separator + 
 				NTDProgramFiles.DIRNAME_PROJECTS + File.separator + fullcode;
@@ -440,13 +253,21 @@ public class NTDProject implements Comparable<NTDProject>{
 		return my_dir_path;
 	}
 	
-	public String getCustomTreeSavePath()
-	{
+	/**
+	 * Get the path on local system to the file containing the file tree
+	 * for this project.
+	 * @return Path to file tree as a String, or null if there is an error deriving path.
+	 */
+	public String getCustomTreeSavePath(){
 		return getCustomDataDirPath() + File.separator + NTDProgramFiles.TREE_FILE_NAME;
 	}
 	
-	public String getDecryptedDataDir()
-	{
+	/**
+	 * Get the path on local system to the directory that stores decrypted
+	 * data buffers for this project.
+	 * @return Path to decrypted data directory, or null if there is an error in derivation.
+	 */
+	public String getDecryptedDataDir(){
 		if(tdecrypt_path != null) return tdecrypt_path;
 		tdecrypt_path = NTDProgramFiles.getDecryptTempDir() + File.separator + fullcode;
 		return tdecrypt_path;
@@ -454,9 +275,107 @@ public class NTDProject implements Comparable<NTDProject>{
 	
 	/*----- Parsing -----*/
 	
+	private static Animation readBannerIconData(FileBuffer file, long stoff, int version) throws DataFormatException, IOException{
+		long cpos = stoff;
+		int iframes = Byte.toUnsignedInt(file.getByte(cpos++));
+		int iwidth = Byte.toUnsignedInt(file.getByte(cpos++));
+		int iheight = Byte.toUnsignedInt(file.getByte(cpos++));
+		int nframes = Byte.toUnsignedInt(file.getByte(cpos++));
+
+		//Animation data (if applicable)
+		long anim_offset = cpos;
+		if(version < 6) nframes = iframes;
+		else{
+			//Skip past animation data for now
+			if(iframes > 1) cpos += 2 + (nframes << 1);
+		}
+		Animation icon = new SimpleAnimation(nframes);
+		
+		//Image data...
+		if(iframes == 0){
+			//Load the question mark image instead...
+			icon.setFrame(NTDProgramFiles.scaleDefaultImage_unknown(32, 32), 0);
+			return icon;
+		}
+
+		BufferedImage[] imgarr = new BufferedImage[iframes];
+		FileBuffer imgdat = null;
+		
+		int imgdat_len = iframes * iwidth * iheight * 4;
+			
+		//If v5+, INFLATE
+		if(version >= 5){
+			int complen = file.intFromFile(cpos); cpos+=4;
+			byte[] compdat = file.getBytes(cpos, cpos+complen);
+			Inflater dec = new Inflater();
+			dec.setInput(compdat);
+			byte[] result = new byte[imgdat_len+16];
+			dec.inflate(result);
+			dec.end();
+				
+			imgdat = new FileBuffer(imgdat_len, true);
+			for(int i = 0; i < imgdat_len; i++) imgdat.addToFile(result[i]);
+		}
+		else{
+			imgdat = file.createReadOnlyCopy(cpos, cpos+imgdat_len);
+		}
+			
+		cpos = 0;
+		for(int z = 0; z < iframes; z++)
+		{
+			BufferedImage buff = new BufferedImage(iwidth, iheight, BufferedImage.TYPE_INT_ARGB);
+			for(int y = 0; y < iheight; y++)
+			{
+				for(int x = 0; x < iwidth; x++)
+				{
+					int red = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
+					int green = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
+					int blue = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
+					int alpha = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
+						
+					int argb = (alpha << 24) | (red << 16) | (green << 8) | blue;
+					buff.setRGB(x, y, argb);
+				}
+			}
+			imgarr[z] = buff;
+		}
+		
+		//Animation Data (if present)
+		if(version >= 6 && iframes > 1){
+			file.setCurrentPosition(anim_offset);
+			int aflags = Short.toUnsignedInt(file.nextShort());
+			if((aflags & 0x8000) != 0) icon.setAnimationMode(Animation.ANIM_MODE_PINGPONG);
+			for(int i = 0; i < nframes; i++){
+				int idx = Byte.toUnsignedInt(file.nextByte());
+				int flen = Byte.toUnsignedInt(file.nextByte());
+				icon.setFrame(new AnimationFrame(imgarr[idx], flen), i);
+			}
+		}
+		else{
+			//Just copy frame for frame
+			for(int i = 0; i < iframes; i++){
+				icon.setFrame(new AnimationFrame(imgarr[i], 1), i);
+			}
+		}
+		
+		return icon;
+	}
+	
+	/**
+	 * Create an NTDProject from data stored in a <code>proj.bin</code> block. This includes metadata and
+	 * banner data, but does not include the tree, which must be loaded from the project's save
+	 * data directory.
+	 * @param file FileBuffer to read data from.
+	 * @param stoff Start offset to begin reading as project block. 
+	 * @param version Format version of <code>proj.bin</code>. This is very important as fields have
+	 * been added and removed over the versions.
+	 * @return The explorer project if read is successful, null if read is unsuccessful for an unknown readon.
+	 * @throws IOException If there is an I/O error in reading the file.
+	 * @throws DataFormatException If the DEFLATEd image data for the banner cannot be read.
+	 */
 	public static NTDProject readProject(FileBuffer file, long stoff, int version) throws IOException, DataFormatException
 	{
-		NTDProject proj = new NTDProject();
+		//NTDProject proj = new NTDProject();
 		
 		long cpos = stoff;
 		
@@ -466,7 +385,30 @@ public class NTDProject implements Comparable<NTDProject>{
 		int lenum = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
 		
 		//Need to resolve up here as needed for game code...
-		proj.console = Console.getConsoleFromIntCode(cenum);
+		Console c = Console.getConsoleFromIntCode(cenum);
+		NTDProject proj = null;
+		//proj.console = Console.getConsoleFromIntCode(cenum);
+		
+		//Instantiate proj
+		switch(c){
+		case DS:
+		case DSi:
+			proj = new DSProject();
+			proj.console = c;
+			break;
+		case GAMECUBE:
+			proj = new GCProject();
+			break;
+		case PS1:
+			proj = new PSXProject();
+			break;
+		case SWITCH:
+		case WII:
+		case WIIU:
+		case _3DS:
+		default:
+			return null;
+		}
 		
 		if(version >= 3){
 			if(proj.console == Console.PS1){
@@ -563,68 +505,17 @@ public class NTDProject implements Comparable<NTDProject>{
 			proj.volume_time = OffsetDateTime.ofInstant(Instant.ofEpochSecond(time), ZoneId.systemDefault());
 		}
 		
-		int iframes = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
-		int iwidth = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
-		int iheight = Byte.toUnsignedInt(file.getByte(cpos)); cpos++;
-		cpos++;
-		
-		//Image data...
-		if(iframes == 0)
-		{
-			//Load the question mark image instead...
-			proj.banner = new BufferedImage[1];
-			proj.banner[0] = NTDProgramFiles.getDefaultImage_unknown();
-		}
-		else
-		{
-			proj.banner = new BufferedImage[iframes];	
-			FileBuffer imgdat = null;
-			
-			int imgdat_len = iframes * iwidth * iheight * 4;
-			
-			//If v5+, INFLATE
-			if(version >= 5){
-				int complen = file.intFromFile(cpos); cpos+=4;
-				byte[] compdat = file.getBytes(cpos, cpos+complen);
-				Inflater dec = new Inflater();
-				dec.setInput(compdat);
-				byte[] result = new byte[imgdat_len+16];
-				dec.inflate(result);
-				dec.end();
-				
-				imgdat = new FileBuffer(imgdat_len, true);
-				for(int i = 0; i < imgdat_len; i++) imgdat.addToFile(result[i]);
-			}
-			else{
-				imgdat = file.createReadOnlyCopy(cpos, cpos+imgdat_len);
-			}
-			
-			cpos = 0;
-			for(int z = 0; z < iframes; z++)
-			{
-				BufferedImage buff = new BufferedImage(iwidth, iheight, BufferedImage.TYPE_INT_ARGB);
-				for(int y = 0; y < iheight; y++)
-				{
-					for(int x = 0; x < iwidth; x++)
-					{
-						int red = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
-						int green = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
-						int blue = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
-						int alpha = Byte.toUnsignedInt(imgdat.getByte(cpos)); cpos++;
-						
-						int argb = (alpha << 24) | (red << 16) | (green << 8) | blue;
-						buff.setRGB(x, y, argb);
-					}
-				}
-				proj.banner[z] = buff;
-			}
-		}
+		proj.banner = readBannerIconData(file, cpos, version);
 		
 		return proj;
 	}
 	
-	public void loadSavedTree() throws IOException, UnsupportedFileTypeException
-	{
+	/**
+	 * Load the currently saved file tree for this project from the project save directory.
+	 * @throws IOException If the tree file cannot be found or read.
+	 * @throws UnsupportedFileTypeException If the tree file cannot be parsed.
+	 */
+	public void loadSavedTree() throws IOException, UnsupportedFileTypeException{
 		String tpath = getCustomTreeSavePath();
 		try{
 			if(FileBuffer.fileExists(tpath)) custom_tree = FileTreeSaver.loadTree(tpath);
@@ -645,35 +536,141 @@ public class NTDProject implements Comparable<NTDProject>{
 		
 		//Approximate encryption info data size
 		size += 2; //For enc reg count
-		if(encrypted_regs != null)
-		{
-			for(EncryptionRegion reg : encrypted_regs)
-			{
+		if(encrypted_regs != null){
+			for(EncryptionRegion reg : encrypted_regs){
 				size += reg.getApproximateSerializedSize(false);
 			}
 		}
 		
-		//Add image size...
-		int pix = 0;
-		if(banner == null || banner.length > 0)
-		{
-			pix = 128*128;
+		//Calculate maximum image size...
+		//Number of frames...
+		if(banner != null){
+			int fcount = banner.getNumberFrames();
+			//Assume all frames have unique image.
+			//Pull first image to see size...
+			BufferedImage img = banner.getFrameImage(0);
+			int w = img.getWidth(); int h = img.getHeight();
+			int idatsize = (w*h) << 2; //Size of one image decomp in bytes
+			
+			size += 8; //Image lead-in data + compression size
+			if(fcount > 1){
+				//Animation data
+				size += 2 + (fcount << 2);
+			}
+			size += idatsize * fcount;
 		}
-		else
-		{
-			BufferedImage banner0 = banner[0];
-			pix = banner.length * banner0.getHeight() * banner0.getWidth();
+		else{
+			size += 8;
 		}
-		size += pix << 2;
 		
 		return size;
 	}
 	
-	public FileBuffer serializeProjectBlock()
-	{
+	private FileBuffer serializeBannerIcon(){
+		if(banner == null) return null;
+		
+		//Get unique images
+		int afcount = banner.getNumberFrames();
+		List<BufferedImage> imgset = new LinkedList<BufferedImage>();
+		for(int i = 0; i < afcount; i++){
+			BufferedImage img = banner.getFrameImage(i);
+			if(!imgset.contains(img)) imgset.add(img);
+		}
+		int icount = imgset.size();
+		BufferedImage example = banner.getFrameImage(0);
+		int width = example.getWidth();
+		int height = example.getHeight();
+		
+		int idecompsize = ((width * height) << 2) * icount;
+		int sz = 4 + 4 + idecompsize; //Overestimate for decomped
+		if(afcount > 1){
+			//Count animation data
+			sz += 2 + (afcount << 1);
+		}
+		else afcount = 0;
+		
+		FileBuffer imgdat = new FileBuffer(sz, true);
+		
+		imgdat.addToFile((byte)icount);
+		imgdat.addToFile((byte)width);
+		imgdat.addToFile((byte)height);
+		imgdat.addToFile((byte)afcount);
+		
+		if(afcount > 1){
+			int flags = 0;
+			if(banner.getAnimationMode() == Animation.ANIM_MODE_PINGPONG) flags |= 0x8000;
+			imgdat.addToFile((short)flags);
+			
+			for(int i = 0; i < afcount; i++){
+				//Match image...
+				int idx = 0;
+				BufferedImage fimg = banner.getFrameImage(i);
+				for(BufferedImage comp : imgset){
+					if(fimg == comp) break;
+					if(fimg.equals(comp)) break;
+					idx++;
+				}
+				imgdat.addToFile((byte)idx);
+				imgdat.addToFile((byte)banner.getFrame(i).getLengthInFrames());
+			}
+		}
+		
+		//Image data
+		byte[] rawimg = new byte[idecompsize];
+		int p = 0;
+		for(BufferedImage frame : imgset)
+		{
+			for(int y = 0; y < height; y++)
+			{
+				for(int x = 0; x < height; x++)
+				{
+					int argb = frame.getRGB(x, y);
+					int alpha = (argb >>> 24) & 0xFF;
+					int red = (argb >>> 16) & 0xFF;
+					int green = (argb >>> 8) & 0xFF;
+					int blue = argb & 0xFF;
+					
+					rawimg[p++] = (byte)red; rawimg[p++] = (byte)green; 
+					rawimg[p++] = (byte)blue; rawimg[p++] = (byte)alpha;
+				}
+			}
+		}
+		
+		//Compressed image data
+		Deflater comp = new Deflater();
+		comp.setInput(rawimg);
+		comp.finish();
+		byte[] compbytes = new byte[idecompsize + 16];
+		int complen = comp.deflate(compbytes);
+		comp.end();
+		
+		imgdat.addToFile(complen);
+		for(int i = 0; i < complen; i++)imgdat.addToFile(compbytes[i]);
+		if(complen % 2 != 0) imgdat.addToFile(FileBuffer.ZERO_BYTE);
+		
+		return imgdat;
+	}
+	
+	/**
+	 * Generate a serialization of the metadata and banner data contained within
+	 * this project to store as a <code>proj.bin</code> block.
+	 * Path links are not scrubbed from output. This overload is intended
+	 * for local saves, not export.
+	 * @return FileBuffer containing serialized data. FileBuffer is allocated to be
+	 * larger than actual data, so be careful calling methods that lay bare any underlying arrays.
+	 */
+	public FileBuffer serializeProjectBlock(){
 		return serializeProjectBlock(false);
 	}
 	
+	/**
+	 * Generate a serialization of the metadata and banner data contained within
+	 * this project to store as a <code>proj.bin</code> block or project export file.
+	 * @param scrubPaths Whether to scrub linked file paths from output. Set to true
+	 * for export file, set to false for local save.
+	 * @return FileBuffer containing serialized data. FileBuffer is allocated to be
+	 * larger than actual data, so be careful calling methods that lay bare any underlying arrays.
+	 */
 	public FileBuffer serializeProjectBlock(boolean scrubPaths)
 	{
 		//Calculate Size
@@ -681,29 +678,17 @@ public class NTDProject implements Comparable<NTDProject>{
 		
 		//Serialize strings
 		FileBuffer str_rom = null;
-		if(!scrubPaths)
-		{
+		if(!scrubPaths){
 			str_rom = new FileBuffer(3+(rom_path.length() << 1), true);
 			str_rom.addVariableLengthString(NTDProgramFiles.ENCODING, rom_path, BinFieldSize.WORD, 2);
 			sz += str_rom.getFileSize();
 		}
-		else
-		{
+		else{
 			str_rom = new FileBuffer(6, true);
-			str_rom.addVariableLengthString(NTDProgramFiles.ENCODING, "<NA>", BinFieldSize.WORD, 2);
+			str_rom.addVariableLengthString(NTDProgramFiles.ENCODING, PATH_PLACEHOLDER, BinFieldSize.WORD, 2);
 			sz += str_rom.getFileSize();
 		}
-		//FileBuffer str_dec = null;
-		/*if(is_encrypted){
-			str_dec = new FileBuffer(3+(decrypted_rom_path.length() << 1), true);
-			str_dec.addVariableLengthString(NTDProgramFiles.ENCODING, decrypted_rom_path, BinFieldSize.WORD, 2);
-			sz += str_dec.getFileSize();
-		}
-		else{
-			sz += 2;
-			str_dec = new FileBuffer(2, true);
-			str_dec.addToFile((short)0);
-		}*/
+
 		FileBuffer str_name = new FileBuffer(3+(localName.length() << 1), true);
 		str_name.addVariableLengthString(NTDProgramFiles.ENCODING, localName, BinFieldSize.WORD, 2);
 		sz += str_name.getFileSize();
@@ -722,8 +707,7 @@ public class NTDProject implements Comparable<NTDProject>{
 		sz+=8; //Volume creation time
 		
 		FileBuffer[] epathnames = null;
-		if(encrypted_regs != null)
-		{
+		if(encrypted_regs != null){
 			epathnames = new FileBuffer[encrypted_regs.size()];
 			int i = 0;
 			for(EncryptionRegion reg : encrypted_regs)
@@ -775,12 +759,10 @@ public class NTDProject implements Comparable<NTDProject>{
 		//out.addToFile(str_dec);
 		
 		//Encryption info
-		if(encrypted_regs != null && is_encrypted)
-		{
+		if(encrypted_regs != null && is_encrypted){
 			out.addToFile((short)encrypted_regs.size());
 			int i = 0;
-			for(EncryptionRegion reg : encrypted_regs)
-			{
+			for(EncryptionRegion reg : encrypted_regs){
 				out.addToFile(reg.getDefintion().getID());
 				out.addToFile(reg.getOffset());
 				out.addToFile(reg.getSize());
@@ -802,76 +784,30 @@ public class NTDProject implements Comparable<NTDProject>{
 		else out.addToFile(volume_time.toEpochSecond());
 		
 		//Banner
-		if(banner == null) out.addToFile(0);
-		else
-		{
-			out.addToFile((byte)banner.length);
-			BufferedImage banner0 = banner[0];
-			if(banner0 == null){
-				out.add24ToFile(0);
-			}
-			else
-			{
-				int width = banner0.getWidth();
-				int height = banner0.getHeight();
-				out.addToFile((byte)width);
-				out.addToFile((byte)height);
-				out.addToFile((byte)0);
-				
-				//DEFLATE!
-				int img_dat_len = width * height * banner.length * 4;
-				byte[] in = new byte[img_dat_len];
-				int i = 0;
-				
-				for(int z = 0; z < banner.length; z++)
-				{
-					BufferedImage frame = banner[z];
-					for(int y = 0; y < height; y++)
-					{
-						for(int x = 0; x < height; x++)
-						{
-							int argb = frame.getRGB(x, y);
-							int alpha = (argb >>> 24) & 0xFF;
-							int red = (argb >>> 16) & 0xFF;
-							int green = (argb >>> 8) & 0xFF;
-							int blue = argb & 0xFF;
-							
-							//out.addToFile((byte)red);
-							//out.addToFile((byte)green);
-							//out.addToFile((byte)blue);
-							//out.addToFile((byte)alpha);
-							in[i++] = (byte)red; in[i++] = (byte)green; in[i++] = (byte)blue; in[i++] = (byte)alpha;
-						}
-					}
-				}
-				
-				Deflater comp = new Deflater();
-				comp.setInput(in);
-				comp.finish();
-				byte[] compbytes = new byte[img_dat_len + 16];
-				int complen = comp.deflate(compbytes);
-				comp.end();
-				
-				out.addToFile(complen);
-				for(int j = 0; j < complen; j++){
-					out.addToFile(compbytes[j]);
-				}
-				if(complen % 2 != 0) out.addToFile((byte)0);
-			}
-			
-		}
+		out.addToFile(serializeBannerIcon());
 		
 		return out;
 	}
 	
-	public void saveTree() throws IOException
-	{
+	/**
+	 * Save the custom file tree loaded to this project in its current state.
+	 * The tree file is saved to the save directory for this project. Tree target
+	 * path can be obtained by calling <i>getCustomTreeSavePath()</i>.
+	 * @throws IOException If there is an error writing to the target file.
+	 */
+	public void saveTree() throws IOException{
 		String tpath = getCustomTreeSavePath();
 		FileTreeSaver.saveTree(custom_tree, tpath);
 	}
 	
-	public void exportProject(String outpath) throws IOException
-	{
+	/**
+	 * Save the project metadata, banner data, and tree to an export file for sharing.
+	 * This only saves the project structure, it should go without saying that this does
+	 * not export any linked data.
+	 * @param outpath Path to write export file to as a string.
+	 * @throws IOException If the target file cannot be written.
+	 */
+	public void exportProject(String outpath) throws IOException{
 		//Do header
 		FileBuffer header = new FileBuffer(16, true);
 		header.printASCIIToFile(EXPORT_MAGIC);
@@ -899,20 +835,143 @@ public class NTDProject implements Comparable<NTDProject>{
 	
 	/*----- Getters -----*/
 	
+	/**
+	 * Get the path (as a string representation of a local file system path)
+	 * to the primary ROM image file linked to this project.
+	 * @return Currently linked ROM file path, or null if none.
+	 */
 	public String getROMPath(){return this.rom_path;}
+	
+	/**
+	 * Get the path (as a string representation of a local file system path)
+	 * to the decrypted buffer file linked to this project.
+	 * <br>This method has been deprecated as instead I have decided
+	 * to mark and only decrypt specific regions, each into their own 
+	 * buffer (thus taking up less space).
+	 * @return Path to decrypted ROM buffer, if applicable.
+	 */
+	@Deprecated
 	public String getDecryptedROMPath(){return this.decrypted_rom_path;}
+	
+	/**
+	 * Get the two-character maker code associated with the linked
+	 * software image. For Nintendo systems, this is indicative
+	 * of the software publisher.
+	 * @return Maker code (2 ASCII character string) if present. Null
+	 * if not present or image is not software for a Nintendo system.
+	 */
+	public String getMakerCode(){return this.makercode;}
+	
+	/**
+	 * Get the unique ASCII gamecode for this software. For most Nintendo software,
+	 * this code is 4 ASCII characters, where the final character is indicative
+	 * of the software distribution region/language.
+	 * <br>For Nintendo Switch software, this code is 5 characters with no regional
+	 * indicator character.
+	 * <br>For PS1 software, this method returns the full 10 character code. <code>getGameCode12()</code>
+	 * returns the same value.
+	 * @return Short gamecode for the software image associated with this project.
+	 */
 	public String getGameCode4(){return this.gamecode;}
+	
+	/**
+	 * Get the formatted long ASCII gamecode for this software. For most Nintendo software,
+	 * this follows the 12 character pattern CCC_GGGG_RRR where CCC refers to the console
+	 * short code (eg. NTR for "Nitro", or RVL for "Revolution"), GGGG refers to the game code,
+	 * and RRR refers to the region (eg. "USA" or "JPN"). This is the code seen on game cases 
+	 * and cartridges.
+	 * <br>Nintendo Switch software has 5 character game codes and thus the full code is 13 
+	 * characters following the pattern HAC_GGGGG_RRR.
+	 * <br>For PS1 software, this method returns the full 10 character code. <code>getGameCode4()</code>
+	 * returns the same value.
+	 * @return Long formatted gamecode for the software image associated with this project.
+	 */
 	public String getGameCode12(){return this.fullcode;}
+	
+	/**
+	 * Get the banner title for the software associated with this project.
+	 * For some images, the banner string can be extracted from the ROM data.
+	 * For some, the title can be obtained from a memory card/save file.
+	 * <br>This field can be multiple lines (delimited by a single newline
+	 * character, linux style).
+	 * @return Currently set banner title for this project.
+	 */
 	public String getBannerTitle(){return this.localName;}
-	public BufferedImage[] getBannerIcon(){return this.banner;}
+	
+	/**
+	 * Get the frames of the banner icon as an image array. For images that
+	 * are held over multiple frames, the image will be copied multiple times
+	 * so that if a playback of the icon animation was to proceed over the array
+	 * one array member per frame, the animation would play back correctly.
+	 * @return Banner icon as an array of images.
+	 */
+	public BufferedImage[] getBannerIconImages(){return animationToImageArray(banner);}
+	
+	/**
+	 * Get the banner icon as an Animation. If the banner is not animated, the
+	 * Animation object will contain only one frame and the frame length
+	 * can be disregarded.
+	 * @return The banner icon Animation.
+	 */
+	public Animation getBannerIcon(){return banner;}
+	
+	/**
+	 * Get the console enum value associated with this project. This should
+	 * be indicative of what system the linked software is for.
+	 * @return Console enum, or null if unset.
+	 */
 	public Console getConsole(){return this.console;}
+	
+	/**
+	 * Get the region associated with this project. This may be read off the software
+	 * ROM image or entered manually. This field is handy as many software/games can have regional
+	 * differences or are region locked.
+	 * @return Enum representing the region associated with linked software, or null if unset.
+	 */
 	public GameRegion getRegion(){return this.region;}
-	//public boolean isEncrypted(){return this.is_encrypted;}
+	
+	/**
+	 * Get the language setting for software associated with this project.
+	 * This may be obtained from the ROM data, software code, or set manually.
+	 * @return Enum representing software language, or null if unset.
+	 */
+	public DefoLanguage getDefoLanguage(){return this.language;}
+	
+	/**
+	 * Get the timestamp describing when the project was created (the software
+	 * image was imported).
+	 * @return OffsetDateTime containing import timestamp.
+	 */
 	public OffsetDateTime getImportTime(){return this.imported_time;}
+	
+	/**
+	 * Get the timestamp describing when the project was last modified.
+	 * @return OffsetDateTime containing import timestamp.
+	 */
 	public OffsetDateTime getModifyTime(){return this.modified_time;}
+	
+	/**
+	 * Get the manufacturer timestamp found on the associated data ROM.
+	 * If no timestamp was found, this method returns either null or the
+	 * zero value of OffsetDateTime.
+	 * @return OffsetDateTime containing software timestamp, or null if not set.
+	 * If not set, this may also return the OffsetDateTime zero value.
+	 */
 	public OffsetDateTime getVolumeTime(){return this.volume_time;}
+	
+	/**
+	 * Get the publisher name associated with this project. This may
+	 * be detected from a Nintendo maker code, or ISO volume info struct,
+	 * but can also be set manually.
+	 * @return Publisher name associated with project.
+	 */
 	public String getPublisherTag(){return this.pubName;}
 	
+	/**
+	 * Get whether the software referenced by this project has encrypted sections.
+	 * @return True if associated software image has encrypted portions. False if
+	 * associated software is fully plaintext.
+	 */
 	public boolean isEncrypted()
 	{
 		if(encrypted_regs == null) return false;
@@ -920,6 +979,11 @@ public class NTDProject implements Comparable<NTDProject>{
 		return true;
 	}
 	
+	/**
+	 * Get the root node of the file tree for this project referencing
+	 * the locations and encoding of files in associated software image.
+	 * @return Root of the current file tree.
+	 */
 	public DirectoryNode getTreeRoot()
 	{
 		if(this.custom_tree == null)
@@ -937,156 +1001,97 @@ public class NTDProject implements Comparable<NTDProject>{
 	
 	/*----- Setters -----*/
 	
-	public void setDecryptStem(String path)
-	{
-		decrypted_rom_path = path;
-	}
-	
-	protected void loadImportTime(long raw)
-	{
+	/**
+	 * Set the import time field to an OffsetDateTime object reflecting input epoch second.
+	 * @param raw Epoch second value as long, loaded from serialized data field.
+	 */
+	protected void loadImportTime(long raw){
 		this.imported_time = OffsetDateTime.ofInstant(Instant.ofEpochSecond(raw), ZoneId.systemDefault());
 	}
 
-	protected void loadModifyTime(long raw)
-	{
+	/**
+	 * Set the modification time field to an OffsetDateTime object reflecting input epoch second.
+	 * @param raw Epoch second value as long, loaded from serialized data field.
+	 */
+	protected void loadModifyTime(long raw){
 		this.modified_time = OffsetDateTime.ofInstant(Instant.ofEpochSecond(raw), ZoneId.systemDefault());
 	}
 	
+	/**
+	 * Set the project last-modified timestamp to the current time.
+	 */
 	public void stampModificationTime(){modified_time = OffsetDateTime.now();}
 	
-	public void setConsole(Console c)
-	{	
-		console = c;
-	}
+	/**
+	 * Reset the project file tree to the tree found on the associated
+	 * software ROM. This removes any user-made modifications to the tree including
+	 * new directories, file renames, archive mounts, splits etc.
+	 * @throws IOException If the ROM image file needs to be read an cannot be loaded.
+	 */
+	public abstract void resetTree() throws IOException;
 	
-	private void resetTree_gcm() throws IOException{
-		GCWiiDisc gcimg = new GCWiiDisc(rom_path);
-		custom_tree = gcimg.getDiscTree();
-		//scanTreeDir(proj.rom_path, proj.custom_tree);
-		FileNode fn = custom_tree.getNodeAt("/sys/boot.bin");
-		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getHeaderDef()));
-		fn = custom_tree.getNodeAt("/sys/bi2.bin");
-		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getBi2Def()));
-		fn = custom_tree.getNodeAt("/sys/fst.bin");
-		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getFSTDef()));
-		fn = custom_tree.getNodeAt("/sys/apploader.img");
-		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getApploaderDef()));
-		fn = custom_tree.getNodeAt("/sys/main.dol");
-		fn.setTypeChainHead(new FileTypeDefNode(DolExe.getDefinition()));
-	}
-	
-	public void resetTree() throws IOException
-	{
-		if(console == Console.DS || console == Console.DSi)
-		{
-			NDS nds = NDS.readROM(rom_path, 0);
-			custom_tree = nds.getArchiveTree();
-			
-			//Mark system files...
-			FileNode sys = custom_tree.getNodeAt("/header.bin");
-			if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getHeaderDef()));
-			sys = custom_tree.getNodeAt("/icon.bin");
-			if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getBannerDef()));
-			if(nds.hasTWL()){
-				sys = custom_tree.getNodeAt("/rsa.bin");
-				if(sys != null) sys.setTypeChainHead(new FileTypeDefNode(DSSysFileDefs.getRSACertDef()));
-			}
-		}
-		else if (console == Console.PS1){
-			try {
-				ISOXAImage image = new ISOXAImage(new ISO(FileBuffer.createBuffer(rom_path), false));
-				custom_tree = image.getRootNode();
-				String volident = custom_tree.getMetadataValue(ISOXAImage.METAKEY_VOLUMEIDENT);
-				
-				FileNode cnf = custom_tree.getNodeAt("/" + volident + "/SYSTEM.CNF");
-				if(cnf == null) cnf = custom_tree.getNodeAt("/" + volident + "/system.cnf");
-				if(cnf != null){
-					cnf.setTypeChainHead(new FileTypeDefNode(PSXSysDefs.getConfigDef()));
-					//Load and get more data
-					String exepath = null;
-					BufferedReader br = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(cnf.loadData().getBytes())));
-					//Look for a line that starts with "BOOT"
-					String line = null;
-					while((line = br.readLine()) != null){
-						//System.err.println(line);
-						if(!line.startsWith("BOOT")) continue;
-						String[] fields = line.replace(" ", "").split("=");
-						if(fields.length < 2) break;
-						String val = fields[1];
-						val = val.substring(val.indexOf('\\') + 1);
-						val = val.substring(0, val.lastIndexOf(';'));
-						exepath = "/" + volident + "/" + val;
-					}
-					br.close();
-					
-					if(exepath != null){
-						//Should be able to take out underscores and dots to get game code.
-						//proj.gamecode = exepath.substring(1).replace(".", "").replace("_", "");
-						FileNode exe = custom_tree.getNodeAt(exepath);
-						if(exe != null){
-							System.err.println("Executable " + exepath + " found!");
-							exe.setTypeChainHead(new FileTypeDefNode(PSXSysDefs.getExeDef()));
-						}
-						else{
-							System.err.println("Executable " + exepath + " not found!");
-						}
-					}
-					else{
-						//Warn and set defaults
-						System.err.println("PS1 ISO import error: executable not found!");
-					}
-				}
-				else{
-					//Will have to fill in with dummies...
-					System.err.println("PS1 ISO import error: SYSTEM.CNF not found!");
-				}
-			} 
-			catch (CDInvalidRecordException e) {
-				e.printStackTrace();
-			} 
-			catch (UnsupportedFileTypeException e) {
-				e.printStackTrace();
-			}
-		}
-		else if (console == Console.GAMECUBE){
-			resetTree_gcm();
-		}
-		
-		//Note encrypted nodes...
-		scanTreeDir(rom_path, custom_tree);
-		if(is_encrypted) markEncryptedNodes(custom_tree);
-				
-		//Run initial type scan
-		NTDTools.doTypeScan(custom_tree, null);
-		
-		stampModificationTime();
-	}
-	
+	/**
+	 * Set the banner icon by generating a 1 frame/image animation
+	 * from an array of images.
+	 * @param img Image array containing data to set as animation. If
+	 * this parameter is null, the banner will not be changed.
+	 */
 	public void setBannerIcon(BufferedImage[] img){
-		banner = img;
-	}
-	
-	public void setBannerIcon(Animation a){
-		int fcount = 0;
-		for(int i = 0; i < a.getNumberFrames(); i++) fcount += a.getFrame(i).getLengthInFrames();
-		banner = new BufferedImage[fcount];
-		int j = 0;
-		for(int i = 0; i < a.getNumberFrames(); i++){
-			AnimationFrame f = a.getFrame(i);
-			for(int k = 0; k < f.getLengthInFrames(); k++){
-				banner[j++] = f.getImage();
-			}
+		if(img == null) return;
+		
+		banner = new SimpleAnimation(img.length);
+		for(int i = 0; i < img.length; i++){
+			AnimationFrame f = new AnimationFrame(img[i], 1);
+			banner.setFrame(f, i);
 		}
 	}
 	
-	public void setBannerTitle(String str){
-		this.localName = str;
+	/**
+	 * Set the banner icon to the provided animation object.
+	 * @param a Animation to set banner icon to. Animation will not be copied - if
+	 * the parameter Animation is altered after this method is called, the banner will
+	 * also be altered.
+	 */
+	public void setBannerIcon(Animation a){
+		banner = a;
 	}
+	
+	/**
+	 * Set the banner title for this project. Up to three newline delimited lines can
+	 * be used.
+	 * @param str String to set banner title to.
+	 */
+	public void setBannerTitle(String str){this.localName = str;}
+	
+	/**
+	 * Set the publisher name string for this project.
+	 * @param str Publisher name to set.
+	 */
+	public void setPublisherName(String str){this.pubName = str;}
+	
+	protected void setConsole(Console c){console = c;}
+	protected void setDefoLanguage(DefoLanguage lan){this.language = lan;}
+	protected void setRegion(GameRegion r){this.region = r;}
+	protected void setGameCode(String code){this.gamecode = code;}
+	protected void setMakerCode(String code){this.makercode = code;}
+	protected void setFullCode(String code){this.fullcode = code;}
+	protected void setROMPath(String path){this.rom_path = path;}
+	protected void reinstantiateEncryptedRegionsList(){this.encrypted_regs = new LinkedList<EncryptionRegion>();}
+	protected void reinstantiateEncryptedRegionsList(int size){this.encrypted_regs = new ArrayList<EncryptionRegion>(size);}
+	protected List<EncryptionRegion> getEncRegListReference(){return this.encrypted_regs;}
+	protected void setTreeRoot(DirectoryNode root){this.custom_tree = root;}
+	protected void setVolumeTime(OffsetDateTime time){this.volume_time = time;}
+	protected void setImportedTime(OffsetDateTime time){this.imported_time = time;}
+	protected void setModifiedTime(OffsetDateTime time){this.modified_time = time;}
 	
 	/*----- Decryption -----*/
 	
-	private void markEncryptedNodes(DirectoryNode dir)
-	{
+	/**
+	 * Scan through the project tree and mark (with encryption definitions) nodes
+	 * that fall into encrypted regions.
+	 * @param dir Directory to begin scan on (recursive use)
+	 */
+	protected void markEncryptedNodes(DirectoryNode dir){
 		if(encrypted_regs == null) return;
 		List<FileNode> children = dir.getChildren();
 		for(FileNode child : children)
@@ -1118,21 +1123,24 @@ public class NTDProject implements Comparable<NTDProject>{
 		
 	}
 	
-	private void updateDecryptPaths(String oldpath, String newpath, DirectoryNode dir)
-	{
+	/**
+	 * Perform a string substitution on node source paths, replacing any instances
+	 * of oldpath with newpath.
+	 * @param oldpath String to replace in node source paths.
+	 * @param newpath String to replace with in node source paths.
+	 * @param dir Directory to start scan (recursive use)
+	 */
+	protected void updateDecryptPaths(String oldpath, String newpath, DirectoryNode dir){
 		//Just substitute the strings in the paths...
 		List<FileNode> children = dir.getChildren();
-		for(FileNode child : children)
-		{
-			if(child instanceof DirectoryNode)
-			{
+		for(FileNode child : children){
+			if(child instanceof DirectoryNode){
 				updateDecryptPaths(oldpath, newpath, (DirectoryNode)child);
 			}
 			else
 			{
 				String cpath = child.getSourcePath();
-				if(cpath.startsWith(oldpath))
-				{
+				if(cpath.startsWith(oldpath)){
 					String npath = cpath.replace(oldpath, newpath);
 					child.setSourcePath(npath);
 				}
@@ -1141,14 +1149,18 @@ public class NTDProject implements Comparable<NTDProject>{
 		
 	}
 	
+	/**
+	 * Update the decrypted file paths (source paths in encrypted nodes) to a new
+	 * decrypted buffer directory path.
+	 * @param oldpath The previous decryption buffer directory path (the current one is obtained
+	 * by calling <code>NTDProgramFiles.getDecryptTempDir()</code>)
+	 */
 	public void moveDecryptPath(String oldpath)
 	{
 		String newdir = NTDProgramFiles.getDecryptTempDir();
 		updateDecryptPaths(oldpath, newdir, custom_tree);
-		if(this.encrypted_regs != null)
-		{
-			for(EncryptionRegion reg : encrypted_regs)
-			{
+		if(this.encrypted_regs != null){
+			for(EncryptionRegion reg : encrypted_regs){
 				String p = reg.getDecryptBufferPath();
 				if(p.contains(oldpath)) p = p.replace(oldpath, newdir);
 				reg.setDecryptBufferPath(p);
@@ -1156,7 +1168,14 @@ public class NTDProject implements Comparable<NTDProject>{
 		}
 	}
 	
-	private void rerefDecryptedNodes(DirectoryNode dir, EncryptionRegion reg)
+	/**
+	 * Update the file offsets in nodes that fall into encrypted regions to be
+	 * relative to the start of the encrypted region rather than the start of the image.
+	 * That way, they can be easily retrieved from the decrypted buffer file.
+	 * @param dir Directory to begin scan (recursive use)
+	 * @param reg Encrypted region to mark contained nodes relative to.
+	 */
+	protected void rerefDecryptedNodes(DirectoryNode dir, EncryptionRegion reg)
 	{
 		if(dir == null) return;
 		if(reg == null) return;
@@ -1176,79 +1195,50 @@ public class NTDProject implements Comparable<NTDProject>{
 			}
 		}
 	}
-	
-	@SuppressWarnings("unused")
-	@Deprecated
-	private boolean decryptDSi() throws IOException
-	{
-		//Scan regions
-		if(encrypted_regs == null || encrypted_regs.isEmpty()) return true;
-		NDS nds = null;
-		byte[] securekey = null;
 		
-		for(EncryptionRegion reg : encrypted_regs)
-		{
-			//See if the key is available
-			//Key, then ctr
-			List<byte[]> keydat = reg.getKeyData();
-			byte[] aeskey = keydat.get(0);
-			if(aeskey.length < 16)
-			{
-				//Didn't have the DSi common before. Try to load now.
-				if(securekey != null) aeskey = securekey;
-				else
-				{
-					if(nds == null) nds = NDS.readROM(rom_path, 0);
-					securekey = nds.getSecureKey();
-					aeskey = securekey;
-				}
-				//if we get this far, then we should have the key.
-				keydat.set(0, aeskey);
-			}
-			//Check if decrypted file exists
-			String decpath = reg.getDecryptBufferPath();
-			if(FileBuffer.fileExists(decpath)) continue;
-			
-			//Do decryption
-			FileBuffer inbuff = FileBuffer.createBuffer(rom_path, reg.getOffset(), reg.getOffset() + reg.getSize());
-			FileBufferStreamer streamer = new FileBufferStreamer(inbuff);
-			BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(decpath));
-			reg.getDefintion().decrypt(streamer, bos, keydat);
-			bos.close();
-			
-			//Change references in nodes...
-			rerefDecryptedNodes(custom_tree, reg);
-		}
-		
-		//We'll have to reload the ROM image
-		nds = NDS.readROM(rom_path, 0);
-		
-		return true;
-	}
-	
-	public boolean decrypt() throws IOException
-	{
-		//Will redo decryption if already done...
-		//if(console == Console.DSi) return decryptDSi();
-		return false;
-	}
+	/**
+	 * Run full basic decryption routine on this project, generating decrypted
+	 * data buffers (files containing individual decrypted regions) 
+	 * in the project decryption directory, and adjusting references in tree to
+	 * point to these decrypted data instead of the raw encrypted image.
+	 * @return True if decryption routine succeeds, false if it fails, decryption cannot
+	 * be run at this time, or the image has no encrypted regions.
+	 * @throws IOException
+	 */
+	public boolean decrypt() throws IOException{return false;}
 	
 	/*----- Tree Manipulation -----*/
 	
+	/**
+	 * Get the file node at the specified absolute path in the project file tree as 
+	 * represented by the provided string.
+	 * @param treepath Absolute path to desired FileNode.
+	 * @return FileNode located at specified path, or null if not found.
+	 */
 	public FileNode getNodeAt(String treepath)
 	{
 		if(custom_tree == null) return null;
 		return custom_tree.getNodeAt(treepath);
 	}
 	
-	public DirectoryNode generateDirectoryTree()
-	{
+	/**
+	 * Generate a copy of the project tree culled to only directory nodes.
+	 * This can be useful for browsing and selecting directories.
+	 * @return Copy of project tree including only directories and no files.
+	 */
+	public DirectoryNode generateDirectoryTree(){
 		if(custom_tree == null) return null;
 		return custom_tree.copyDirectoryTree();
 	}
 	
-	public boolean moveNode(FileNode node, String targetpath)
-	{
+	/**
+	 * Move a node in the project tree to a new location on the project tree
+	 * specified by the provided absolute path.
+	 * @param node Node to move
+	 * @param targetpath Path to move node to.
+	 * @return True if the move succeeds, false if it fails.
+	 */
+	public boolean moveNode(FileNode node, String targetpath){
 		//Get the target...
 		FileNode target = getNodeAt(targetpath);
 		if(target == null) return false;
@@ -1260,8 +1250,91 @@ public class NTDProject implements Comparable<NTDProject>{
 		return true;
 	}
 	
+	/*----- GUI Interface -----*/
+	
+	/**
+	 * Spawn a button for the NTDExplorer open dialog and load banner information
+	 * into the button. 
+	 * <br>This method does not load the button into the open dialog panel, it only
+	 * spawns and does the initial banner load. This method is provided here to streamline
+	 * the OpenDialog loading and allow for different project types (ie. for different consoles)
+	 * to instantiate different types of buttons depending on their needs.
+	 * @return Button decorated with banner information for use in the open dialog.
+	 * @since 2.0.0
+	 */
+	public abstract AbstractGameOpenButton generateOpenButton();
+	
+	/**
+	 * Display a modal dialog with the software image and project info.
+	 * @param gui Parent Frame to spawn dialog relative to.
+	 * @since 2.0.0
+	 */
+	public abstract void showImageInfoDialog(Frame gui);
+	
+	/**
+	 * Generate an Animator containing the banner icon that handles animation 
+	 * timing and frame updates when run.
+	 * <br>This can be called to simplify icon usage by GUI forms.
+	 * @param l Object listening to frame updates.
+	 * @return Animator wrapping the banner icon.
+	 * @since 2.0.0
+	 */
+	public abstract Animator getBannerIconAnimator(ActionListener l);
+	
 	/*----- Misc Utility -----*/
 	
+	/**
+	 * Convert an Animation to an array of image frames. For animation
+	 * frames where an image is held over multiple cycles, the image will
+	 * be stored to the array that many times producing an array of a length
+	 * that equals not the number of images referenced by the animation, but
+	 * the number of animation frames.
+	 * @param a Animation to simplify.
+	 * @return BufferedImage array that mimics the input animation when read at 1 image/frame.
+	 * @since 2.0.0
+	 */
+	public static BufferedImage[] animationToImageArray(Animation a){
+		if(a == null) return null;
+		
+		int fcount = 0;
+		int ncount = a.getNumberFrames();
+		for(int i = 0; i < ncount; i++){
+			AnimationFrame f = a.getFrame(i);
+			if(f != null) fcount += f.getLengthInFrames();
+		}
+		if(a.getAnimationMode() == Animation.ANIM_MODE_PINGPONG){
+			int hicount = fcount + (fcount - 1);
+			BufferedImage[] arr = new BufferedImage[hicount];
+			int j = 0;
+			for(int i = 0; i < ncount; i++){
+				AnimationFrame f = a.getFrame(i);
+				if(f == null) continue;
+				for(int k = 0; k < f.getLengthInFrames(); k++){
+					arr[hicount - 1 - j] = f.getImage();
+					arr[j++] = f.getImage(); 
+				}
+			}
+			return arr;
+		}
+		else{
+			BufferedImage[] arr = new BufferedImage[fcount];
+			int j = 0;
+			for(int i = 0; i < ncount; i++){
+				AnimationFrame f = a.getFrame(i);
+				if(f == null) continue;
+				for(int k = 0; k < f.getLengthInFrames(); k++){
+					arr[j++] = f.getImage(); 
+				}
+			}
+			return arr;
+		}
+	}
+	
+	/**
+	 * Format an OffsetDateTime timestamp as a neat string to use in a GUI or printout.
+	 * @param timestamp Time to format.
+	 * @return Time from timestamp as formatted string.
+	 */
 	public static String getDateTimeString(OffsetDateTime timestamp){
 		if(timestamp == null) return null;
 		StringBuilder sb = new StringBuilder(512);
@@ -1271,6 +1344,23 @@ public class NTDProject implements Comparable<NTDProject>{
 		sb.append(String.format("%02d:%02d:%02d", timestamp.getHour(), timestamp.getMinute(), timestamp.getSecond()));
 		sb.append(" " + timestamp.getOffset().getDisplayName(TextStyle.NARROW, Locale.getDefault()));
 		return sb.toString();
+	}
+	
+	/**
+	 * Match a two-character Nintendo maker code to a Publisher name string
+	 * by looking up hard-coded maker codes.
+	 * @param ninMakerCode Two-character ASCII maker code from a Nintendo software.
+	 * @return Publisher name, if matched - null otherwise.
+	 * @since 2.0.0
+	 */
+	public static String getPublisherName(String ninMakerCode){
+		switch(ninMakerCode){
+		case MAKERCODE_NINTENDO: return MAKERNAME_NINTENDO;
+		case MAKERCODE_SQUAREENIX: return MAKERNAME_SQUAREENIX;
+		case MAKERCODE_CAPCOM: return MAKERNAME_CAPCOM;
+		case MAKERCODE_SEGA: return MAKERNAME_SEGA;
+		}
+		return null;
 	}
 	
 	/*----- Comparison -----*/

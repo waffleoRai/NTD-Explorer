@@ -8,6 +8,7 @@ import waffleoRai_Containers.ISOXAImage;
 import waffleoRai_Files.ISOFileNode;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.consoleproj.PSXProject;
 import waffleoRai_NTDExCore.memcard.BannerImporter.BannerStruct;
 import waffleoRai_NTDExCore.memcard.PSXMCBannerImporter;
 import waffleoRai_Utils.DirectoryNode;
@@ -49,7 +50,7 @@ public class TestPSXImport {
 			
 			//Try generating a project
 			System.err.println("Testing project generation...");
-			NTDProject proj = NTDProject.createFromPSXTrack(testpath, GameRegion.JPN);
+			NTDProject proj = PSXProject.createFromPSXTrack(testpath, GameRegion.JPN);
 			System.err.println("Banner Title: " + proj.getBannerTitle());
 			System.err.println("Publisher: " + proj.getPublisherTag());
 			System.err.println("Date: " + proj.getVolumeTime().format(DateTimeFormatter.RFC_1123_DATE_TIME));

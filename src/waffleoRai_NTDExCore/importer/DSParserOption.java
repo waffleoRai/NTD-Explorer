@@ -15,6 +15,7 @@ import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.consoleproj.DSProject;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 
 public class DSParserOption implements ParserOption {
@@ -81,7 +82,7 @@ public class DSParserOption implements ParserOption {
 					//Load project
 					dialog.setPrimaryString("Importing");
 					dialog.setSecondaryString("Loading data from game \"" + image.getGameCode() + "\"");
-					p = NTDProject.createFromNDSImage(image, reg);
+					p = DSProject.createFromNDSImage(image, reg);
 					//System.err.println("Project generated");
 					
 					//Decrypt if necessary

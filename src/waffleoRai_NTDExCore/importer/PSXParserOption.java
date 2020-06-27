@@ -14,6 +14,7 @@ import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.consoleproj.PSXProject;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 
 public class PSXParserOption implements ParserOption{
@@ -55,7 +56,7 @@ public class PSXParserOption implements ParserOption{
 				try
 				{
 					//Load project
-					p = NTDProject.createFromPSXTrack(path, reg);
+					p = PSXProject.createFromPSXTrack(path, reg);
 					if(p == null){
 						dialog.showWarningMessage("ERROR: Import failed! See stderr for details.");
 						return null;

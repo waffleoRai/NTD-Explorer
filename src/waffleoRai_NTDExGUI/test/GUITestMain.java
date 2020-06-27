@@ -18,6 +18,7 @@ import waffleoRai_Containers.nintendo.NDS;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.consoleproj.DSProject;
 import waffleoRai_NTDExGUI.dialogs.OpenDialog;
 
 public class GUITestMain {
@@ -43,7 +44,7 @@ public class GUITestMain {
 					NDS image = NDS.readROM(pstr, 0);
 					GameRegion gr = GameRegion.getRegion(reg);
 					if(gr == null) gr = GameRegion.USA;
-					NTDProject proj = NTDProject.createFromNDSImage(image, gr);
+					NTDProject proj = DSProject.createFromNDSImage(image, gr);
 					projlist.add(proj);
 				}
 			}

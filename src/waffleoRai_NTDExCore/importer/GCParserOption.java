@@ -14,6 +14,7 @@ import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.consoleproj.GCProject;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 
 public class GCParserOption implements ParserOption{
@@ -58,7 +59,7 @@ public class GCParserOption implements ParserOption{
 					//Load project
 					dialog.setPrimaryString("Importing");
 					dialog.setSecondaryString("Loading data from \"" + path + "\"");
-					p = NTDProject.createFromGCM(path, reg);
+					p = GCProject.createFromGCM(path, reg);
 					
 					if(NTDProgramFiles.gameHasBeenLoaded(Console.GAMECUBE, p.getGameCode4(), reg))
 					{
