@@ -7,6 +7,7 @@ import javax.swing.JTabbedPane;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
 
 import java.awt.BorderLayout;
@@ -34,8 +35,6 @@ import java.io.IOException;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-
-import waffleoRai_Containers.nintendo.GCMemCard;
 
 public class OpenDialog extends JDialog{
 
@@ -110,7 +109,7 @@ public class OpenDialog extends JDialog{
 		JPanel pnlPSX = new JPanel();
 		pnlPSX.setOpaque(false);
 		spPSX.setViewportView(pnlPSX);
-		int gcount_psx = loadPSXTab(pnlPSX, loadlist);
+		int gcount_psx = loadTab(new Console[]{Console.PS1}, pnlPSX, loadlist);
 		
 		JScrollPane spGC = new JScrollPane(){
 			private static final long serialVersionUID = -5907251596864073016L;
@@ -127,7 +126,7 @@ public class OpenDialog extends JDialog{
 		JPanel pnlGC = new JPanel();
 		pnlGC.setOpaque(false);
 		spGC.setViewportView(pnlGC);
-		int gcount_gc = loadGCTab(pnlGC, loadlist);
+		int gcount_gc = loadTab(new Console[]{Console.GAMECUBE}, pnlGC, loadlist);
 		
 		JScrollPane spDS = new JScrollPane(){
 			
@@ -145,7 +144,7 @@ public class OpenDialog extends JDialog{
 		JPanel pnlDS = new JPanel();
 		spDS.setViewportView(pnlDS);
 		pnlDS.setOpaque(false);
-		int gcount_ds = loadDSTab(pnlDS, loadlist);
+		int gcount_ds = loadTab(new Console[]{Console.DS, Console.DSi}, pnlDS, loadlist);
 		
 		JScrollPane spWii = new JScrollPane();
 		spWii.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
@@ -215,119 +214,26 @@ public class OpenDialog extends JDialog{
 		tabSizes[tabidx] = dim; blockCount[tabidx] = count;
 	}
 	
-	private int loadDSTab(JPanel panel, Map<Console, Collection<NTDProject>> loadlist)
-	{
-		GridBagLayout gbl_pnlDS = new GridBagLayout();
-		panel.setLayout(gbl_pnlDS);
+	private int loadTab(Console[] consoles, JPanel panel, Map<Console, Collection<NTDProject>> loadlist){
+		GridBagLayout gbl_pnl = new GridBagLayout();
+		panel.setLayout(gbl_pnl);
 		
 		List<NTDProject> addlist = new LinkedList<NTDProject>();
-		Collection<NTDProject> ntr = loadlist.get(Console.DS);
-		if(ntr != null) addlist.addAll(ntr);
-		Collection<NTDProject> twl = loadlist.get(Console.DSi);
-		if(twl != null) addlist.addAll(twl);
+		for(Console c : consoles){
+			Collection<NTDProject> coll = loadlist.get(c);
+			if(coll != null) addlist.addAll(coll);
+		}
 		Collections.sort(addlist);
 		
 		int row = 0;
 		for(NTDProject proj : addlist)
 		{
-			DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
-			int millis = 0;
-			if(proj.getBannerIcon() != null && proj.getBannerIcon().length > 1){
-				millis = (int)Math.round(1000.0/30.0);
-			}
-			gamepnl.loadMe(proj, millis);
+			AbstractGameOpenButton gamepnl = proj.generateOpenButton();
 			gamepnl.addActionListener(new ClickyListener(proj));
 			
 			GridBagConstraints gbc = new GridBagConstraints();
 			gbc.gridwidth = 1; gbc.gridheight = 1;
 			gbc.gridx = 0; gbc.gridy = row;
-			gbc.anchor = GridBagConstraints.NORTH;
-			gbc.insets = new Insets(1,0,1,0);
-			row++;
-			panel.add(gamepnl, gbc);
-		}
-		if(addlist.size() < MAX_BLOCKS_HEIGHT){
-			//Add a dummy gridbag row
-			int rcount = row+1;
-			gbl_pnlDS.rowWeights = new double[rcount+1];
-			gbl_pnlDS.rowHeights = new int[rcount+1];
-			gbl_pnlDS.rowWeights[rcount] = Double.MIN_VALUE;
-			gbl_pnlDS.rowWeights[rcount-1] = 1.0;
-		}
-		
-		return addlist.size();
-	}
-	
-	private int loadPSXTab(JPanel panel, Map<Console, Collection<NTDProject>> loadlist){
-		
-		GridBagLayout gbl_pnl = new GridBagLayout();
-		panel.setLayout(gbl_pnl);
-		
-		List<NTDProject> addlist = new LinkedList<NTDProject>();
-		Collection<NTDProject> ps1 = loadlist.get(Console.PS1);
-		if(ps1 != null) addlist.addAll(ps1);
-		Collections.sort(addlist);
-		
-		int row = 0;
-		for(NTDProject proj : addlist)
-		{
-			DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
-			int millis = 0;
-			if(proj.getBannerIcon() != null){
-				if(proj.getBannerIcon().length == 2){
-					millis = (int)Math.round((16.0/50.0) * 1000.0);
-				}
-				else if(proj.getBannerIcon().length == 3){
-					millis = (int)Math.round((11.0/50.0) * 1000.0);
-				}
-			}
-			gamepnl.loadMe(proj, millis);
-			gamepnl.addActionListener(new ClickyListener(proj));
-			
-			GridBagConstraints gbc = new GridBagConstraints();
-			gbc.gridwidth = 1;
-			gbc.gridheight = 1;
-			gbc.gridx = 0;
-			gbc.gridy = row;
-			gbc.anchor = GridBagConstraints.NORTH;
-			gbc.insets = new Insets(1,0,1,0);
-			row++;
-			panel.add(gamepnl, gbc);
-		}
-		if(addlist.size() < MAX_BLOCKS_HEIGHT){
-			//Add a dummy gridbag row
-			int rcount = row+1;
-			gbl_pnl.rowWeights = new double[rcount+1];
-			gbl_pnl.rowHeights = new int[rcount+1];
-			gbl_pnl.rowWeights[rcount] = Double.MIN_VALUE;
-			gbl_pnl.rowWeights[rcount-1] = 1.0;
-		}
-		
-		return addlist.size();
-	}
-
-	private int loadGCTab(JPanel panel, Map<Console, Collection<NTDProject>> loadlist){
-		GridBagLayout gbl_pnl = new GridBagLayout();
-		panel.setLayout(gbl_pnl);
-		
-		List<NTDProject> addlist = new LinkedList<NTDProject>();
-		Collection<NTDProject> projs = loadlist.get(Console.GAMECUBE);
-		if(projs != null) addlist.addAll(projs);
-		Collections.sort(addlist);
-		
-		int row = 0;
-		for(NTDProject proj : addlist)
-		{
-			DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
-			int millis = GCMemCard.ICO_FRAME_MILLIS * 4;
-			gamepnl.loadMe(proj, millis);
-			gamepnl.addActionListener(new ClickyListener(proj));
-			
-			GridBagConstraints gbc = new GridBagConstraints();
-			gbc.gridwidth = 1;
-			gbc.gridheight = 1;
-			gbc.gridx = 0;
-			gbc.gridy = row;
 			gbc.anchor = GridBagConstraints.NORTH;
 			gbc.insets = new Insets(1,0,1,0);
 			row++;

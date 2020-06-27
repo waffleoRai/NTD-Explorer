@@ -1,6 +1,7 @@
 package waffleoRai_NTDExCore.consoleproj;
 
 import java.awt.Frame;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -8,6 +9,7 @@ import java.util.List;
 
 import waffleoRai_Containers.nintendo.NDS;
 import waffleoRai_Files.FileTypeDefNode;
+import waffleoRai_Image.Animation;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.DefoLanguage;
 import waffleoRai_NTDExCore.EncryptionRegion;
@@ -15,6 +17,9 @@ import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.NTDTools;
+import waffleoRai_NTDExGUI.banners.Animator;
+import waffleoRai_NTDExGUI.banners.StandardAnimator;
+import waffleoRai_NTDExGUI.banners.Unanimator;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
 import waffleoRai_Utils.DirectoryNode;
@@ -183,13 +188,40 @@ public class DSProject extends NTDProject{
 		stampModificationTime();
 	}
 	
+	public String[] getBannerLines(){
+		
+		//Get main banner
+		String title = super.getBannerTitle();
+		if(title == null){
+			title = "DS Software " + getGameCode4() + getMakerCode();
+			super.setBannerTitle(title);
+		}
+		String[] titlelines = title.split("\n");
+		String publisher = super.getPublisherTag();
+		if(publisher == null){
+			publisher = "Unknown Publisher";
+			super.setPublisherName(publisher);
+		}
+		
+		switch(titlelines.length){
+		case 1:
+			//2 lines with publisher
+			return new String[]{titlelines[0], publisher};
+		case 2:
+			//2 lines
+			return new String[]{titlelines[0], titlelines[1]};
+		case 3:
+		default:
+			//3 line title
+			return new String[]{titlelines[0], titlelines[1], titlelines[2]};
+		}
+
+	}
+	
 	public AbstractGameOpenButton generateOpenButton(){
 		DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
-		int millis = 0;
-		if(getBannerIcon() != null && getBannerIcon().length > 1){
-			millis = (int)Math.round(1000.0/30.0);
-		}
-		gamepnl.loadMe(this, millis);
+		gamepnl.loadMe(this);
+		
 		return gamepnl;
 	}
 	
@@ -197,5 +229,12 @@ public class DSProject extends NTDProject{
 		//TODO
 	}
 	
+	public Animator getBannerIconAnimator(ActionListener l){
+		Animation anim = super.getBannerIcon();
+		if(anim == null) return null;
+		
+		if(anim.getNumberFrames() == 1) return new Unanimator(anim.getFrameImage(0));
+		return new StandardAnimator(anim, (int)Math.round(1000.0/30.0), l);
+	}
 	
 }

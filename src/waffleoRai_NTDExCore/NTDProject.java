@@ -1,6 +1,7 @@
 package waffleoRai_NTDExCore;
 
 import java.awt.Frame;
+import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
@@ -999,6 +1000,25 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		return this.custom_tree;
 	}
 	
+	/**
+	 * Get a single frame of the banner image scaled to the specified
+	 * dimensions.
+	 * @param width Width of scaled image in pixels.
+	 * @param height Height of scaled image in pixels.
+	 * @return Scaled banner image, or null if none set or could be found.
+	 * @since 2.0.0
+	 */
+	public BufferedImage getIconImage(int width, int height){
+		if(banner == null) return null;
+		BufferedImage img = banner.getFrameImage(0);
+		Image s = img.getScaledInstance(width, height, BufferedImage.SCALE_DEFAULT);
+		
+		BufferedImage scaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+		scaled.getGraphics().drawImage(s, 0, 0, null);
+		
+		return scaled;
+	}
+	
 	/*----- Setters -----*/
 	
 	/**
@@ -1280,6 +1300,15 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * @since 2.0.0
 	 */
 	public abstract Animator getBannerIconAnimator(ActionListener l);
+	
+	/**
+	 * Get 1-3 lines of text to represent the banner or other image metadata
+	 * in a GUI banner.
+	 * @return A String array containing 1-3 lines of text, or null if nothing available.
+	 * Can also return an array of >3 elements, but those lines will be ignored by the GUI.
+	 * @since 2.0.0
+	 */
+	public abstract String[] getBannerLines();
 	
 	/*----- Misc Utility -----*/
 	

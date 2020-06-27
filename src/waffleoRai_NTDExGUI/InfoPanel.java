@@ -30,6 +30,13 @@ public class InfoPanel extends JPanel{
 	public static final int MIN_WIDTH = 475;
 	public static final int HEIGHT = 55;
 	
+	public static final int ICO_Y1 = 10;
+	public static final int ICO_Y2 = 22;
+	public static final int ICO_Y3 = 34;
+	
+	public static final int ICO_Y1_ALT = 16;
+	public static final int ICO_Y3_ALT = 28;
+	
 	private Image img;
 
 	public InfoPanel(NTDProject proj){
@@ -42,15 +49,14 @@ public class InfoPanel extends JPanel{
 		setMinimumSize(minsize);
 		setPreferredSize(new Dimension(475, 55));
 		
-		if(proj != null)
-		{
-			img = proj.getBannerIcon()[0].getScaledInstance(32, 32, BufferedImage.SCALE_SMOOTH);
+		if(proj != null){
+			img = proj.getIconImage(32, 32);
 		}
-		if(img == null)
-		{
+		if(img == null){
 			try {img = NTDProgramFiles.getDefaultImage_unknown().getScaledInstance(32, 32, BufferedImage.SCALE_SMOOTH);} 
 			catch (IOException e) {e.printStackTrace();}	
 		}
+		
 		JPanel pnlImage = new JPanel()
 		{
 			private static final long serialVersionUID = 4180222039185893441L;
@@ -104,28 +110,26 @@ public class InfoPanel extends JPanel{
 		JLabel lblTitle1 = new JLabel("No image loaded");
 		lblTitle1.setHorizontalAlignment(SwingConstants.CENTER);
 		lblTitle1.setFont(NTDProgramFiles.getUnicodeFont(Font.PLAIN, 10));
-		lblTitle1.setBounds(186, 10, 141, 12);
+		lblTitle1.setBounds(186, ICO_Y1, 141, 12);
 		add(lblTitle1);
 		
 		JLabel lblTitle2 = new JLabel("");
 		lblTitle2.setHorizontalAlignment(SwingConstants.CENTER);
 		lblTitle2.setFont(NTDProgramFiles.getUnicodeFont(Font.PLAIN, 10));
-		lblTitle2.setBounds(186, 22, 141, 12);
+		lblTitle2.setBounds(186, ICO_Y2, 141, 12);
 		add(lblTitle2);
 		
 		JLabel lblTitle3 = new JLabel("");
 		lblTitle3.setHorizontalAlignment(SwingConstants.CENTER);
 		lblTitle3.setFont(NTDProgramFiles.getUnicodeFont(Font.PLAIN, 10));
-		lblTitle3.setBounds(186, 34, 141, 12);
+		lblTitle3.setBounds(186, ICO_Y3, 141, 12);
 		add(lblTitle3);
 		
 		//28
 		if(proj != null)
 		{
-			String btitle = proj.getBannerTitle();
-			String[] lines = btitle.split("\n");
-			if(lines.length == 1)
-			{
+			String[] lines = proj.getBannerLines();
+			if(lines.length == 1){
 				//lblTitle1.setText("");
 				//lblTitle2.setText(lines[0]);
 				lblTitle1.setText(lines[0]);
@@ -140,21 +144,19 @@ public class InfoPanel extends JPanel{
 				}
 
 			}
-			else if(lines.length == 2)
-			{
+			else if(lines.length == 2){
 				lblTitle1.setText(lines[0]);
 				lblTitle3.setText(lines[1]);
 				
 				Rectangle bounds = lblTitle1.getBounds();
-				bounds.y = 16;
+				bounds.y = ICO_Y1_ALT;
 				lblTitle1.setBounds(bounds);
 				
 				bounds = lblTitle3.getBounds();
-				bounds.y = 28;
+				bounds.y = ICO_Y3_ALT;
 				lblTitle3.setBounds(bounds);
 			}
-			else if(lines.length >= 3)
-			{
+			else if(lines.length >= 3){
 				lblTitle1.setText(lines[0]);
 				lblTitle2.setText(lines[1]);
 				lblTitle3.setText(lines[2]);
@@ -170,16 +172,13 @@ public class InfoPanel extends JPanel{
 		//lblEnc.setForeground(new Color(0, 128, 0));
 		lblEnc.setBounds(396, 11, 79, 14);
 		add(lblEnc);
-		if(proj != null)
-		{
-			if(proj.isEncrypted())
-			{
+		if(proj != null){
+			if(proj.isEncrypted()){
 				if(proj.getConsole() == Console.WII) lblEnc.setText("AES-128");
 				else if(proj.getConsole() == Console.DSi) lblEnc.setText("Modcrypt");
 				lblEnc.setForeground(Color.RED);
 			}
-			else
-			{
+			else{
 				lblEnc.setText("None");
 				lblEnc.setForeground(Color.GREEN);
 			}

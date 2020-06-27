@@ -1,6 +1,7 @@
 package waffleoRai_NTDExCore.consoleproj;
 
 import java.awt.Frame;
+import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -12,11 +13,15 @@ import waffleoRai_Containers.ISO;
 import waffleoRai_Containers.ISOXAImage;
 import waffleoRai_Containers.CDTable.CDInvalidRecordException;
 import waffleoRai_Files.FileTypeDefNode;
+import waffleoRai_Image.Animation;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.DefoLanguage;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.NTDTools;
+import waffleoRai_NTDExGUI.banners.Animator;
+import waffleoRai_NTDExGUI.banners.StandardAnimator;
+import waffleoRai_NTDExGUI.banners.Unanimator;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
 import waffleoRai_Utils.DirectoryNode;
@@ -208,18 +213,39 @@ public class PSXProject extends NTDProject{
 		}
 	}
 	
+	public String[] getBannerLines(){
+
+		//Get main banner
+		String title = super.getBannerTitle();
+		if(title == null){
+			title = "PS1 Software " + getGameCode12();
+			super.setBannerTitle(title);
+		}
+		String[] titlelines = title.split("\n");
+		String publisher = super.getPublisherTag();
+		if(publisher == null){
+			publisher = "Unknown Publisher";
+			super.setPublisherName(publisher);
+		}
+		
+		switch(titlelines.length){
+		case 1:
+			//2 lines with publisher
+			return new String[]{titlelines[0], publisher, NTDProject.getDateTimeString(getVolumeTime())};
+		case 2:
+			//3 lines with publisher
+			return new String[]{titlelines[0], titlelines[1], publisher};
+		case 3:
+		default:
+			//3 line title
+			return new String[]{titlelines[0], titlelines[1], titlelines[2]};
+		}
+
+	}
+	
 	public AbstractGameOpenButton generateOpenButton(){
 		DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
-		int millis = 0;
-		if(getBannerIcon() != null){
-			if(getBannerIcon().length == 2){
-				millis = (int)Math.round((16.0/50.0) * 1000.0);
-			}
-			else if(getBannerIcon().length == 3){
-				millis = (int)Math.round((11.0/50.0) * 1000.0);
-			}
-		}
-		gamepnl.loadMe(this, millis);
+		gamepnl.loadMe(this);
 		
 		return gamepnl;
 	}
@@ -228,4 +254,23 @@ public class PSXProject extends NTDProject{
 		//TODO
 	}
 
+	public Animator getBannerIconAnimator(ActionListener l){
+		Animation anim = super.getBannerIcon();
+		if(anim == null) return null;
+		
+		if(anim.getNumberFrames() == 1) return new Unanimator(anim.getFrameImage(0));
+		
+		int millis = 0;
+		if(getBannerIcon() != null){
+			if(anim.getNumberFrames() == 2){
+				millis = (int)Math.round((16.0/50.0) * 1000.0);
+			}
+			else if(anim.getNumberFrames() == 3){
+				millis = (int)Math.round((11.0/50.0) * 1000.0);
+			}
+		}
+		
+		return new StandardAnimator(anim, millis, l);
+	}
+	
 }

@@ -16,22 +16,24 @@ import javax.imageio.ImageIO;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
-import javax.swing.Timer;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.TitledBorder;
 
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExGUI.banners.Animator;
 
 public abstract class AbstractGameOpenButton extends JPanel implements ActionListener{
 
 	private static final long serialVersionUID = -4575905221510492285L;
 	
 	protected NTDProject project;
-	private Timer timer;
+	//private Timer timer;
 	
-	private BufferedImage[] iframes;
-	private int current_frame;
+	//private BufferedImage[] iframes;
+	//private int current_frame;
+	
+	private Animator icon;
 	
 	protected JPanel pnlIcon;
 	protected JLabel lblGameCode;
@@ -64,7 +66,8 @@ public abstract class AbstractGameOpenButton extends JPanel implements ActionLis
 			
 			public void paintComponent(Graphics g) {
 		        if(icon_bkg!=null) g.drawImage(icon_bkg, 0, 0, null);
-		        g.drawImage(iframes[current_frame], 0, 0, null);
+		        //g.drawImage(iframes[current_frame], 0, 0, null);
+		        g.drawImage(icon.getCurrentImage(), 0, 0, null);
 		    }
 		};
 		
@@ -104,33 +107,13 @@ public abstract class AbstractGameOpenButton extends JPanel implements ActionLis
 		g.drawImage(bkg, 0, 0, null);
 	}
 	
-	public void loadMe(NTDProject data, int timer_millis){
-		if(timer_millis > 0){
-			timer = new Timer(timer_millis, this);
-			timer.start();	
-		}
-		loadMe(data, timer);
-	}
-	
-	public void loadMe(NTDProject data, Timer external_timer){
-		project = data;
-		
-		lblGameCode.setText(project.getGameCode12().replace("_", "-"));
-		lblGameCode.repaint();
-		
-		current_frame = 0;
-		iframes = project.getBannerIcon();
-		
-		if(iframes.length > 1){
-			if(external_timer != null){
-				external_timer.addActionListener(this);
-			}
-		}
-		else pnlIcon.repaint();
-		
+	public void loadMe(NTDProject data){
+		lblGameCode.setText(data.getGameCode12().replace("_", "-"));
+		icon = data.getBannerIconAnimator(this);
 		loadLabels(data);
+		icon.start();
 	}
-	
+		
 	protected abstract void loadLabels(NTDProject data);
 
 	public void onMouseDown(){
@@ -157,12 +140,10 @@ public abstract class AbstractGameOpenButton extends JPanel implements ActionLis
 
 	public void actionPerformed(ActionEvent e) {
 		pnlIcon.repaint();
-		current_frame++;
-		if(current_frame >= iframes.length) current_frame = 0;
 	}
 	
 	public void dispose(){
-		if(timer.isRunning()) timer.stop();
+		icon.stop();
 	}
 	
 	public boolean isSelected(){

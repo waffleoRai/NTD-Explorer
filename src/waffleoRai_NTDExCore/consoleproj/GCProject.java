@@ -126,13 +126,54 @@ public class GCProject extends NTDProject{
 		stampModificationTime();
 	}
 	
+	public String[] getBannerLines(){
+
+		//Get main banner
+		String title = super.getBannerTitle();
+		if(title == null){
+			title = "GameCube Software " + getGameCode4() + getMakerCode();
+			super.setBannerTitle(title);
+		}
+		String[] titlelines = title.split("\n");
+		String publisher = super.getPublisherTag();
+		if(publisher == null){
+			publisher = "Unknown Publisher";
+			super.setPublisherName(publisher);
+		}
+		
+		switch(titlelines.length){
+		case 1:
+			//2 lines with publisher
+			return new String[]{titlelines[0], publisher};
+		case 2:
+			//3 lines with publisher
+			return new String[]{titlelines[0], titlelines[1], publisher};
+		case 3:
+		default:
+			//3 line title
+			return new String[]{titlelines[0], titlelines[1], titlelines[2]};
+		}
+
+	}
+	
 	public AbstractGameOpenButton generateOpenButton(){
 		DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
-		int millis = GCMemCard.ICO_FRAME_MILLIS * 4;
-		gamepnl.loadMe(this, millis);
+		gamepnl.loadMe(this);
 		
-		//TODO
-		//Maybe adjust labels to something specific...
+		//Adjust labels
+		String[] bnr = getBannerLines();
+		switch(bnr.length){
+		case 1:
+			gamepnl.setLabelsDirect(bnr[0]);
+			break;
+		case 2:
+			gamepnl.setLabelsDirect(bnr[0], bnr[1]);
+			break;
+		case 3:
+		default:
+			gamepnl.setLabelsDirect(bnr[0], bnr[1], bnr[2]);
+			break;
+		}
 		
 		return gamepnl;
 	}

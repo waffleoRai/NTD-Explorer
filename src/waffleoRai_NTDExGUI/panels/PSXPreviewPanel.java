@@ -139,7 +139,7 @@ public class PSXPreviewPanel extends JPanel implements ActionListener{
 		lblL3.repaint();
 		
 		current_frame = 0;
-		iframes = project.getBannerIcon();
+		//iframes = project.getBannerIcon();
 		
 		if(iframes.length > 1){
 			if(external_timer == null){
