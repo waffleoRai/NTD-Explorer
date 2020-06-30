@@ -59,7 +59,7 @@ public class DirSetDialog extends JDialog{
 		JButton btnBrowse = new JButton("Browse...");
 		btnBrowse.setBounds(172, 42, 89, 23);
 		getContentPane().add(btnBrowse);
-		btnSet.addActionListener(new ActionListener(){
+		btnBrowse.addActionListener(new ActionListener(){
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -71,7 +71,7 @@ public class DirSetDialog extends JDialog{
 		JButton btnCancel = new JButton("Cancel");
 		btnCancel.setBounds(10, 42, 89, 23);
 		getContentPane().add(btnCancel);
-		btnSet.addActionListener(new ActionListener(){
+		btnCancel.addActionListener(new ActionListener(){
 
 			@Override
 			public void actionPerformed(ActionEvent e) {

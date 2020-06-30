@@ -174,6 +174,7 @@ public class DefaultGameOpenButton extends AbstractGameOpenButton{
 		b = lblL2.getBounds();
 		b.y = Y2;
 		lblL2.setBounds(b);
+		lblL2.setVisible(true);
 		
 		lblL3.setText(line3);
 		b = lblL3.getBounds();

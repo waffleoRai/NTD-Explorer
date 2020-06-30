@@ -14,11 +14,14 @@ import waffleoRai_Files.Converter;
 import waffleoRai_GUITools.ComponentGroup;
 import waffleoRai_GUITools.GUITools;
 import waffleoRai_NTDExCore.Console;
+import waffleoRai_NTDExCore.DefoLanguage;
+import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExGUI.dialogs.AddKeyDialog;
+import waffleoRai_NTDExGUI.dialogs.BannerEditForm;
 import waffleoRai_NTDExGUI.dialogs.ConvertDumpDialog;
 import waffleoRai_NTDExGUI.dialogs.DirSetDialog;
 import waffleoRai_NTDExGUI.dialogs.ImportDialog;
@@ -134,6 +137,13 @@ public class ExplorerForm extends JFrame {
 		loaded_enabled.addComponent("mntmImageInfo", mntmImageInfo);
 		mntmImageInfo.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){onFileInfo();}
+		});
+		
+		JMenuItem mntmEditInfo = new JMenuItem("Edit Project Banner...");
+		mnFile.add(mntmEditInfo);
+		loaded_enabled.addComponent("mntmEditInfo", mntmEditInfo);
+		mntmEditInfo.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileEditProjectInfo();}
 		});
 		
 		JMenuItem mntmSetTempDirectory = new JMenuItem("Set Temp Directory...");
@@ -981,6 +991,32 @@ public class ExplorerForm extends JFrame {
 		}
 		
 		NTDTools.importBannerFromLocalFS(this, loaded_project);
+		pnlMain.updateBannerPanel();
+	}
+
+	private void onFileEditProjectInfo(){
+		if(loaded_project == null){
+			showError("No project loaded!");
+			return;
+		}
+		
+		BannerEditForm dialog = new BannerEditForm(this);
+		dialog.loadProjectInfo(loaded_project);
+		dialog.setVisible(true);
+		
+		if(dialog.selectionApproved()){
+			String banner = dialog.getBannerTitle();
+			String pub = dialog.getPublisherName();
+			GameRegion r = dialog.getSelectedRegion();
+			DefoLanguage lan = dialog.getSelectedLanguage();
+			
+			loaded_project.setBannerTitle(banner);
+			loaded_project.setPublisherName(pub);
+			loaded_project.setRegion(r);
+			loaded_project.setDefoLanguage(lan);
+		}
+		
+		dialog.dispose();
 		pnlMain.updateBannerPanel();
 	}
 	

@@ -47,6 +47,10 @@ import waffleoRai_Utils.SerializedString;
  * 	Initial Documentation
  * 	Moved console specific methods to subclasses (cleans it up)
  *  Also changed banner to Animation which meant parse/serialization overhaul
+ *  
+ * 2020.06.28 | 2.0.0 -> 2.0.1
+ * 	Made region and language set methods public
+ * 
  */
 
 /**
@@ -55,8 +59,8 @@ import waffleoRai_Utils.SerializedString;
  * can be found allowing for flexibility and memory conservation. Also includes
  * many fields for metadata such as software title and region.
  * @author Blythe Hospelhorn
- * @version 2.0.0
- * @since June 25, 2020
+ * @version 2.0.1
+ * @since June 28, 2020
  *
  */
 public abstract class NTDProject implements Comparable<NTDProject>{
@@ -289,6 +293,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		else{
 			//Skip past animation data for now
 			if(iframes > 1) cpos += 2 + (nframes << 1);
+			else nframes = 1;
 		}
 		Animation icon = new SimpleAnimation(nframes);
 		
@@ -1090,8 +1095,8 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	public void setPublisherName(String str){this.pubName = str;}
 	
 	protected void setConsole(Console c){console = c;}
-	protected void setDefoLanguage(DefoLanguage lan){this.language = lan;}
-	protected void setRegion(GameRegion r){this.region = r;}
+	public void setDefoLanguage(DefoLanguage lan){this.language = lan;}
+	public void setRegion(GameRegion r){this.region = r;}
 	protected void setGameCode(String code){this.gamecode = code;}
 	protected void setMakerCode(String code){this.makercode = code;}
 	protected void setFullCode(String code){this.fullcode = code;}
@@ -1152,6 +1157,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 */
 	protected void updateDecryptPaths(String oldpath, String newpath, DirectoryNode dir){
 		//Just substitute the strings in the paths...
+		if(dir == null) return; //Weird?
 		List<FileNode> children = dir.getChildren();
 		for(FileNode child : children){
 			if(child instanceof DirectoryNode){

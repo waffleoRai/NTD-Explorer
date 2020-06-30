@@ -46,13 +46,13 @@ private ActionListener listener;
 		if(--left <= 0){
 			if(forward){
 				if(++frame >= anim.getNumberFrames()){
-					frame = anim.getNumberFrames()-2;
+					frame = anim.getNumberFrames()-1;
 					forward = false;
 				}
 			}
 			else{
 				if(--frame <= 0){
-					frame = 1;
+					frame = 0;
 					forward = true;
 				}
 			}

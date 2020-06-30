@@ -525,7 +525,7 @@ public class NTDTools {
 			return;
 		}
 		String title = null;
-		if(c == Console.PS1 || c == Console.GAMECUBE){
+		if(c == Console.PS1){
 			//Confirm title to load in
 			SetTextDialog textdialog = new SetTextDialog(gui, "Set Banner Title", banner.title);
 			textdialog.setLocationRelativeTo(gui);

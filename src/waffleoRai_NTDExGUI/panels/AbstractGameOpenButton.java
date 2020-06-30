@@ -108,6 +108,7 @@ public abstract class AbstractGameOpenButton extends JPanel implements ActionLis
 	}
 	
 	public void loadMe(NTDProject data){
+		project = data;
 		lblGameCode.setText(data.getGameCode12().replace("_", "-"));
 		icon = data.getBannerIconAnimator(this);
 		loadLabels(data);

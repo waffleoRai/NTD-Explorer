@@ -234,7 +234,7 @@ public class DSProject extends NTDProject{
 		if(anim == null) return null;
 		
 		if(anim.getNumberFrames() == 1) return new Unanimator(anim.getFrameImage(0));
-		return new StandardAnimator(anim, (int)Math.round(1000.0/30.0), l);
+		return new StandardAnimator(anim, (int)Math.round(1000.0/60.0), l);
 	}
 	
 }

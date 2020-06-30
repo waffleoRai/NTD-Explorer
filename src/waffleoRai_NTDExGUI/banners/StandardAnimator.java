@@ -42,7 +42,7 @@ public class StandardAnimator implements Animator{
 	
 	private void onTimerTick(){
 		if(--left <= 0){
-			if(++frame > anim.getNumberFrames()) frame = 0;
+			if(++frame >= anim.getNumberFrames()) frame = 0;
 			left = anim.getFrame(frame).getLengthInFrames();
 		}
 	}

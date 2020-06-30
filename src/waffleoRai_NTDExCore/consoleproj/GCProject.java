@@ -8,8 +8,6 @@ import java.time.OffsetDateTime;
 import waffleoRai_Containers.nintendo.GCMemCard;
 import waffleoRai_Containers.nintendo.GCWiiDisc;
 import waffleoRai_Containers.nintendo.GCWiiHeader;
-import waffleoRai_Executable.nintendo.DolExe;
-import waffleoRai_Files.FileTypeDefNode;
 import waffleoRai_Image.Animation;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.DefoLanguage;
@@ -22,10 +20,8 @@ import waffleoRai_NTDExGUI.banners.StandardAnimator;
 import waffleoRai_NTDExGUI.banners.Unanimator;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
-import waffleoRai_Utils.FileNode;
 import waffleoRai_Utils.DirectoryNode;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_fdefs.nintendo.PowerGCSysFileDefs;
 
 /*
  * UPDATES
@@ -89,7 +85,7 @@ public class GCProject extends NTDProject{
 		proj.setTreeRoot(root);
 		
 		//Type tags
-		FileNode fn = root.getNodeAt("/sys/boot.bin");
+		/*FileNode fn = root.getNodeAt("/sys/boot.bin");
 		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getHeaderDef()));
 		fn = root.getNodeAt("/sys/bi2.bin");
 		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getBi2Def()));
@@ -98,7 +94,7 @@ public class GCProject extends NTDProject{
 		fn = root.getNodeAt("/sys/apploader.img");
 		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getApploaderDef()));
 		fn = root.getNodeAt("/sys/main.dol");
-		fn.setTypeChainHead(new FileTypeDefNode(DolExe.getDefinition()));
+		fn.setTypeChainHead(new FileTypeDefNode(DolExe.getDefinition()));*/
 		
 		return proj;
 	}
@@ -111,7 +107,7 @@ public class GCProject extends NTDProject{
 		scanTreeDir(getROMPath(), root);
 		super.setTreeRoot(root);
 		
-		FileNode fn = root.getNodeAt("/sys/boot.bin");
+		/*FileNode fn = root.getNodeAt("/sys/boot.bin");
 		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getHeaderDef()));
 		fn = root.getNodeAt("/sys/bi2.bin");
 		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getBi2Def()));
@@ -120,7 +116,7 @@ public class GCProject extends NTDProject{
 		fn = root.getNodeAt("/sys/apploader.img");
 		fn.setTypeChainHead(new FileTypeDefNode(PowerGCSysFileDefs.getApploaderDef()));
 		fn = root.getNodeAt("/sys/main.dol");
-		fn.setTypeChainHead(new FileTypeDefNode(DolExe.getDefinition()));
+		fn.setTypeChainHead(new FileTypeDefNode(DolExe.getDefinition()));*/
 		
 		NTDTools.doTypeScan(root, null);
 		stampModificationTime();

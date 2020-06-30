@@ -84,6 +84,7 @@ public class TreePanel extends JPanel{
 		add(scrollPane, gbc_scrollPane);
 		
 		tree = new JTree();
+		tree.setExpandsSelectedPaths(true);
 		tree.setCellRenderer(new TypeIconTreeRenderer());
 		tree.setToolTipText("ROM image internal file system.\r\n(With optional custom link tree)");
 		tree.setBorder(null);
@@ -105,6 +106,8 @@ public class TreePanel extends JPanel{
 			}
 
 		});
+		
+		
 		
 		JPopupMenu popupMenu = new JPopupMenu();
 		addPopup(tree, popupMenu);
@@ -136,12 +139,14 @@ public class TreePanel extends JPanel{
 	
 	public void updateGUITree()
 	{
-		//FFS don't collapse if don't need to! (So annoying)
+		//TODO: FFS don't collapse if don't need to! (So annoying)
 		
 		//Sync tree 
 		disableAll();
+		TreePath path = tree.getSelectionPath();
 		DefaultTreeModel model = new DefaultTreeModel(tree_root);
 		tree.setModel(model);
+		tree.setSelectionPath(path);
 		tree.updateUI();
 		
 		//tree.repaint();

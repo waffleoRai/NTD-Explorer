@@ -60,7 +60,7 @@ public class NTDProgramFiles {
 	/*----- Temp Stems -----*/
 	
 	public static final String DECSTEM_DSI_MC = "twl_modcryptreg"; //Eg. mydir/TWL-IWAO-USA/twl_modcryptreg01.bin
-	public static final String DECSTEM_WII_PART = "rvl_aes_part"; //Eg. mydir/RVL-RC3E-USA/rvl_aes_part01.bin
+	public static final String DECSTEM_WII_PART = "rvl_aes_part"; //Eg. mydir/RVL-RC3E-USA/rvl_aes_part00_01.bin
 	
 	/*----- Key Paths -----*/
 	
