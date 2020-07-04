@@ -22,6 +22,7 @@ import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.banners.StandardAnimator;
 import waffleoRai_NTDExGUI.banners.Unanimator;
+import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
 import waffleoRai_Utils.DirectoryNode;
@@ -35,14 +36,17 @@ import waffleoRai_fdefs.psx.PSXSysDefs;
  * 
  * 2020.06.25 | 1.0.0
  * 	Initial Documentation
+ *
+ * 2020.07.03 | 1.1.0
+ * 	Added observer param for tree reset method (compatibility with Wii import)
  * 
  */
 
 /**
  * NTDProject implementation for a PlayStation 1 software disk image.
  * @author Blythe Hospelhorn
- * @version 1.0.0
- * @since June 25, 2020
+ * @version 1.1.0
+ * @since July 3, 2020
  */
 public class PSXProject extends NTDProject{
 	
@@ -149,7 +153,7 @@ public class PSXProject extends NTDProject{
 	
 	/*----- Alt Methods -----*/
 	
-	public void resetTree() throws IOException{
+	public void resetTree(ProgressListeningDialog observer) throws IOException{
 		try {
 			ISOXAImage image = new ISOXAImage(new ISO(FileBuffer.createBuffer(super.getROMPath()), false));
 			DirectoryNode root = image.getRootNode();

@@ -765,7 +765,7 @@ public class ExplorerForm extends JFrame {
 			{
 				try
 				{
-					loaded_project.resetTree();
+					loaded_project.resetTree(dialog);
 				}
 				catch(IOException x)
 				{
@@ -934,7 +934,7 @@ public class ExplorerForm extends JFrame {
 			{
 				try
 				{
-					if(!loaded_project.decrypt())
+					if(!loaded_project.decrypt(dialog))
 					{
 						showError("Unknown Error: Operation aborted. See stderr for details.");
 					}

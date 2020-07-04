@@ -1,6 +1,7 @@
 package waffleoRai_NTDExCore.consoleproj;
 
 import java.awt.Frame;
+import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -12,8 +13,12 @@ import java.util.List;
 
 import waffleoRai_Containers.nintendo.GCWiiHeader;
 import waffleoRai_Containers.nintendo.WiiDisc;
+import waffleoRai_Containers.nintendo.WiiSaveBannerFile;
 import waffleoRai_Containers.nintendo.wiidisc.WiiPartition;
 import waffleoRai_Containers.nintendo.wiidisc.WiiPartitionGroup;
+import waffleoRai_Image.Animation;
+import waffleoRai_Image.AnimationFrame;
+import waffleoRai_Image.SimpleAnimation;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.DefoLanguage;
 import waffleoRai_NTDExCore.GameRegion;
@@ -21,7 +26,12 @@ import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 
 import waffleoRai_NTDExGUI.banners.Animator;
+import waffleoRai_NTDExGUI.banners.PingpongAnimator;
+import waffleoRai_NTDExGUI.banners.StandardAnimator;
+import waffleoRai_NTDExGUI.banners.Unanimator;
+import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
+import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 
@@ -32,14 +42,15 @@ import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
  * 2020.06.28 | 1.0.0
  * 	Initial Documentation
  * 
+ * 2020.07.03 | 1.0.0 -> 1.1.0
+ * 	Added observer parameters to import, tree reset, and decrypt methods.
  */
 
 /**
  * NTDProject implementation for a Wii disc image.
  * @author Blythe Hospelhorn
- * @version 1.0.0
- * @since June 28, 2020
- *
+ * @version 1.1.0
+ * @since July 3, 2020
  */
 public class WiiProject extends NTDProject{
 	
@@ -63,12 +74,14 @@ public class WiiProject extends NTDProject{
 	 * <br>This method does not work for WBFS images, only raw.
 	 * @param imgpath Path to raw disk image file to read. Usually has .wii or .iso extension.
 	 * @param reg Region of the software the image contains. 
+	 * @param observer Progress dialog to send progress update information to. 
+	 * This parameter may be left null, in which case progress updates will not be visible.
 	 * @return NTDProject to use in NTD Explorer.
 	 * @throws IOException If file cannot be read from disk.
 	 * @throws UnsupportedFileTypeException If the file cannot be parsed as a Wii/GameCube disc image.
 	 * @since 1.0.0
 	 */
-	public static WiiProject createFromWiiImage(String imgpath, GameRegion reg) throws IOException, UnsupportedFileTypeException{
+	public static WiiProject createFromWiiImage(String imgpath, GameRegion reg, ProgressListeningDialog observer) throws IOException, UnsupportedFileTypeException{
 	
 		//Load key, if present
 		byte[] key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_WII_COMMON);
@@ -77,7 +90,9 @@ public class WiiProject extends NTDProject{
 		}
 		
 		//Try to read disc
-		WiiDisc img = WiiDisc.parseFromData(FileBuffer.createBuffer(imgpath, true));
+		WiiDecObserver obs = null;
+		if(observer != null) obs = new WiiDecObserver(observer);
+		WiiDisc img = WiiDisc.parseFromData(FileBuffer.createBuffer(imgpath, true), obs);
 		
 		//Set primary disc data
 		WiiProject proj = new WiiProject();
@@ -140,14 +155,17 @@ public class WiiProject extends NTDProject{
 		return WiiDisc.generateDecryptedPartitionPath(stem, pgroup, p);
 	}
 	
-	public boolean decrypt() throws IOException{
+	public boolean decrypt(ProgressListeningDialog observer) throws IOException{
 		//This also resets the file tree!!
 		byte[] key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_WII_COMMON);
 		if(key == null) return false;
 		
 		WiiDisc.setCommonKey(key);
 		try{
-			WiiDisc img = WiiDisc.parseFromData(FileBuffer.createBuffer(getROMPath(), true));
+			//Add observer
+			WiiDecObserver obs = null;
+			if(observer != null) obs = new WiiDecObserver(observer);
+			WiiDisc img = WiiDisc.parseFromData(FileBuffer.createBuffer(getROMPath(), true), obs);
 			
 			setBannerIcon(new BufferedImage[]{NTDProgramFiles.scaleDefaultImage_unknown(48, 48)});
 			
@@ -174,13 +192,15 @@ public class WiiProject extends NTDProject{
 	
 	/*----- Alt Methods -----*/
 	
-	public void resetTree() throws IOException{
+	public void resetTree(ProgressListeningDialog observer) throws IOException{
 		
 		byte[] key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_WII_COMMON);
 
 		WiiDisc.setCommonKey(key);
 		try{
-			WiiDisc img = WiiDisc.parseFromData(FileBuffer.createBuffer(getROMPath(), true));
+			WiiDecObserver obs = null;
+			if(observer != null) obs = new WiiDecObserver(observer);
+			WiiDisc img = WiiDisc.parseFromData(FileBuffer.createBuffer(getROMPath(), true), obs);
 			setTreeRoot(img.getDiscTree(getROMPath(), getDecryptedDataDir() + File.separator + NTDProgramFiles.DECSTEM_WII_PART));
 		}
 		catch(UnsupportedFileTypeException x){
@@ -217,8 +237,25 @@ public class WiiProject extends NTDProject{
 	}
 	
 	public AbstractGameOpenButton generateOpenButton(){
-		//TODO
-		return null;
+		DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
+		gamepnl.loadMe(this);
+		
+		//Adjust labels
+		String[] bnr = getBannerLines();
+		switch(bnr.length){
+		case 1:
+			gamepnl.setLabelsDirect(bnr[0]);
+			break;
+		case 2:
+			gamepnl.setLabelsDirect(bnr[0], bnr[1]);
+			break;
+		case 3:
+		default:
+			gamepnl.setLabelsDirect(bnr[0], bnr[1], bnr[2]);
+			break;
+		}
+		
+		return gamepnl;
 	}
 	
 	public void showImageInfoDialog(Frame gui){
@@ -226,8 +263,28 @@ public class WiiProject extends NTDProject{
 	}
 	
 	public Animator getBannerIconAnimator(ActionListener l){
-		//TODO
-		return null;
+		Animation anim_raw = super.getBannerIcon();
+		if(anim_raw == null) return null;
+		
+		//Scale down to 32x32
+		int fcount = anim_raw.getNumberFrames();
+		Animation anim = new SimpleAnimation(fcount);
+		anim.setAnimationMode(anim_raw.getAnimationMode());
+		for(int f = 0; f < fcount; f++){
+			AnimationFrame frame = anim_raw.getFrame(f);
+			BufferedImage in = anim_raw.getFrameImage(f);
+			Image scaled = in.getScaledInstance(32, 32, Image.SCALE_DEFAULT);
+			BufferedImage out = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
+			out.getGraphics().drawImage(scaled, 0, 0, null);
+			
+			AnimationFrame frame2 = new AnimationFrame(out, frame.getLengthInFrames());
+			anim.setFrame(frame2, f);
+		}
+		
+		if(anim.getNumberFrames() == 1) return new Unanimator(anim.getFrameImage(0));
+		if(anim.getAnimationMode() == Animation.ANIM_MODE_PINGPONG) return new PingpongAnimator(anim, WiiSaveBannerFile.ANIM_SPEED_CONST, l);
+		
+		return new StandardAnimator(anim, WiiSaveBannerFile.ANIM_SPEED_CONST, l);
 	}
 	
 }

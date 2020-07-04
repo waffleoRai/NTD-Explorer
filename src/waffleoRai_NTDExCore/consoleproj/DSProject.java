@@ -20,6 +20,7 @@ import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.banners.StandardAnimator;
 import waffleoRai_NTDExGUI.banners.Unanimator;
+import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
 import waffleoRai_Utils.DirectoryNode;
@@ -32,13 +33,16 @@ import waffleoRai_fdefs.nintendo.DSSysFileDefs;
  * 2020.06.25 | 1.0.0
  * 	Initial Documentation
  * 
+ * 2020.07.03 | 1.1.0
+ * 	Added observer param for tree reset method (compatibility with Wii import)
+ * 
  */
 
 /**
  * NTDProject implementation for a DS or DSi cartridge ROM image.
  * @author Blythe Hospelhorn
- * @version 1.0.0
- * @since June 25, 2020
+ * @version 1.1.0
+ * @since July 3, 2020
  *
  */
 public class DSProject extends NTDProject{
@@ -169,7 +173,7 @@ public class DSProject extends NTDProject{
 	
 	/*----- Alt Methods -----*/
 	
-	public void resetTree() throws IOException{
+	public void resetTree(ProgressListeningDialog observer) throws IOException{
 		NDS nds = NDS.readROM(super.getROMPath(), 0);
 		DirectoryNode root = nds.getArchiveTree();
 		super.setTreeRoot(root);

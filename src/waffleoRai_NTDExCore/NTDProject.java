@@ -30,6 +30,7 @@ import waffleoRai_NTDExCore.consoleproj.DSProject;
 import waffleoRai_NTDExCore.consoleproj.GCProject;
 import waffleoRai_NTDExCore.consoleproj.PSXProject;
 import waffleoRai_NTDExGUI.banners.Animator;
+import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_Utils.BinFieldSize;
 import waffleoRai_Utils.DirectoryNode;
@@ -51,6 +52,9 @@ import waffleoRai_Utils.SerializedString;
  * 2020.06.28 | 2.0.0 -> 2.0.1
  * 	Made region and language set methods public
  * 
+ * 2020.07.03 | 2.0.1 -> 2.1.0
+ * 	Added an observer dialog parameter to resetTree() and decrypt()
+ * 
  */
 
 /**
@@ -59,8 +63,8 @@ import waffleoRai_Utils.SerializedString;
  * can be found allowing for flexibility and memory conservation. Also includes
  * many fields for metadata such as software title and region.
  * @author Blythe Hospelhorn
- * @version 2.0.1
- * @since June 28, 2020
+ * @version 2.1.0
+ * @since July 3, 2020
  *
  */
 public abstract class NTDProject implements Comparable<NTDProject>{
@@ -529,7 +533,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		catch(Exception x){
 			System.err.println("Corrupted tree found. Resetting...");
 			x.printStackTrace();
-			resetTree();
+			resetTree(null);
 		}
 	}
 	
@@ -1051,9 +1055,11 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * Reset the project file tree to the tree found on the associated
 	 * software ROM. This removes any user-made modifications to the tree including
 	 * new directories, file renames, archive mounts, splits etc.
+	 * @param observer Progress dialog that displays reset/image reparse process to user.
+	 * This parameter can be null, in which case progress updates will not be visible.
 	 * @throws IOException If the ROM image file needs to be read an cannot be loaded.
 	 */
-	public abstract void resetTree() throws IOException;
+	public abstract void resetTree(ProgressListeningDialog observer) throws IOException;
 	
 	/**
 	 * Set the banner icon by generating a 1 frame/image animation
@@ -1227,11 +1233,13 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * data buffers (files containing individual decrypted regions) 
 	 * in the project decryption directory, and adjusting references in tree to
 	 * point to these decrypted data instead of the raw encrypted image.
+	 * @param observer Progress dialog that allows user to view decryption progress.
+	 * This field can be left null, in which event progress updates will not be forwarded.
 	 * @return True if decryption routine succeeds, false if it fails, decryption cannot
 	 * be run at this time, or the image has no encrypted regions.
 	 * @throws IOException
 	 */
-	public boolean decrypt() throws IOException{return false;}
+	public boolean decrypt(ProgressListeningDialog observer) throws IOException{return false;}
 	
 	/*----- Tree Manipulation -----*/
 	

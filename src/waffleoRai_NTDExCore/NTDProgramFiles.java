@@ -69,7 +69,9 @@ public class NTDProgramFiles {
 	public static final String KEYNAME_DSI_COMMON = "twl_common";
 	
 	public static final String KEYNAME_WII_COMMON = "rvl_common";
-	public static final String KEYNAME_WII_SD = "rvl_sd";
+	public static final String KEYNAME_WII_SD = "rvl_sd_common";
+	public static final String KEYNAME_WII_SD_IV = "rvl_sd_iv";
+	public static final String KEYNAME_WII_SD_MD5 = "rvl_sd_md5blanker";
 	
 	public static final String[] ALL_KEYKEYS = {KEYNAME_DSI_COMMON, KEYNAME_WII_COMMON, KEYNAME_WII_SD};
 	
@@ -185,21 +187,20 @@ public class NTDProgramFiles {
 		return true;
 	}
 	
-	public static byte[] getKey(String keyname)
-	{
+	public static byte[] getKey(String keyname){
+		//System.err.println("Requesting key: " + keyname);
 		if(keymap == null) keymap = new TreeMap<String, byte[]>();
 		byte[] key = keymap.get(keyname);
 		if(key != null) return key;
 		
 		//Try to read from file
 		String fpath = getKeyDir() + File.separator + keyname + ".bin";
+		//System.err.println("Key not loaded. Checking " + fpath);
 		if(!FileBuffer.fileExists(fpath)) return null;
-		try 
-		{
+		try {
 			key = (new FileBuffer(fpath, true)).getBytes();
 		} 
-		catch (IOException e) 
-		{
+		catch (IOException e) {
 			e.printStackTrace();
 			return null;
 		}

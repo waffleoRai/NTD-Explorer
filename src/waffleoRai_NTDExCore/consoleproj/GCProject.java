@@ -18,6 +18,7 @@ import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.banners.PingpongAnimator;
 import waffleoRai_NTDExGUI.banners.StandardAnimator;
 import waffleoRai_NTDExGUI.banners.Unanimator;
+import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
 import waffleoRai_Utils.DirectoryNode;
@@ -29,13 +30,16 @@ import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
  * 2020.06.25 | 1.0.0
  * 	Initial Documentation
  * 
+ * 2020.07.03 | 1.1.0
+ * 	Added observer param for tree reset method (compatibility with Wii import)
+ * 
  */
 
 /**
  * NTDProject implementation for a GameCube disk image.
  * @author Blythe Hospelhorn
- * @version 1.0.0
- * @since June 25, 2020
+ * @version 1.1.0
+ * @since July 3, 2020
  *
  */
 public class GCProject extends NTDProject{
@@ -101,7 +105,7 @@ public class GCProject extends NTDProject{
 	
 	/*----- Alt Methods -----*/
 	
-	public void resetTree() throws IOException{
+	public void resetTree(ProgressListeningDialog observer) throws IOException{
 		GCWiiDisc gcimg = new GCWiiDisc(getROMPath());
 		DirectoryNode root = gcimg.getDiscTree();
 		scanTreeDir(getROMPath(), root);
