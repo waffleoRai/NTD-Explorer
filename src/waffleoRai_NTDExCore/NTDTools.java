@@ -31,6 +31,7 @@ import waffleoRai_NTDExCore.memcard.BannerImporter;
 import waffleoRai_NTDExCore.memcard.BannerImporter.BannerStruct;
 import waffleoRai_NTDExCore.memcard.GCMCBannerImporter;
 import waffleoRai_NTDExCore.memcard.PSXMCBannerImporter;
+import waffleoRai_NTDExCore.memcard.WiiSaveBannerImporter;
 import waffleoRai_NTDExGUI.ExplorerForm;
 import waffleoRai_NTDExGUI.dialogs.BannerImportDialog;
 import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
@@ -437,6 +438,9 @@ public class NTDTools {
 			break;
 		case GAMECUBE:
 			importer = new GCMCBannerImporter();
+			break;
+		case WII:
+			importer = new WiiSaveBannerImporter();
 			break;
 		default: 
 			gui.showWarning("Save data support not available for this console!");

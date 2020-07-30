@@ -10,6 +10,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
+import waffleoRai_Containers.nintendo.citrus.CitrusCrypt;
 import waffleoRai_Files.Converter;
 import waffleoRai_GUITools.ComponentGroup;
 import waffleoRai_GUITools.GUITools;
@@ -20,6 +21,7 @@ import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
+import waffleoRai_NTDExGUI.dialogs.AddCTRKeyDialog;
 import waffleoRai_NTDExGUI.dialogs.AddKeyDialog;
 import waffleoRai_NTDExGUI.dialogs.BannerEditForm;
 import waffleoRai_NTDExGUI.dialogs.ConvertDumpDialog;
@@ -167,11 +169,18 @@ public class ExplorerForm extends JFrame {
 			public void actionPerformed(ActionEvent e){onFileExportProject();}
 		});
 		
-		JMenuItem mntmImportCDTrack = new JMenuItem("Import CD Track...");
+		JMenuItem mntmImportCDTrack = new JMenuItem("Import Additional Data...");
 		mnFile.add(mntmImportCDTrack);
 		loaded_enabled.addComponent("mntmImportCDTrack", mntmImportCDTrack);
 		mntmImportCDTrack.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){onFileImportCDTrack();}
+			public void actionPerformed(ActionEvent e){onFileImportAdditionalData();}
+		});
+		
+		JMenuItem mntmDeleteProject = new JMenuItem("Delete Project");
+		mnFile.add(mntmDeleteProject);
+		loaded_enabled.addComponent("mntmDeleteProject", mntmDeleteProject);
+		mntmDeleteProject.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileDeleteProject();}
 		});
 		
 		JMenu mnTools = new JMenu("Tools");
@@ -240,11 +249,22 @@ public class ExplorerForm extends JFrame {
 		menuBar.add(mnDecryption);
 		always_enabled.addComponent("mnDecryption", mnDecryption);
 		
-		JMenuItem mntmAddKey = new JMenuItem("Add Key...");
-		mnDecryption.add(mntmAddKey);
+		JMenu mnAddKey = new JMenu("Add Key");
+		mnDecryption.add(mnAddKey);
+		always_enabled.addComponent("mnAddKey", mnAddKey);
+		
+		JMenuItem mntmAddKey = new JMenuItem("Import Key...");
+		mnAddKey.add(mntmAddKey);
 		always_enabled.addComponent("mntmAddKey", mntmAddKey);
 		mntmAddKey.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){onDecryptKeyAdd();}
+		});
+		
+		JMenuItem mntmAddCtr9Key = new JMenuItem("Gen CTR Boot9 Keyset...");
+		mnAddKey.add(mntmAddCtr9Key);
+		always_enabled.addComponent("mntmAddCtr9Key", mntmAddCtr9Key);
+		mntmAddCtr9Key.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onDecrypt3DSKeyAdd();}
 		});
 		
 		JMenuItem mntmSetDecryptedImage = new JMenuItem("Set Decrypted Image Directory...");
@@ -851,6 +871,26 @@ public class ExplorerForm extends JFrame {
 		
 	}
 	
+	private void onDecrypt3DSKeyAdd()
+	{
+		AddCTRKeyDialog dialog = new AddCTRKeyDialog(this, "");
+		dialog.setVisible(true);
+		
+		if(dialog.confirmSelected()){
+			String path = dialog.getPath();
+			try{
+				CitrusCrypt crypto = CitrusCrypt.initFromBoot9(FileBuffer.createBuffer(path, false));
+				String common9_path = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_CTR_COMMON9);
+				crypto.saveCitrusCrypt(common9_path);
+			}
+			catch(Exception x){
+				x.printStackTrace();
+				showError("Keyset generation failed!");
+			}
+		}
+		
+	}
+	
 	private void onDecryptSetDir()
 	{
 		String tpath = NTDProgramFiles.getDecryptTempDir();
@@ -948,8 +988,8 @@ public class ExplorerForm extends JFrame {
 				return null;
 			}
 			
-			public void done()
-			{
+			public void done(){
+				pnlMain.refreshMe();
 				dialog.closeMe();
 			}
 		};
@@ -969,9 +1009,31 @@ public class ExplorerForm extends JFrame {
 		//TODO
 	}
 	
-	private void onFileImportCDTrack(){
+	private void onFileImportAdditionalData(){
 		//TODO
-		//For PS1 games on multiple CD tracks
+		
+	}
+	
+	private void onFileDeleteProject(){
+		if(loaded_project == null){
+			showWarning("There is no loaded project to delete!");
+			return;
+		}
+		
+		int choice = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this project?", 
+				"Confirm Project Deletion", JOptionPane.YES_NO_OPTION);
+		if(choice == JOptionPane.NO_OPTION) return;
+		
+		if(!NTDProgramFiles.removeProject(loaded_project)){
+			this.showError("ERROR: Project deletion was not successful. See stderr for details.");
+			return;
+		}
+		else{
+			this.showInfo("Project deletion was successful!");
+		}
+		
+		this.loadProject(null);
+		
 	}
 	
 	private void onToolsImportBannerFromSave(){

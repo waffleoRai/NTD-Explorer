@@ -1,7 +1,6 @@
 package waffleoRai_NTDExCore.consoleproj;
 
 import java.awt.Frame;
-import java.awt.Image;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -17,10 +16,9 @@ import waffleoRai_Containers.nintendo.WiiSaveBannerFile;
 import waffleoRai_Containers.nintendo.wiidisc.WiiPartition;
 import waffleoRai_Containers.nintendo.wiidisc.WiiPartitionGroup;
 import waffleoRai_Image.Animation;
-import waffleoRai_Image.AnimationFrame;
-import waffleoRai_Image.SimpleAnimation;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.DefoLanguage;
+import waffleoRai_NTDExCore.EncryptionRegion;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
@@ -34,6 +32,7 @@ import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
+import waffleoRai_fdefs.nintendo.WiiAESDef;
 
 
 /*
@@ -44,17 +43,24 @@ import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
  * 
  * 2020.07.03 | 1.0.0 -> 1.1.0
  * 	Added observer parameters to import, tree reset, and decrypt methods.
+ * 
+ * 2020.07.04 | 1.1.0 -> 1.1.1
+ * 	Mark encryption regions, dispose of temp buffers when done decrypting
+ * 
+ * 2020.07.22 | 1.1.1 -> 1.1.2
+ * 	Specified icon size for display button
+ * 
  */
 
 /**
  * NTDProject implementation for a Wii disc image.
  * @author Blythe Hospelhorn
- * @version 1.1.0
- * @since July 3, 2020
+ * @version 1.1.2
+ * @since July 22, 2020
  */
 public class WiiProject extends NTDProject{
 	
-/*----- Constant -----*/
+	/*----- Constant -----*/
 	
 	/*----- Instance Variables -----*/
 	
@@ -113,11 +119,28 @@ public class WiiProject extends NTDProject{
 		String decdir = proj.getDecryptedDataDir();
 		if(!FileBuffer.directoryExists(decdir)) Files.createDirectories(Paths.get(decdir));
 		
+		//Mark encrypted regions
+		List<EncryptionRegion> encregs = proj.getEncRegListReference();
+		
 		//If decryption cannot be done, set icon and flash notice accordingly.
 		//Otherwise, save decryption buffers
 		if(key == null){
 			BufferedImage lockico = NTDProgramFiles.scaleDefaultImage_lock(48, 48);
 			proj.setBannerIcon(new BufferedImage[]{lockico});
+			
+			for(int i = 0; i < 4; i++){
+				WiiPartitionGroup grp = img.getPartition(i);
+				if(grp == null) continue;
+				int j = 0;
+				List<WiiPartition> parts = grp.getSubPartitions();
+				for(WiiPartition part : parts){
+					String decpath = proj.getDecryptedPartitionPath(i,j++);
+					long off = part.getAddress() + part.getDataOffset();
+					
+					EncryptionRegion ereg = new EncryptionRegion(WiiAESDef.getDefinition(), off, part.getDataSize(), decpath);
+					encregs.add(ereg);
+				}
+			}
 		}
 		else{
 			proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.scaleDefaultImage_unknown(48, 48)});
@@ -130,6 +153,10 @@ public class WiiProject extends NTDProject{
 				for(WiiPartition part : parts){
 					String decpath = proj.getDecryptedPartitionPath(i,j++);
 					part.writeDecryptedRaw(decpath);
+					
+					long off = part.getAddress() + part.getDataOffset();
+					EncryptionRegion ereg = new EncryptionRegion(WiiAESDef.getDefinition(), off, part.getDataSize(), decpath);
+					encregs.add(ereg);
 				}
 			}
 		}
@@ -137,6 +164,7 @@ public class WiiProject extends NTDProject{
 		//Load tree
 		proj.setTreeRoot(img.getDiscTree(imgpath, decdir + File.separator + NTDProgramFiles.DECSTEM_WII_PART));
 		
+		img.deleteParsingTempFiles();
 		return proj;
 	}
 	
@@ -165,7 +193,8 @@ public class WiiProject extends NTDProject{
 			//Add observer
 			WiiDecObserver obs = null;
 			if(observer != null) obs = new WiiDecObserver(observer);
-			WiiDisc img = WiiDisc.parseFromData(FileBuffer.createBuffer(getROMPath(), true), obs);
+			FileBuffer imgbuff = FileBuffer.createBuffer(getROMPath(), true);
+			WiiDisc img = WiiDisc.parseFromData(imgbuff, obs, false);
 			
 			setBannerIcon(new BufferedImage[]{NTDProgramFiles.scaleDefaultImage_unknown(48, 48)});
 			
@@ -176,9 +205,15 @@ public class WiiProject extends NTDProject{
 				List<WiiPartition> parts = grp.getSubPartitions();
 				for(WiiPartition part : parts){
 					String decpath = getDecryptedPartitionPath(i,j++);
-					part.writeDecryptedRaw(decpath);
+					if(!FileBuffer.fileExists(decpath)){
+						//Re-decrypt
+						System.err.println("Buffer " + decpath + " does not exist!");
+						part.decryptData(imgbuff, obs, true);
+						part.writeDecryptedRaw(decpath);	
+					}
 				}
 			}
+			img.deleteParsingTempFiles();
 			
 			setTreeRoot(img.getDiscTree(getROMPath(), getDecryptedDataDir() + File.separator + NTDProgramFiles.DECSTEM_WII_PART));
 		}
@@ -200,7 +235,25 @@ public class WiiProject extends NTDProject{
 		try{
 			WiiDecObserver obs = null;
 			if(observer != null) obs = new WiiDecObserver(observer);
-			WiiDisc img = WiiDisc.parseFromData(FileBuffer.createBuffer(getROMPath(), true), obs);
+			FileBuffer imgbuff = FileBuffer.createBuffer(getROMPath(), true);
+			WiiDisc img = WiiDisc.parseFromData(imgbuff, obs, false);
+			
+			for(int i = 0; i < 4; i++){
+				WiiPartitionGroup grp = img.getPartition(i);
+				if(grp == null) continue;
+				int j = 0;
+				List<WiiPartition> parts = grp.getSubPartitions();
+				for(WiiPartition part : parts){
+					String decpath = getDecryptedPartitionPath(i,j++);
+					if(!FileBuffer.fileExists(decpath)){
+						//Re-decrypt
+						part.decryptData(imgbuff, obs, true);
+						part.writeDecryptedRaw(decpath);	
+					}
+				}
+			}
+			
+			img.deleteParsingTempFiles();
 			setTreeRoot(img.getDiscTree(getROMPath(), getDecryptedDataDir() + File.separator + NTDProgramFiles.DECSTEM_WII_PART));
 		}
 		catch(UnsupportedFileTypeException x){
@@ -237,7 +290,7 @@ public class WiiProject extends NTDProject{
 	}
 	
 	public AbstractGameOpenButton generateOpenButton(){
-		DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
+		DefaultGameOpenButton gamepnl = new DefaultGameOpenButton(DefaultGameOpenButton.ICONSZ_48);
 		gamepnl.loadMe(this);
 		
 		//Adjust labels
@@ -267,7 +320,7 @@ public class WiiProject extends NTDProject{
 		if(anim_raw == null) return null;
 		
 		//Scale down to 32x32
-		int fcount = anim_raw.getNumberFrames();
+		/*int fcount = anim_raw.getNumberFrames();
 		Animation anim = new SimpleAnimation(fcount);
 		anim.setAnimationMode(anim_raw.getAnimationMode());
 		for(int f = 0; f < fcount; f++){
@@ -279,7 +332,8 @@ public class WiiProject extends NTDProject{
 			
 			AnimationFrame frame2 = new AnimationFrame(out, frame.getLengthInFrames());
 			anim.setFrame(frame2, f);
-		}
+		}*/
+		Animation anim = anim_raw;
 		
 		if(anim.getNumberFrames() == 1) return new Unanimator(anim.getFrameImage(0));
 		if(anim.getAnimationMode() == Animation.ANIM_MODE_PINGPONG) return new PingpongAnimator(anim, WiiSaveBannerFile.ANIM_SPEED_CONST, l);

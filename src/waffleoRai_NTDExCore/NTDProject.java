@@ -26,9 +26,12 @@ import waffleoRai_Files.EncryptionDefinitions;
 import waffleoRai_Image.Animation;
 import waffleoRai_Image.AnimationFrame;
 import waffleoRai_Image.SimpleAnimation;
+import waffleoRai_NTDExCore.consoleproj.CitrusProject;
 import waffleoRai_NTDExCore.consoleproj.DSProject;
 import waffleoRai_NTDExCore.consoleproj.GCProject;
 import waffleoRai_NTDExCore.consoleproj.PSXProject;
+import waffleoRai_NTDExCore.consoleproj.WiiProject;
+import waffleoRai_NTDExCore.consoleproj.WiiUProject;
 import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
@@ -55,6 +58,9 @@ import waffleoRai_Utils.SerializedString;
  * 2020.07.03 | 2.0.1 -> 2.1.0
  * 	Added an observer dialog parameter to resetTree() and decrypt()
  * 
+ * 2020.07.04 | 2.1.0 -> 2.1.1
+ * 	Fixed some bugs with saving encryption info. Was reliant on deprecated
+ * 	isEncrypted flag, so removed flag.
  */
 
 /**
@@ -63,8 +69,8 @@ import waffleoRai_Utils.SerializedString;
  * can be found allowing for flexibility and memory conservation. Also includes
  * many fields for metadata such as software title and region.
  * @author Blythe Hospelhorn
- * @version 2.1.0
- * @since July 3, 2020
+ * @version 2.1.1
+ * @since July 4, 2020
  *
  */
 public abstract class NTDProject implements Comparable<NTDProject>{
@@ -143,7 +149,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	public static final String MAKERCODE_SEGA = "8P";
 	public static final String MAKERCODE_DESTINEER = "RN";
 	public static final String MAKERCODE_ALCHEMIST = "AK";
-	public static final String MAKERCODE_UBISOFT = "";
+	public static final String MAKERCODE_UBISOFT = "41";
 	public static final String MAKERCODE_CDPR = "";
 	public static final String MAKERCODE_EA = "69"; //lol nice
 	
@@ -170,7 +176,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	private String fullcode;
 	
 	private String rom_path;
-	private boolean is_encrypted; //Deprecated
+	//private boolean is_encrypted; //Deprecated
 	private String decrypted_rom_path; //Deprecated
 	private List<EncryptionRegion> encrypted_regs;
 	
@@ -412,10 +418,16 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		case PS1:
 			proj = new PSXProject();
 			break;
-		case SWITCH:
+		case SWITCH: break;
 		case WII:
+			proj = new WiiProject();
+			break;
 		case WIIU:
+			proj = new WiiUProject();
+			break;
 		case _3DS:
+			proj = new CitrusProject();
+			break;
 		default:
 			return null;
 		}
@@ -469,7 +481,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		{
 			if((flag & 0x80) != 0)
 			{
-				proj.is_encrypted = true;
+				//proj.is_encrypted = true;
 				int rcount = file.shortFromFile(cpos); cpos += 2;
 				proj.encrypted_regs = new ArrayList<EncryptionRegion>(rcount+1);
 				
@@ -497,7 +509,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		
 		
 		//Resolve enums and flags...
-		proj.is_encrypted = (flag & 0x80) != 0;
+		//proj.is_encrypted = (flag & 0x80) != 0;
 		proj.region = GameRegion.getRegion(renum);
 		proj.language = DefoLanguage.getLanReg((char)lenum);
 		
@@ -735,7 +747,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		
 		//
 		int flags = 0;
-		if(is_encrypted) flags |= 0x80;
+		if(this.isEncrypted()) flags |= 0x80;
 		out.addToFile((byte)flags);
 		out.addToFile((byte)console.getIntValue());
 		out.addToFile((byte)region.getIntValue());
@@ -769,7 +781,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		//out.addToFile(str_dec);
 		
 		//Encryption info
-		if(encrypted_regs != null && is_encrypted){
+		if(isEncrypted()){
 			out.addToFile((short)encrypted_regs.size());
 			int i = 0;
 			for(EncryptionRegion reg : encrypted_regs){

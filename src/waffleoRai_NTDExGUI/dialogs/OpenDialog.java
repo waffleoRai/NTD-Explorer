@@ -146,20 +146,59 @@ public class OpenDialog extends JDialog{
 		pnlDS.setOpaque(false);
 		int gcount_ds = loadTab(new Console[]{Console.DS, Console.DSi}, pnlDS, loadlist);
 		
-		JScrollPane spWii = new JScrollPane();
+		JScrollPane spWii = new JScrollPane(){
+			private static final long serialVersionUID = -3566291281042523295L;
+
+			public void paintComponent(Graphics g){
+				super.paintComponent(g);
+				if(pnlbkg != null) g.drawImage(pnlbkg, 0, 0, null);
+			}
+		};
+		spWii.getViewport().setOpaque(false);
 		spWii.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		tabbedPane.addTab("Wii", null, spWii, null);
 		tabbedPane.setEnabledAt(TAB_IDX_WII, false);
 		
-		JScrollPane sp3DS = new JScrollPane();
+		JPanel pnlWii = new JPanel();
+		spWii.setViewportView(pnlWii);
+		pnlWii.setOpaque(false);
+		int gcount_wii = loadTab(new Console[]{Console.WII}, pnlWii, loadlist);
+		
+		JScrollPane sp3DS = new JScrollPane(){
+			private static final long serialVersionUID = -3566291281042523295L;
+
+			public void paintComponent(Graphics g){
+				super.paintComponent(g);
+				if(pnlbkg != null) g.drawImage(pnlbkg, 0, 0, null);
+			}
+		};
+		sp3DS.getViewport().setOpaque(false);
 		sp3DS.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		tabbedPane.addTab("3DS", null, sp3DS, null);
 		tabbedPane.setEnabledAt(TAB_IDX_3DS, false);
 		
-		JScrollPane spWiiU = new JScrollPane();
+		JPanel pnl3DS = new JPanel();
+		sp3DS.setViewportView(pnl3DS);
+		pnl3DS.setOpaque(false);
+		int gcount_3ds = loadTab(new Console[]{Console._3DS}, pnl3DS, loadlist);
+		
+		JScrollPane spWiiU = new JScrollPane(){
+			private static final long serialVersionUID = -3566291281042523295L;
+
+			public void paintComponent(Graphics g){
+				super.paintComponent(g);
+				if(pnlbkg != null) g.drawImage(pnlbkg, 0, 0, null);
+			}
+		};
+		spWiiU.getViewport().setOpaque(false);
 		spWiiU.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		tabbedPane.addTab("Wii U", null, spWiiU, null);
 		tabbedPane.setEnabledAt(TAB_IDX_WIIU, false);
+		
+		JPanel pnlWiiU = new JPanel();
+		spWiiU.setViewportView(pnlWiiU);
+		pnlWiiU.setOpaque(false);
+		int gcount_wiiu = loadTab(new Console[]{Console.WIIU}, pnlWiiU, loadlist);
 		
 		JScrollPane spSwitch = new JScrollPane();
 		spSwitch.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
@@ -172,6 +211,9 @@ public class OpenDialog extends JDialog{
 		setSPDimension(gcount_ds, TAB_IDX_DS, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spDS);
 		setSPDimension(gcount_psx, TAB_IDX_PS1, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spPSX);
 		setSPDimension(gcount_gc, TAB_IDX_GC, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spGC);
+		setSPDimension(gcount_wii, TAB_IDX_WII, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spWii);
+		setSPDimension(gcount_3ds, TAB_IDX_3DS, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, sp3DS);
+		setSPDimension(gcount_wiiu, TAB_IDX_WIIU, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spWiiU);
 		
 		for(int i = 0; i < blockCount.length; i++)
 		{

@@ -36,7 +36,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 	
 	public static final int MIN_WIDTH = InfoPanel.MIN_WIDTH;
 	public static final int MIN_HEIGHT = InfoPanel.HEIGHT + 200;
-	public static final int PREF_HEIGHT = 300;
+	public static final int PREF_HEIGHT = 350;
 
 	/*----- Instance Variables -----*/
 	
@@ -287,6 +287,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 	}
 	
 	public void refreshMe(){
+		updateBannerPanel();
 		resetTree();
 		pnlRight.removeAll();
 		pnlRight.updateUI();

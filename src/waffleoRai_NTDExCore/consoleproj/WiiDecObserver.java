@@ -25,12 +25,15 @@ public class WiiDecObserver implements WiiCryptListener{
 		dialog.setPrimaryString("Partition 1/" + pcount);
 	}
 	
+	public void onPartitionStart(){
+		//System.err.println("um hey?");
+		dialog.setPrimaryString("Partition " + (current_part+1)+ "/" + pcount);
+	}
+	
 	public void setSectorCount(int count) {
-		current_part++;
 		sec_count = count;
 		current_sec = 0;
 		
-		dialog.setPrimaryString("Partition " + (current_part+1)+ "/" + pcount);
 		dialog.setSecondaryString("Working on data sector 1/" + sec_count);
 	}
 
@@ -45,6 +48,18 @@ public class WiiDecObserver implements WiiCryptListener{
 
 	public int getUpdateFrequencyMillis() {return 500;}
 
+	public void onPartitionDecryptionComplete(boolean isgood){
+		current_part++;
+		if(isgood){
+			dialog.setPrimaryString("Partition Read");
+			dialog.setSecondaryString("Partition " + current_part + " successfully decrypted.");
+		}
+		else{
+			dialog.setPrimaryString("Partition Failed");
+			dialog.setSecondaryString("Partition " + current_part + " could not be read.");
+		}
+	}
+	
 	public void onDecryptionComplete(boolean isgood) {
 		if(isgood){
 			dialog.setPrimaryString("Success");

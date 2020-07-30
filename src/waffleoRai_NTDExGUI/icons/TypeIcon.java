@@ -60,6 +60,7 @@ public class TypeIcon {
 		icon_map.put(FileClass.DAT_LAYOUT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_lay.png")));
 		icon_map.put(FileClass.DAT_STRINGTBL, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_str.png")));
 		icon_map.put(FileClass.DAT_TABLE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_tbl.png")));
+		icon_map.put(FileClass.DAT_BANNER, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_bnr.png")));
 		
 		icon_map.put(FileClass.MOV_MOVIE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_mov.png")));
 		icon_map.put(FileClass.MOV_VIDEO, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_vid.png")));

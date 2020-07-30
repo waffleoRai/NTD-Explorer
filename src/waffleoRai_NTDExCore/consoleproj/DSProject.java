@@ -36,13 +36,15 @@ import waffleoRai_fdefs.nintendo.DSSysFileDefs;
  * 2020.07.03 | 1.1.0
  * 	Added observer param for tree reset method (compatibility with Wii import)
  * 
+ * 2020.07.22 | 1.1.1
+ * 	Specified icon size for display button
  */
 
 /**
  * NTDProject implementation for a DS or DSi cartridge ROM image.
  * @author Blythe Hospelhorn
- * @version 1.1.0
- * @since July 3, 2020
+ * @version 1.1.1
+ * @since July 22, 2020
  *
  */
 public class DSProject extends NTDProject{
@@ -223,7 +225,7 @@ public class DSProject extends NTDProject{
 	}
 	
 	public AbstractGameOpenButton generateOpenButton(){
-		DefaultGameOpenButton gamepnl = new DefaultGameOpenButton();
+		DefaultGameOpenButton gamepnl = new DefaultGameOpenButton(DefaultGameOpenButton.ICONSZ_32);
 		gamepnl.loadMe(this);
 		
 		return gamepnl;

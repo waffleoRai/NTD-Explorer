@@ -35,7 +35,7 @@ public class BannerImportDialog extends JDialog{
 	private static final long serialVersionUID = 7850904122752257173L;
 	
 	public static final int MIN_WIDTH = 350;
-	public static final int MIN_HEIGHT = 200;
+	public static final int MIN_HEIGHT = 300;
 	
 	private boolean approved = false;
 	private int selected_idx;

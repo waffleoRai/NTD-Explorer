@@ -27,7 +27,7 @@ public class InfoPanel extends JPanel{
 
 	private static final long serialVersionUID = -2849616410459530735L;
 	
-	public static final int MIN_WIDTH = 475;
+	public static final int MIN_WIDTH = 525;
 	public static final int HEIGHT = 55;
 	
 	public static final int ICO_Y1 = 10;
@@ -100,7 +100,7 @@ public class InfoPanel extends JPanel{
 			case SWITCH: lblConsole.setText("Nintendo Switch"); break;
 			case UNKNOWN: lblConsole.setText("Console Unknown"); break;
 			case WII: lblConsole.setText("Nintendo Wii"); break;
-			case WIIU: lblConsole.setText("Nintendo WiiU"); break;
+			case WIIU: lblConsole.setText("Nintendo Wii U"); break;
 			case _3DS: lblConsole.setText("Nintendo 3DS"); break;
 			case PS1: lblConsole.setText("Sony PlayStation 1"); break;
 			default: lblConsole.setText("Console Unknown"); break;
@@ -174,8 +174,9 @@ public class InfoPanel extends JPanel{
 		add(lblEnc);
 		if(proj != null){
 			if(proj.isEncrypted()){
-				if(proj.getConsole() == Console.WII) lblEnc.setText("AES-128");
+				if(proj.getConsole() == Console.WII || proj.getConsole() == Console.WIIU) lblEnc.setText("AES-128-CBC");
 				else if(proj.getConsole() == Console.DSi) lblEnc.setText("Modcrypt");
+				else if(proj.getConsole() == Console._3DS) lblEnc.setText("AES-128-CTR");
 				lblEnc.setForeground(Color.RED);
 			}
 			else{

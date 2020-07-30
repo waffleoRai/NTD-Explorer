@@ -3,6 +3,8 @@ package waffleoRai_NTDTypes.encryption;
 import waffleoRai_Containers.nintendo.NDS;
 import waffleoRai_Files.EncryptionDefinition;
 import waffleoRai_NTDExCore.NTDEncTypeLoader;
+import waffleoRai_fdefs.nintendo.CitrusAESCTRDef;
+import waffleoRai_fdefs.nintendo.WiiAESDef;
 
 public class NinEncLoaders {
 	
@@ -12,6 +14,14 @@ public class NinEncLoaders {
 	
 	public static class DSBlowfishDefLoader implements NTDEncTypeLoader{
 		public EncryptionDefinition getDefinition() {return NDS.getBlowfishDef();}
+	}
+	
+	public static class WiiDiscAESDefLoader implements NTDEncTypeLoader{
+		public EncryptionDefinition getDefinition() {return WiiAESDef.getDefinition();}
+	}
+	
+	public static class CitrusAESDefLoader implements NTDEncTypeLoader{
+		public EncryptionDefinition getDefinition() {return CitrusAESCTRDef.getDefinition();}
 	}
 
 }

@@ -88,6 +88,7 @@ public class AddKeyDialog extends JDialog{
 		txtHex.setColumns(10);
 		
 		JRadioButton rbFile = new JRadioButton("Upload file:");
+		rbFile.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		rbFile.setBounds(6, 90, 91, 23);
 		getContentPane().add(rbFile);
 		rbGroup.addButton(rbFile, 1);
@@ -154,14 +155,19 @@ public class AddKeyDialog extends JDialog{
 		});
 		
 		rbGroup.select(0);
+		txtHex.setEnabled(true);
+		txtFile.setEnabled(false);
+		btnBrowse.setEnabled(false);
 		rbHex.addActionListener(new ActionListener(){
 
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
+				rbGroup.select(0);
 				txtHex.setEnabled(true);
 				txtFile.setEnabled(false);
 				btnBrowse.setEnabled(false);
+				
 			}
 			
 		});
@@ -170,6 +176,7 @@ public class AddKeyDialog extends JDialog{
 			@Override
 			public void actionPerformed(ActionEvent e) 
 			{
+				rbGroup.select(1);
 				txtHex.setEnabled(false);
 				txtFile.setEnabled(true);
 				btnBrowse.setEnabled(true);

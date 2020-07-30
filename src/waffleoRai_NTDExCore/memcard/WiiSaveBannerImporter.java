@@ -67,12 +67,12 @@ public class WiiSaveBannerImporter implements BannerImporter{
 
 			public boolean accept(File f) {
 				String p = f.getAbsolutePath().toString().toLowerCase();
-				if(p.equals("data.bin")) return true;
+				if(p.endsWith("data.bin")) return true;
 				return false;
 			}
 
 			public String getDescription() {
-				return FF_RAW_DESC + "(.bin)";
+				return FF_RAW_DESC + " (.bin)";
 			}
 			
 		});
@@ -81,12 +81,12 @@ public class WiiSaveBannerImporter implements BannerImporter{
 
 			public boolean accept(File f) {
 				String p = f.getAbsolutePath().toString().toLowerCase();
-				if(p.equals("banner.bin")) return true;
+				if(p.endsWith("banner.bin")) return true;
 				return false;
 			}
 
 			public String getDescription() {
-				return FF_BANNER_DESC + "(.bin)";
+				return FF_BANNER_DESC + " (.bin)";
 			}
 			
 		});

@@ -20,10 +20,13 @@ import javax.swing.filechooser.FileFilter;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.importer.CCIParserOption;
 import waffleoRai_NTDExCore.importer.DSParserOption;
 import waffleoRai_NTDExCore.importer.GCParserOption;
 import waffleoRai_NTDExCore.importer.PSXParserOption;
 import waffleoRai_NTDExCore.importer.ParserOption;
+import waffleoRai_NTDExCore.importer.WUDParserOption;
+import waffleoRai_NTDExCore.importer.WiiParserOption;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -135,6 +138,9 @@ public class ImportDialog extends JDialog{
 		model2.addElement(new DSParserOption());
 		model2.addElement(new PSXParserOption());
 		model2.addElement(new GCParserOption());
+		model2.addElement(new WiiParserOption());
+		model2.addElement(new CCIParserOption());
+		model2.addElement(new WUDParserOption());
 		
 		cmbxParser.setModel(model2);
 		cmbxParser.setSelectedIndex(0);

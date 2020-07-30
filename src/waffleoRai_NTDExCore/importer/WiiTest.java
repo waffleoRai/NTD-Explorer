@@ -32,14 +32,14 @@ public class WiiTest {
 	public static void main(String[] args) {
 
 		try{
-			//String wiipath = "E:\\Library\\Games\\Console\\RVL_SOUE_USA.wii";
+			String wiipath = "E:\\Library\\Games\\Console\\RVL_RSBE_USA.wii";
 			
 			//To load key path...
 			//NTDProgramFiles.readIni();
 			
 			//Try to read it as a WiiProject
-			//WiiProject proj = WiiProject.createFromWiiImage(wiipath, GameRegion.USA, null);
-			//proj.getTreeRoot().printMeToStdErr(0);
+			WiiProject proj = WiiProject.createFromWiiImage(wiipath, GameRegion.USA, null);
+			proj.getTreeRoot().printMeToStdErr(0);
 			
 			//Copy data so can inspect...
 			/*String testpath = "E:\\Library\\Games\\Console\\decbuff\\test\\SOUE_p0-0";
@@ -49,9 +49,9 @@ public class WiiTest {
 			fn.loadData().writeFile(testpath + "\\data.aes");*/
 			
 			//Just the partition tree...
-			String wiipart = "E:\\Library\\Games\\Console\\decbuff\\RVL_SOUE_USA\\rvl_aes_part00_01.wiip";
+			/*String wiipart = "E:\\Library\\Games\\Console\\decbuff\\RVL_SOUE_USA\\rvl_aes_part00_01.wiip";
 			GCWiiDisc part = new GCWiiDisc(wiipart);
-			part.getDiscTree().printMeToStdErr(0);
+			part.getDiscTree().printMeToStdErr(0);*/
 			
 			//Instead sort by offset...
 			/*Map<Long, FileNode> osmap = new TreeMap<Long, FileNode>();

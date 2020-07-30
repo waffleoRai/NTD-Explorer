@@ -114,6 +114,18 @@ public class BannerButton extends JLabel implements ActionListener, MouseListene
 		imgdata = icon;
 		frame_millis = frame_len_millis;
 		
+		//Debug
+		/*System.err.println("BannerButton.<init> || icon data...");
+		System.err.println("\tFrame Millis: " + frame_millis);
+		System.err.println("\tFrames: " + imgdata.getNumberFrames());
+		for(int i = 0; i < imgdata.getNumberFrames(); i++){
+			AnimationFrame f = imgdata.getFrame(i);
+			if(f == null) System.err.println("\tFrame " + i + ": <null>");
+			else{
+				System.err.println("\tFrame " + i + ": NonNull, hold = " + f.getLengthInFrames());
+			}
+		}*/
+		
 		if(iconAnimated()){
 			anim_timer = new Timer(frame_millis, this);
 			anim_timer.setDelay(frame_millis);

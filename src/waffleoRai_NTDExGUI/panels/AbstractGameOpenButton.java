@@ -52,7 +52,8 @@ public abstract class AbstractGameOpenButton extends JPanel implements ActionLis
 		if(icon_bkg == null){
 			//Load from disk
 			try{
-				icon_bkg = ImageIO.read(NTDProgramFiles.class.getResource("/waffleoRai_NTDExCore/res/general_gradient_bkg_3.png"));
+				//icon_bkg = ImageIO.read(NTDProgramFiles.class.getResource("/waffleoRai_NTDExCore/res/general_gradient_bkg_3.png"));
+				icon_bkg = ImageIO.read(NTDProgramFiles.class.getResource("/waffleoRai_NTDExCore/res/icon_bkg_64_2.png"));
 			}
 			catch(IOException e){
 				e.printStackTrace();

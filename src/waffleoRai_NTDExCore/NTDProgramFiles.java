@@ -61,6 +61,7 @@ public class NTDProgramFiles {
 	
 	public static final String DECSTEM_DSI_MC = "twl_modcryptreg"; //Eg. mydir/TWL-IWAO-USA/twl_modcryptreg01.bin
 	public static final String DECSTEM_WII_PART = "rvl_aes_part"; //Eg. mydir/RVL-RC3E-USA/rvl_aes_part00_01.bin
+	public static final String DECSTEM_CTR_PART = "ctr_ncch_part"; //Eg. mydir/CTR-AJRE-USA/ctr_ncch_part4000000125500.bin
 	
 	/*----- Key Paths -----*/
 	
@@ -72,8 +73,16 @@ public class NTDProgramFiles {
 	public static final String KEYNAME_WII_SD = "rvl_sd_common";
 	public static final String KEYNAME_WII_SD_IV = "rvl_sd_iv";
 	public static final String KEYNAME_WII_SD_MD5 = "rvl_sd_md5blanker";
+	public static final String KEYNAME_WIIU_COMMON = "wup_common";
 	
-	public static final String[] ALL_KEYKEYS = {KEYNAME_DSI_COMMON, KEYNAME_WII_COMMON, KEYNAME_WII_SD};
+	public static final String KEYNAME_CTR_COMMON9 = "ctr_common9";
+	public static final String KEYNAME_CTR_CARD1 = "ctr_25X";
+	public static final String KEYNAME_CTR_CARDA = "ctr_18X";
+	public static final String KEYNAME_CTR_CARDB = "ctr_1BX";
+	
+	public static final String[] ALL_KEYKEYS = {KEYNAME_DSI_COMMON, KEYNAME_WII_COMMON, KEYNAME_WII_SD, KEYNAME_WII_SD_IV, 
+												KEYNAME_CTR_COMMON9, KEYNAME_CTR_CARD1, KEYNAME_CTR_CARDA, KEYNAME_CTR_CARDB,
+												KEYNAME_WIIU_COMMON};
 	
 	/*----- Various Ini Keys -----*/
 	
@@ -185,6 +194,10 @@ public class NTDProgramFiles {
 		Collection<NTDProject> allproj = getAllProjects();
 		for(NTDProject p : allproj) p.moveDecryptPath(olddir);
 		return true;
+	}
+	
+	public static String getKeyFilePath(String keyname){
+		return getKeyDir() + File.separator + keyname + ".bin";
 	}
 	
 	public static byte[] getKey(String keyname){
@@ -317,6 +330,7 @@ public class NTDProgramFiles {
 	public static final String IKEY_UNIFONT_NAME = "UNICODE_FONT";
 	public static final String IKEY_DEC_DIR = "DECRYPT_BUFFER_DIR";
 	public static final String IKEY_TEMP_DIR = "NTD_TEMP_DIR";
+	public static final String IKEY_LANGUAGE = "NTD_LANGUAGE";
 	
 	private static Map<String, String> init_values;
 	private static String my_unifont;
@@ -744,5 +758,20 @@ public class NTDProgramFiles {
 		return list;
 	}
 	
+	public static boolean removeProject(NTDProject proj){
+		Console c = proj.getConsole();
+		Collection<NTDProject> pcoll = project_map.get(c);
+		
+		List<NTDProject> newcoll = new LinkedList<NTDProject>();
+		boolean found = false;
+		for(NTDProject p : pcoll){
+			if(p!= proj) newcoll.add(p);
+			else found = true;
+		}
+		
+		project_map.put(c, newcoll);
+		
+		return found;
+	}
 	
 }

@@ -15,8 +15,7 @@ public class EncryptionRegion {
 	
 	private List<byte[]> keydata;
 	
-	public EncryptionRegion()
-	{
+	public EncryptionRegion(){
 		def = null;
 		offset = -1;
 		size = 0;
@@ -24,8 +23,7 @@ public class EncryptionRegion {
 		keydata = new LinkedList<byte[]>();
 	}
 	
-	public EncryptionRegion(EncryptionDefinition definition, long off, long len, String bufferPath)
-	{
+	public EncryptionRegion(EncryptionDefinition definition, long off, long len, String bufferPath){
 		def = definition;
 		offset = off;
 		size = len;
@@ -45,8 +43,7 @@ public class EncryptionRegion {
 	public void setDecryptBufferPath(String path){decrypt_path = path;}
 	public void addKeyData(byte[] data){keydata.add(data);}
 
-	public long getApproximateSerializedSize(boolean includeVLS)
-	{
+	public long getApproximateSerializedSize(boolean includeVLS){
 		long sz = 4+8+8;
 		if(includeVLS) sz += 3 + (decrypt_path.length() << 1);
 		sz += 2;
@@ -55,8 +52,7 @@ public class EncryptionRegion {
 		return sz;
 	}
 	
-	public boolean inRegion(long off, long len)
-	{
+	public boolean inRegion(long off, long len){
 		long edoff = off+len;
 		long myed = offset + size;
 		
