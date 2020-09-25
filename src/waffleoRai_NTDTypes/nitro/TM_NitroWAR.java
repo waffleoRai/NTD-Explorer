@@ -32,7 +32,7 @@ import waffleoRai_Sound.Sound;
 import waffleoRai_Sound.nintendo.DSWarc;
 import waffleoRai_Sound.nintendo.DSWave;
 import waffleoRai_Utils.FileBuffer;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 
 public class TM_NitroWAR extends TypeManager{

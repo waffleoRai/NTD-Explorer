@@ -19,9 +19,9 @@ import waffleoRai_NTDExCore.filetypes.fileactions.FA_DumpArc;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ExtractFile;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ViewHex;
 import waffleoRai_NTDExGUI.TreePanel;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public class TM_SDAT extends TypeManager{
 	
@@ -42,7 +42,8 @@ public class TM_SDAT extends TypeManager{
 			DirectoryNode root = arc.getArchiveView();
 			
 			//Scan for known types (icons r sxy)
-			NTDTools.notateTree(root, node);
+			//NTDTools.notateTree(root, node);
+			NTDTools.processArchiveContents(root, node, true);
 			NTDTools.doTypeScan(root, null);
 			
 			//Return panel

@@ -10,10 +10,10 @@ import waffleoRai_Containers.nintendo.sar.DSSoundArchive;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.NTDTools;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 /*
  * File Action for reading the file as an archive (of various types
@@ -48,7 +48,8 @@ public class FA_ArcToTree {
 				//System.err.println("FAMergeTree_Narc.doAction || File loaded!");
 				
 				DirectoryNode root = arc.getArchiveTree();
-				NTDTools.notateTree(root, node);
+				//NTDTools.notateTree(root, node);
+				NTDTools.processArchiveContents(root, node, true);
 				NTDTools.doTypeScan(root, null);
 				
 				root.setFileName(node.getFileName());
@@ -119,7 +120,8 @@ public class FA_ArcToTree {
 				//System.err.println("FAMergeTree_Narc.doAction || File loaded!");
 				
 				DirectoryNode root = arc.getArchiveView();
-				NTDTools.notateTree(root, node);
+				//NTDTools.notateTree(root, node);
+				NTDTools.processArchiveContents(root, node, true);
 				NTDTools.doTypeScan(root, null);
 				
 				root.setFileName(node.getFileName());

@@ -2,7 +2,7 @@ package waffleoRai_NTDExCore;
 
 import java.awt.Frame;
 
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public interface FileAction {
 

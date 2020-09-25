@@ -16,7 +16,7 @@ import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ExtractFile;
 import waffleoRai_NTDExGUI.panels.preview.HexPreviewPanel;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public class TM_DSARM9 extends TypeManager{
 

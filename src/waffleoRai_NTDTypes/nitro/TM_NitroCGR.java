@@ -29,7 +29,7 @@ import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.panels.preview.HexPreviewPanel;
 import waffleoRai_NTDExGUI.panels.preview.TilesetViewPanel;
 import waffleoRai_Utils.FileBuffer;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public class TM_NitroCGR extends TypeManager {
 	

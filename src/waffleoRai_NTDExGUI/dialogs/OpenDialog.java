@@ -200,10 +200,22 @@ public class OpenDialog extends JDialog{
 		pnlWiiU.setOpaque(false);
 		int gcount_wiiu = loadTab(new Console[]{Console.WIIU}, pnlWiiU, loadlist);
 		
-		JScrollPane spSwitch = new JScrollPane();
+		JScrollPane spSwitch = new JScrollPane(){
+			private static final long serialVersionUID = -3566291281042523295L;
+
+			public void paintComponent(Graphics g){
+				super.paintComponent(g);
+				if(pnlbkg != null) g.drawImage(pnlbkg, 0, 0, null);
+			}
+		};
 		spSwitch.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		tabbedPane.addTab("Switch", null, spSwitch, null);
 		tabbedPane.setEnabledAt(TAB_IDX_SWITCH, false);
+		
+		JPanel pnlSwitch = new JPanel();
+		spSwitch.setViewportView(pnlSwitch);
+		pnlSwitch.setOpaque(false);
+		int gcount_switch = loadTab(new Console[]{Console.SWITCH}, pnlSwitch, loadlist);
 		
 		int tabcount = tabbedPane.getTabCount();
 		blockCount = new int[tabcount];
@@ -214,6 +226,7 @@ public class OpenDialog extends JDialog{
 		setSPDimension(gcount_wii, TAB_IDX_WII, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spWii);
 		setSPDimension(gcount_3ds, TAB_IDX_3DS, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, sp3DS);
 		setSPDimension(gcount_wiiu, TAB_IDX_WIIU, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spWiiU);
+		setSPDimension(gcount_switch, TAB_IDX_SWITCH, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spSwitch);
 		
 		for(int i = 0; i < blockCount.length; i++)
 		{

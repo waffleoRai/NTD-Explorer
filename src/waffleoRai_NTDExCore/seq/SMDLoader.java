@@ -23,7 +23,7 @@ import waffleoRai_SeqSound.misc.smd.SMDTrack;
 import waffleoRai_SoundSynth.SequencePlayer;
 import waffleoRai_SoundSynth.SynthBank;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 import waffleoRai_soundbank.SoundbankDef;
 import waffleoRai_soundbank.procyon.SWD;
 

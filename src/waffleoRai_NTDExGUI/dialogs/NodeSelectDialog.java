@@ -17,7 +17,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.BevelBorder;
 
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public class NodeSelectDialog extends JDialog{
 

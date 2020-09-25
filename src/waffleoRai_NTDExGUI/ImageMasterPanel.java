@@ -22,8 +22,8 @@ import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
 import waffleoRai_NTDExGUI.dialogs.TreeDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.panels.FileViewPanel;
-import waffleoRai_Utils.DirectoryNode;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.DirectoryNode;
+import waffleoRai_Files.tree.FileNode;
 
 import java.awt.FlowLayout;
 import java.awt.Frame;

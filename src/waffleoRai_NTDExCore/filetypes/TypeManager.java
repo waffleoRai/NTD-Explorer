@@ -18,10 +18,10 @@ import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public abstract class TypeManager {
 	

@@ -3,7 +3,7 @@ package waffleoRai_NTDExGUI.dialogs.graphics;
 import java.util.List;
 
 import waffleoRai_GUITools.CheckeredImagePane;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public interface ImageResourceMatcher {
 	

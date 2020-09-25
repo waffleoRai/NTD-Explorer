@@ -22,7 +22,7 @@ import javax.swing.border.EtchedBorder;
 
 import waffleoRai_GUITools.CheckeredImagePane;
 import waffleoRai_GUITools.ComponentGroup;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;

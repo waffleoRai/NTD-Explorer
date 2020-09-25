@@ -15,8 +15,8 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
 import waffleoRai_NTDExGUI.icons.TypeIconTreeRenderer;
-import waffleoRai_Utils.DirectoryNode;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.DirectoryNode;
+import waffleoRai_Files.tree.FileNode;
 
 import java.awt.Insets;
 import java.util.LinkedList;

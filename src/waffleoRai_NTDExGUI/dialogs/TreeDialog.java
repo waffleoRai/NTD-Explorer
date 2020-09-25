@@ -5,8 +5,8 @@ import java.awt.Frame;
 
 import javax.swing.JDialog;
 
-import waffleoRai_Utils.DirectoryNode;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.DirectoryNode;
+import waffleoRai_Files.tree.FileNode;
 
 import java.awt.GridBagLayout;
 import javax.swing.JPanel;

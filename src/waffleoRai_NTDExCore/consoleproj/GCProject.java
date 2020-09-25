@@ -21,7 +21,7 @@ import waffleoRai_NTDExGUI.banners.Unanimator;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 
 /*
@@ -36,13 +36,16 @@ import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
  * 2020.07.22 | 1.1.1
  * 	Specified icon size for display button
  * 
+ * 2020.08.16 | 1.1.1 -> 1.2.0
+ * 	Added low-level FS method
+ * 
  */
 
 /**
  * NTDProject implementation for a GameCube disk image.
  * @author Blythe Hospelhorn
- * @version 1.1.1
- * @since July 22, 2020
+ * @version 1.2.0
+ * @since August 16, 2020
  *
  */
 public class GCProject extends NTDProject{
@@ -127,6 +130,11 @@ public class GCProject extends NTDProject{
 		
 		NTDTools.doTypeScan(root, null);
 		stampModificationTime();
+	}
+	
+	public void resetTreeFSDetail(ProgressListeningDialog observer) throws IOException{
+		//TODO
+		resetTree(observer);
 	}
 	
 	public String[] getBannerLines(){

@@ -5,7 +5,7 @@ import javax.swing.JPanel;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExGUI.FileActionListener;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;

@@ -18,12 +18,11 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileFilter;
 
-import waffleoRai_Compression.definitions.AbstractCompDef;
-import waffleoRai_Compression.definitions.CompDefNode;
-import waffleoRai_Compression.definitions.CompressionInfoNode;
 import waffleoRai_Containers.ArchiveDef;
+import waffleoRai_Containers.nintendo.nx.NXCrypt;
 import waffleoRai_Files.Converter;
 import waffleoRai_Files.FileClass;
+import waffleoRai_Files.FileNodeModifierCallback;
 import waffleoRai_Files.FileTypeDefinition;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
@@ -33,96 +32,47 @@ import waffleoRai_NTDExCore.memcard.GCMCBannerImporter;
 import waffleoRai_NTDExCore.memcard.PSXMCBannerImporter;
 import waffleoRai_NTDExCore.memcard.WiiSaveBannerImporter;
 import waffleoRai_NTDExGUI.ExplorerForm;
+import waffleoRai_NTDExGUI.dialogs.AddHACKeyDialog;
 import waffleoRai_NTDExGUI.dialogs.BannerImportDialog;
 import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileNode;
-import waffleoRai_Utils.LinkNode;
+import waffleoRai_Files.tree.FileNode;
+import waffleoRai_Files.tree.LinkNode;
 
 public class NTDTools {
 	
-	public static List<CompressionInfoNode> getCompressionChain(FileNode archive)
-	{
-		List<CompressionInfoNode> list = new LinkedList<CompressionInfoNode>();
-		FileTypeNode t = archive.getTypeChainHead();
+	public static void processArchiveContents(DirectoryNode contents, FileNode archive, boolean addArchive){
+		if(archive == null) return;
+		if(contents == null) return;
 		
-		long off = archive.getOffset();
-		long len = archive.getLength();
-		while(t != null)
-		{
-			if(t.isCompression())
-			{
-				AbstractCompDef def = ((CompDefNode)t).getDefinition();
-				list.add(new CompressionInfoNode(def, off, len));
-				t = t.getChild();
-				off = 0;
-				len = -1;
-			}
-			t = t.getChild();
-		}
-		
-		//if(list.isEmpty()) System.err.println("No compression on archive!");
-		return list;
-	}
-	
-	public static void notateDir(DirectoryNode dir, List<CompressionInfoNode> chain, FileNode arcnode)
-	{
-		List<FileNode> children = dir.getChildren();
-		for(FileNode child : children)
-		{
-			if(child instanceof DirectoryNode)
-			{
-				notateDir(((DirectoryNode)child), chain, arcnode);
-			}
-			else
-			{
-				//System.err.println("Notating node " + child.getFullPath());
-				child.setSourcePath(arcnode.getSourcePath());
-				if(chain.isEmpty()){
-					if(child.sourceDataCompressed()){
-						List<CompressionInfoNode> cnodes = child.getCompressionChain();
-						for(CompressionInfoNode c : cnodes){
-							c.setStartOffset(c.getStartOffset() + arcnode.getOffset());
-						}
-					}
-					else{
-						child.setOffset(child.getOffset() + arcnode.getOffset());	
-					}
+		//Sets the archive node to the container for all tree members (if compressed)
+		if(archive.hasCompression()){
+			contents.doForTree(new FileNodeModifierCallback(){
+
+				public void doToNode(FileNode node) {
+					if(node.isDirectory()) return;
+					node.setContainerNode(archive);
 				}
-				else{
-					//System.err.println("Compression chain found:");
-					for(CompressionInfoNode c : chain){
-						//System.err.println("Compression c: 0x" + Long.toHexString(c.getStartOffset()));
-						child.addCompressionChainNode(c.getDefinition(), c.getStartOffset(), c.getLength());
-					}	
-				}
-			}
+				
+			});
+		}
+		else{
+			//Update offsets
+			contents.incrementTreeOffsetsBy(archive.getOffset());
 		}
 		
-	}
-	
-	public static void notateTree(DirectoryNode root, FileNode archive)
-	{
-		/*Basically, this function notes the source archive file's
-		 * compression routines in the nodes of its contents.
-		 * 
-		 * That way, when the project tree is saved with these noted, these
-		 * internal files can be loaded without later without having to re-parse
-		 * the source archive. (Though it does have to be decompressed).
-		 */
-		
-		notateDir(root, getCompressionChain(archive), archive);
-		
-		//Get type chain tail...
-		FileTypeNode tp = archive.getTypeChainHead();
-		if(tp != null){
-			while(tp.getChild() != null) tp = tp.getChild();
-			root.setFileClass(tp.getFileClass());
+		//Also adds the archive node to the tree so it can be examined even
+		//after the archive has been mounted. (Optional)
+		if(addArchive){
+			FileNode acopy = archive.copy(null);
+			acopy.setFileName("~" + archive.getFileName());
+			acopy.setParent(contents);
 		}
+		
 	}
 	
 	public static void extractArchivesToTree(DirectoryNode dir, ProgressListeningDialog listener, List<FileNode> failed)
@@ -131,22 +81,25 @@ public class NTDTools {
 		listener.setSecondaryString("Scanning " + dir.getFullPath());
 		//System.err.println("Scanning " + dir.getFullPath());
 		List<FileNode> children = dir.getChildren();
-		for(FileNode child : children)
-		{
-			if(child instanceof DirectoryNode)
-			{
+		for(FileNode child : children){
+			if(child instanceof DirectoryNode){
 				extractArchivesToTree((DirectoryNode)child, listener, failed);
 			}
 			else if(child instanceof LinkNode){}
-			else
-			{
+			else{
 				listener.setPrimaryString("Scanning files");
 				listener.setSecondaryString("Scanning " + child.getFullPath());
+				
+				//Skip if file name starts with ~
+				//Likely a previously mounted arch node inside itself.
+				//Unless you want a recursive nightmare to descend upon you.
+				//Of course if your ROM has a bunch of archives that start with ~ then TFB I guess
+				if(child.getFileName().startsWith("~")) continue;
+				
 				//System.err.println("Scanning " + child.getFullPath());
 				//Check type...
 				FileTypeNode head = child.getTypeChainHead();
-				if(head == null)
-				{
+				if(head == null){
 					//Run detection...
 					listener.setPrimaryString("Checking file type");
 					head = TypeManager.detectType(child);
@@ -159,13 +112,11 @@ public class NTDTools {
 				FileTypeNode tail = head;
 				while(tail.getChild() != null) tail = tail.getChild();
 				//if(tail != null) System.err.println("Type tail: " + tail.toString());
-				if(tail != null && (tail.getFileClass() == FileClass.ARCHIVE))
-				{
+				if(tail != null && (tail.getFileClass() == FileClass.ARCHIVE)){
 					//System.err.println("Tail is an archive!");
 					listener.setPrimaryString("Reading archive");
 					listener.setSecondaryString("Parsing " + child.getFullPath());
-					try
-					{
+					try{
 						//Need to nab the definition
 						ArchiveDef def = (ArchiveDef)(tail.getTypeDefinition());
 						DirectoryNode arcroot = def.getContents(child);
@@ -174,7 +125,8 @@ public class NTDTools {
 						listener.setSecondaryString("Copying " + child.getFullPath());
 						
 						//Clean up extracted tree
-						NTDTools.notateTree(arcroot, child);
+						//NTDTools.notateTree(arcroot, child);
+						NTDTools.processArchiveContents(arcroot, child, true);
 						arcroot.setFileName(child.getFileName());
 						doTypeScan(arcroot, listener);
 						//arcroot.setFileClass(tail.getFileClass());
@@ -189,8 +141,7 @@ public class NTDTools {
 						//In case this archive contains more archives
 						extractArchivesToTree(arcroot, listener, failed);
 					}
-					catch(Exception x)
-					{
+					catch(Exception x){
 						x.printStackTrace();
 						failed.add(child);
 					}
@@ -641,4 +592,38 @@ public class NTDTools {
 		proj.setBannerIcon(ico);
 	}
 	
+	public static void importSwitchKeysFromDump(ExplorerForm gui){
+		
+		//Show path selection dialog...
+		AddHACKeyDialog dialog = new AddHACKeyDialog(gui);
+		dialog.setVisible(true);
+		
+		if(!dialog.confirmSelected()) return;
+		String prod_path = dialog.getProductKeysPath();
+		String titl_path = dialog.getTitleKeysPath();
+		
+		//Load into an NXCrypt
+		NXCrypt nxcrypt = new NXCrypt();
+		try{
+			if(FileBuffer.fileExists(prod_path)) nxcrypt.importCommonKeys(prod_path);
+			if(FileBuffer.fileExists(titl_path)) nxcrypt.importTitleKeys(titl_path);
+		}
+		catch(IOException x){
+			x.printStackTrace();
+			gui.showError("I/O Error: Key file could not be read!");
+			return;
+		}
+		
+		//Save
+		try{
+			nxcrypt.saveCommonKeys(NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_COMMON));
+			nxcrypt.saveTitleKeys(NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_TITLE));
+		}
+		catch(IOException x){
+			x.printStackTrace();
+			gui.showError("I/O Error: Keys could not be saved!");
+			return;
+		}
+	}
+
 }

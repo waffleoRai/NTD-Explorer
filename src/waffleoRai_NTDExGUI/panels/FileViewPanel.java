@@ -7,7 +7,7 @@ import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExGUI.DisposableJPanel;
 import waffleoRai_NTDExGUI.FileActionListener;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 import java.awt.GridBagLayout;
 import java.awt.Frame;

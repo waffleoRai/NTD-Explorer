@@ -7,8 +7,8 @@ import java.awt.Graphics2D;
 import javax.swing.JPanel;
 
 import waffleoRai_Files.FileTypeNode;
-import waffleoRai_Files.ISOFileNode;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.ISOFileNode;
+import waffleoRai_Files.tree.FileNode;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
@@ -124,9 +124,9 @@ public class FileInfoPanel extends JPanel{
         y_off += 15;
         
         str = "Encryption: None";
-        if(loaded_node.getEncryption() != null)
+        if(loaded_node.hasEncryption())
         {
-        	str = "Encryption: " + loaded_node.getEncryption().getDescription();
+        	str = "Encryption: " + loaded_node.getEncryptionDefChain().get(0).getDescription();
         }
         g2d.drawString(str, x_off, y_off);
         y_off += 15;

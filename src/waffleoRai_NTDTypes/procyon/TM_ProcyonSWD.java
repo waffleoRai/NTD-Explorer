@@ -32,10 +32,10 @@ import waffleoRai_NTDExGUI.panels.preview.HexPreviewPanel;
 import waffleoRai_NTDExGUI.panels.preview.SimpleSoundbankTreePanel;
 import waffleoRai_NTDExGUI.panels.preview.WaveArchiveViewPanel;
 import waffleoRai_Sound.Sound;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 import waffleoRai_soundbank.SoundbankNode;
 import waffleoRai_soundbank.procyon.SWD;
 

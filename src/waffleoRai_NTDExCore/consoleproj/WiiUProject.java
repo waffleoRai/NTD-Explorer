@@ -28,10 +28,10 @@ import waffleoRai_NTDExGUI.banners.Unanimator;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 import waffleoRai_fdefs.nintendo.WiiAESDef;
 
 /*
@@ -40,13 +40,15 @@ import waffleoRai_fdefs.nintendo.WiiAESDef;
  * 2020.07.25 | 1.0.0
  * 	Initial documentation
  * 
+ * 2020.08.16 | 1.0.0 -> 1.1.0
+ * 	Added low-level FS method
  */
 
 /**
  * A project implementation for Wii U WUD images.
  * @author Blythe Hospelhorn
- * @version 1.0.0
- * @since July 22, 2020
+ * @version 1.1.0
+ * @since August 16, 2020
  */
 public class WiiUProject extends NTDProject{
 	
@@ -326,6 +328,11 @@ public class WiiUProject extends NTDProject{
 		}
 		
 		setModifiedTime(OffsetDateTime.now());
+	}
+	
+	public void resetTreeFSDetail(ProgressListeningDialog observer) throws IOException{
+		//TODO
+		resetTree(observer);
 	}
 	
 	public String[] getBannerLines(){

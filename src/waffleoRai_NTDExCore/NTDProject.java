@@ -15,20 +15,28 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 import waffleoRai_Files.EncryptionDefinitions;
+import waffleoRai_Files.NodeMatchCallback;
 import waffleoRai_Image.Animation;
 import waffleoRai_Image.AnimationFrame;
 import waffleoRai_Image.SimpleAnimation;
 import waffleoRai_NTDExCore.consoleproj.CitrusProject;
 import waffleoRai_NTDExCore.consoleproj.DSProject;
 import waffleoRai_NTDExCore.consoleproj.GCProject;
+import waffleoRai_NTDExCore.consoleproj.NXProject;
 import waffleoRai_NTDExCore.consoleproj.PSXProject;
 import waffleoRai_NTDExCore.consoleproj.WiiProject;
 import waffleoRai_NTDExCore.consoleproj.WiiUProject;
@@ -36,11 +44,11 @@ import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_Utils.BinFieldSize;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileNode;
-import waffleoRai_Utils.FileTreeSaver;
+import waffleoRai_Files.tree.FileNode;
+import waffleoRai_Files.tree.FileTreeSaver;
 import waffleoRai_Utils.SerializedString;
 
 /*
@@ -61,6 +69,17 @@ import waffleoRai_Utils.SerializedString;
  * 2020.07.04 | 2.1.0 -> 2.1.1
  * 	Fixed some bugs with saving encryption info. Was reliant on deprecated
  * 	isEncrypted flag, so removed flag.
+ * 
+ * 2020.08.09 | 2.1.1 -> 2.2.0
+ * 	Added callbacks for project opening and closing
+ * 	(Originally for loading decryption data)
+ * 
+ * 2020.08.14 | 2.2.0 -> 2.3.0
+ * 	Added changeShortcode() and resetTreeFSDetail()
+ * 
+ * 2020.09.19 | 2.3.0 -> 3.0.0
+ * 	Added patch & DLC referencing
+ * 
  */
 
 /**
@@ -69,8 +88,8 @@ import waffleoRai_Utils.SerializedString;
  * can be found allowing for flexibility and memory conservation. Also includes
  * many fields for metadata such as software title and region.
  * @author Blythe Hospelhorn
- * @version 2.1.1
- * @since July 4, 2020
+ * @version 3.0.0
+ * @since September 19, 2020
  *
  */
 public abstract class NTDProject implements Comparable<NTDProject>{
@@ -108,6 +127,20 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * 		KeyDat Entries
 	 * 			KeyDat Len[2]
 	 * 			KeyDat [Len]
+	 * 
+	 * Patches (V7+)
+	 * 	Loaded Index [2] (0xFFFF if base. Last loaded patch state.)
+	 * 	Patch Count [2]
+	 * 		Key [VLS 2x2] (This is for naming the tree file)
+	 * 		Version Str [VLS 2x2] (Display string)
+	 * 		Source Path [VLS 2x2]
+	 * DLC (V7+)
+	 * 	DLC Count [2]
+	 * 		Flags [2]
+	 * 			0 - Was loaded at last save
+	 *  	Key [VLS 2x2] (This is for naming the tree file & marking nodes)
+	 * 		Display Str [VLS 2x2] (Display string)
+	 * 		Source Path [VLS 2x2]
 	 * 
 	 * (For Banner)
 	 * Local Game Name [VLS 2x2] 
@@ -164,6 +197,8 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	public static final String MAKERNAME_EA = "Electronic Arts";
 	
 	public static final String PATH_PLACEHOLDER = "<NA>";
+	
+	public static final String METAKEY_DLCGROUP = "DLCGROUP";
 
 	/*----- Instance Variables -----*/
 	
@@ -184,11 +219,177 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	private String pubName;
 	private Animation banner;
 	
+	private AddOnRecord p_state; //Current patch state
+	private Set<String> loaded_addons; //Currently loaded add-ons
 	private DirectoryNode custom_tree;
 	
 	private OffsetDateTime volume_time;
 	private OffsetDateTime imported_time;
 	private OffsetDateTime modified_time;
+	
+	//Updates & DLC additions
+	//Updates are stored as alternate trees
+	//Can be merged to base tree with file node UIDs
+	private Map<String, AddOnRecord> patch_entries;
+	private Map<String, AddOnRecord> added_entries;
+	
+	/*----- Structures -----*/
+	
+	/**
+	 * A small storage class for holding information describing a patch
+	 * or addition imported to an <code>NTDProject</code>.
+	 * @author Blythe Hospelhorn
+	 * @version 1.0.0
+	 * @since 3.0.0
+	 */
+	public static class AddOnRecord{
+		
+		private String key;
+		private String display;
+		private String path;
+		
+		private boolean is_patch;
+		
+		/**
+		 * Create a new <code>AddOnRecord</code> with an automatically generated key,
+		 * null source path, and default parameters.
+		 * @since 1.0.0
+		 */
+		public AddOnRecord(){
+			this(false);
+		}
+		
+		/**
+		 * Create a new <code>AddOnRecord</code> with the specified parameters.
+		 * @param patch True if this add-on is a patch (overwrites files in the base image),
+		 * false if not.
+		 * @since 1.0.0
+		 */
+		public AddOnRecord(boolean patch){
+			is_patch = patch;
+			
+			Random r = new Random();
+			if(patch) key = "patch_" + Long.toHexString(r.nextLong());
+			else key = "addon_" + Long.toHexString(r.nextLong());
+			
+			display = key;
+		}
+		
+		/**
+		 * Create a new <code>AddOnRecord</code> with the specified parameters.
+		 * @param display_str <code>String</code> to use as a name for displaying or
+		 * listing the add-on in a user interface.
+		 * @param path_str The path, on the local file system, to the original file from
+		 * which this add-on was imported.
+		 * @param patch True if this add-on is a patch (overwrites files in the base image),
+		 * false if not.
+		 * @since 1.0.0
+		 */
+		public AddOnRecord(String display_str, String path_str, boolean patch){
+			is_patch = patch;
+			
+			Random r = new Random();
+			if(patch) key = "patch_" + Long.toHexString(r.nextLong());
+			else key = "addon_" + Long.toHexString(r.nextLong());
+			
+			display = display_str;
+			path = path_str;
+		}
+		
+		/**
+		 * Create a new <code>AddOnRecord</code> with the specified parameters.
+		 * @param key_str <code>String</code> to use as the add-on key. This value
+		 * will be used to reference the add-on uniquely and name the saved tree file.
+		 * @param display_str <code>String</code> to use as a name for displaying or
+		 * listing the add-on in a user interface.
+		 * @param path_str The path, on the local file system, to the original file from
+		 * which this add-on was imported.
+		 * @param patch True if this add-on is a patch (overwrites files in the base image),
+		 * false if not.
+		 * @since 1.0.0
+		 */
+		public AddOnRecord(String key_str, String display_str, String path_str, boolean patch){
+			display = display_str;
+			path = path_str;
+			is_patch = patch;
+			key = key_str;
+		}
+		
+		/**
+		 * Get the <code>String</code> used as the add-on key. This value
+		 * is used to reference the add-on uniquely and name the saved tree file.
+		 * @return The add-on's key <code>String</code>.
+		 * @since 1.0.0
+		 */
+		public String getKey(){return key;}
+		
+		/**
+		 * Get the <code>String</code> to use as a name for displaying or
+		 * listing the add-on in a user interface.
+		 * @return The add-on's display <code>String</code>.
+		 * @since 1.0.0
+		 */
+		public String getDisplayString(){return display;}
+		
+		/**
+		 * Get the path, on the local file system, to the original file from
+		 * which this add-on was imported.
+		 * @return The source path for this add-on.
+		 * @since 1.0.0
+		 */
+		public String getPath(){return path;}
+		
+		/**
+		 * Check whether this add-on refers to a patch, that is, the referenced
+		 * add-on includes modifications to the base image.
+		 * @return True if this add-on is a patch, false if it is not.
+		 * @since 1.0.0
+		 */
+		public boolean isPatch(){return is_patch;}
+		
+		/**
+		 * Set the <code>String</code> to use as a name for displaying or
+		 * listing the add-on in a user interface.
+		 * @param s String to set as display string.
+		 * @since 1.0.0
+		 */
+		public void setDisplayString(String s){display = s;}
+		
+		/**
+		 * Set the source path for this add-on.
+		 * @param s Path to set.
+		 * @since 1.0.0
+		 */
+		public void setPath(String s){path = s;}
+		
+		/**
+		 * Set whether this add-on refers to a patch, that is, the referenced
+		 * add-on includes modifications to the base image.
+		 * @param b True to set as patch, false to set as not a patch.
+		 * @since 1.0.0
+		 */
+		public void setIsPatch(boolean b){is_patch = b;}
+		
+		protected void resetToRandomKey(){
+			Random r = new Random();
+			if(is_patch) key = "patch_" + Long.toHexString(r.nextLong());
+			else key = "addon_" + Long.toHexString(r.nextLong());
+		}
+		
+		protected int estimateSerialSize(){
+			int tot = 0;
+			tot += key.length() + 3;
+			if(display != null) tot += display.length() + 3;
+			else tot += 3;
+			if(path != null) tot += path.length() + 3;
+			else tot += 3;
+			if(!is_patch) tot+=2;
+			return tot;
+		}
+		
+		public String toString(){return display;}
+		
+	}
 	
 	/*----- Construction -----*/
 	
@@ -286,6 +487,19 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		if(tdecrypt_path != null) return tdecrypt_path;
 		tdecrypt_path = NTDProgramFiles.getDecryptTempDir() + File.separator + fullcode;
 		return tdecrypt_path;
+	}
+	
+	/**
+	 * Get the path on the local system to the file where the tree for the
+	 * specified add-on is saved.
+	 * @param key Key string for the add-on.
+	 * @return The path to save tree for the requested add-on, if it could
+	 * be generated.
+	 * @since 3.0.0
+	 */
+	public String getAddonTreeSavePath(String key){
+		String dir = getCustomDataDirPath();
+		return dir + File.separator + "tree_" + key + ".bin";
 	}
 	
 	/*----- Parsing -----*/
@@ -418,7 +632,9 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		case PS1:
 			proj = new PSXProject();
 			break;
-		case SWITCH: break;
+		case SWITCH: 
+			proj = new NXProject();
+			break;
 		case WII:
 			proj = new WiiProject();
 			break;
@@ -513,6 +729,51 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		proj.region = GameRegion.getRegion(renum);
 		proj.language = DefoLanguage.getLanReg((char)lenum);
 		
+		//Read add-on info...
+		if(version >= 7){
+			int last_patch = Short.toUnsignedInt(file.shortFromFile(cpos)); cpos+=2;
+			AddOnRecord[] arr = null;
+			int pcount = Short.toUnsignedInt(file.shortFromFile(cpos)); cpos+=2;
+			if(pcount > 0){
+				arr = new AddOnRecord[pcount];
+				proj.patch_entries = new HashMap<String, AddOnRecord>();
+				for(int i = 0; i < pcount; i++){
+					String[] strs = new String[3];
+					for(int j = 0; j < 3; j++){
+						ss = file.readVariableLengthString(NTDProgramFiles.ENCODING, cpos, BinFieldSize.WORD, 2);
+						strs[j] = ss.getString();
+						cpos += ss.getSizeOnDisk();
+					}
+					AddOnRecord aor = new AddOnRecord(strs[0], strs[1], strs[2], true);
+					proj.patch_entries.put(aor.getKey(), aor);
+					arr[i] = aor;
+				}
+				
+				if(last_patch != 0xFFFF) proj.p_state = arr[last_patch];
+			}
+			
+			pcount = Short.toUnsignedInt(file.shortFromFile(cpos)); cpos+=2;
+			if(pcount > 0){
+				proj.added_entries = new HashMap<String, AddOnRecord>();
+				for(int i = 0; i < pcount; i++){
+					int f = Short.toUnsignedInt(file.shortFromFile(cpos)); cpos+=2;
+					String[] strs = new String[3];
+					for(int j = 0; j < 3; j++){
+						ss = file.readVariableLengthString(NTDProgramFiles.ENCODING, cpos, BinFieldSize.WORD, 2);
+						strs[j] = ss.getString();
+						cpos += ss.getSizeOnDisk();
+					}
+					AddOnRecord aor = new AddOnRecord(strs[0], strs[1], strs[2], false);
+					proj.added_entries.put(aor.getKey(), aor);
+					
+					if((f & 0x1) != 0){
+						if(proj.loaded_addons == null) proj.loaded_addons = new HashSet<String>();
+						proj.loaded_addons.add(aor.getKey());
+					}
+				}
+			}
+		}
+		
 		//Read banner data...
 		ss = file.readVariableLengthString(NTDProgramFiles.ENCODING, cpos, BinFieldSize.WORD, 2);
 		proj.localName = ss.getString();
@@ -532,15 +793,43 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		return proj;
 	}
 	
+	private void loadAndMountSavedDLC(String key) throws IOException, UnsupportedFileTypeException{
+		//Saved as a node collection.
+		
+		String npath = getAddonTreeSavePath(p_state.getKey());
+		Collection<FileNode> allnodes = FileTreeSaver.loadNodes(npath, custom_tree);
+		
+		DirectoryNode umparent = null;
+		for(FileNode n : allnodes){
+			if(n.getParent() == null){
+				if(umparent == null) umparent = new DirectoryNode(custom_tree, key);
+				n.setParent(umparent);
+			}
+		}
+		
+	}
+	
 	/**
 	 * Load the currently saved file tree for this project from the project save directory.
+	 * <br>As of version 3.0.0, this method loads the tree reflecting the current patch/add-on
+	 * state of the project.
 	 * @throws IOException If the tree file cannot be found or read.
 	 * @throws UnsupportedFileTypeException If the tree file cannot be parsed.
 	 */
 	public void loadSavedTree() throws IOException, UnsupportedFileTypeException{
+		//Needs to reflect patch/DLC state!!!
+		
 		String tpath = getCustomTreeSavePath();
+		if(p_state != null) tpath = getAddonTreeSavePath(p_state.getKey());
+		
 		try{
 			if(FileBuffer.fileExists(tpath)) custom_tree = FileTreeSaver.loadTree(tpath);
+			
+			//Load & mount DLCs...
+			if(loaded_addons != null){
+				for(String k : loaded_addons) loadAndMountSavedDLC(k);
+			}
+			
 		}
 		catch(Exception x){
 			System.err.println("Corrupted tree found. Resetting...");
@@ -673,6 +962,66 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		return imgdat;
 	}
 	
+	private FileBuffer serializeAddOnData(){
+
+		int sz = 0;
+		if(patch_entries != null){
+			for(AddOnRecord r : patch_entries.values()) sz += r.estimateSerialSize();
+		}
+		if(added_entries != null){
+			for(AddOnRecord r : added_entries.values()) sz += r.estimateSerialSize();
+		}
+		
+		sz += 6;
+		FileBuffer out = new FileBuffer(sz, true);
+		
+		if(patch_entries != null){
+			int pcount = patch_entries.size();
+			if(pcount > 0){
+				AddOnRecord[] rarr = new AddOnRecord[pcount];
+				int i = 0;
+				for(AddOnRecord r : patch_entries.values()) rarr[i++] = r;
+				
+				//Find the currently set one...
+				int idx = -1;
+				if(this.p_state != null){
+					for(i = 0; i < pcount; i++){
+						if(rarr[i] != null){
+							if(rarr[i].getKey().equals(p_state.getKey())){
+								idx = i;
+								break;
+							}
+						}
+					}
+				}
+				
+				out.addToFile((short)idx);
+				out.addToFile((short)pcount);
+				for(AddOnRecord r : rarr){
+					out.addVariableLengthString(r.getKey(), BinFieldSize.WORD, 2);
+					out.addVariableLengthString("UTF8", r.getDisplayString(), BinFieldSize.WORD, 2);
+					out.addVariableLengthString("UTF8", r.getPath(), BinFieldSize.WORD, 2);
+				}	
+			}
+		}
+		else out.addToFile((short)0);
+		
+		if(added_entries != null){
+			out.addToFile((short)added_entries.size());
+			for(AddOnRecord r : added_entries.values()){
+				int f = 0;
+				if(loaded_addons != null && loaded_addons.contains(r.getKey())) f |= 0x1;
+				out.addToFile((short)f);
+				out.addVariableLengthString(r.getKey(), BinFieldSize.WORD, 2);
+				out.addVariableLengthString("UTF8", r.getDisplayString(), BinFieldSize.WORD, 2);
+				out.addVariableLengthString("UTF8", r.getPath(), BinFieldSize.WORD, 2);
+			}
+		}
+		else out.addToFile((short)0);
+		
+		return out;
+	}
+	
 	/**
 	 * Generate a serialization of the metadata and banner data contained within
 	 * this project to store as a <code>proj.bin</code> block.
@@ -742,6 +1091,9 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 			}
 		}
 		
+		FileBuffer addons = serializeAddOnData();
+		sz += (int)addons.getFileSize();
+		
 		//
 		FileBuffer out = new FileBuffer(sz, true);
 		
@@ -800,6 +1152,10 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 			}
 		}
 		
+		//Add-ons...
+		out.addToFile(addons);
+		
+		//Banner Strings
 		out.addToFile(str_name);
 		out.addToFile(str_pub);
 		if(volume_time == null) out.addToFile(0L);
@@ -818,8 +1174,34 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * @throws IOException If there is an error writing to the target file.
 	 */
 	public void saveTree() throws IOException{
+
+		//Needs to reflect patch/DLC state!
 		String tpath = getCustomTreeSavePath();
-		FileTreeSaver.saveTree(custom_tree, tpath);
+		if(p_state != null) tpath = getAddonTreeSavePath(p_state.getKey());
+		
+		if(!this.hasLoadedDLC()){
+			//No need to mess around. Save as is.
+			FileTreeSaver.saveTree(custom_tree, tpath, false, true);
+			return;
+		}
+		
+		Map<String, Collection<FileNode>> dlcs = new HashMap<String, Collection<FileNode>>();
+		for(String k : loaded_addons){
+			Collection<FileNode> dlc_nodes = dismountDLCFromTree(k, custom_tree);
+			dlcs.put(k, dlc_nodes);
+		}
+		
+		//Save base tree...
+		FileTreeSaver.saveTree(custom_tree, tpath, false, true);
+		
+		//Save DLC lists (and restore to tree)...
+		for(String k : loaded_addons){
+			Collection<FileNode> dlc_nodes = dlcs.get(k);
+			String dpath = getAddonTreeSavePath(k);
+			for(FileNode n : dlc_nodes) n.restoreToParent();
+			FileTreeSaver.saveNodes(dlc_nodes, dpath, false);
+		}
+		
 	}
 	
 	/**
@@ -830,6 +1212,9 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * @throws IOException If the target file cannot be written.
 	 */
 	public void exportProject(String outpath) throws IOException{
+		//TODO
+		//Modify to allow for patch/DLC trees as well?
+		
 		//Do header
 		FileBuffer header = new FileBuffer(16, true);
 		header.printASCIIToFile(EXPORT_MAGIC);
@@ -1008,6 +1393,9 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 */
 	public DirectoryNode getTreeRoot()
 	{
+		//TODO
+		//Remember to auto modify if patch/DLC state has changed
+		
 		if(this.custom_tree == null)
 		{
 			try {loadSavedTree();} 
@@ -1038,6 +1426,133 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		scaled.getGraphics().drawImage(s, 0, 0, null);
 		
 		return scaled;
+	}
+	
+	/**
+	 * Get the info structure of the currently set patch state. If
+	 * the project is currently set to the base tree, then this method
+	 * returns <code>null</code>.
+	 * @return <code>AddOnRecord</code> containing key and display strings
+	 * for the currently set patch state, or <code>null</code> if none such set.
+	 * @since 3.0.0
+	 */
+	public AddOnRecord getCurrentPatchState(){return p_state;}
+	
+	/**
+	 * Get whether this project has any DLC trees/records associated with it.
+	 * @return True if this project has imported DLC, false if not.
+	 * @since 3.0.0
+	 */
+	public boolean hasDLC(){
+		if(this.added_entries == null) return false;
+		return !this.added_entries.isEmpty();
+	}
+	
+	/**
+	 * Get whether this project has any DLC loaded and mounted to the project
+	 * tree at this time.
+	 * @return True if the project has active loaded DLC modules. False if not.
+	 * @since 3.0.0
+	 */
+	public boolean hasLoadedDLC(){
+		if(loaded_addons == null) return false;
+		return !loaded_addons.isEmpty();
+	}
+	
+	/**
+	 * Get the <code>String</code> keys of all currently loaded DLC
+	 * modules.
+	 * @return A <code>Collection</code> containing the keys of all loaded
+	 * DLC modules. If there are none, the <code>Collection</code> will be
+	 * empty.
+	 * @since 3.0.0
+	 */
+	public Collection<String> getLoadedDLCKeys(){
+		Set<String> keys = new HashSet<String>();
+		if(hasLoadedDLC()) keys.addAll(loaded_addons);
+		return keys;
+	}
+	
+	/**
+	 * Get the <code>String</code> keys of all patch states associated
+	 * with the project.
+	 * @return A <code>Collection</code> containing the keys of all associated
+	 * patch modules. If there are none, the <code>Collection</code> will be
+	 * empty.
+	 * @since 3.0.0
+	 */
+	public Collection<String> getAllPatchKeys(){
+		Set<String> keys = new HashSet<String>();
+		if(this.patch_entries != null)keys.addAll(patch_entries.keySet());
+		return null;
+	}
+	
+	/**
+	 * Get the <code>String</code> keys of all DLC modules associated
+	 * with the project.
+	 * @return A <code>Collection</code> containing the keys of all associated
+	 * DLC modules. If there are none, the <code>Collection</code> will be
+	 * empty.
+	 * @since 3.0.0
+	 */
+	public Collection<String> getAllDLCKeys(){
+		Set<String> keys = new HashSet<String>();
+		if(this.added_entries != null)keys.addAll(added_entries.keySet());
+		return null;
+	}
+	
+	/**
+	 * Get the records for all patch states associated with this project.
+	 * @return A <code>Collection</code> containing all the patch records
+	 * for this project, or an empty <code>Collection</code> if there are none.
+	 * @since 3.0.0
+	 */
+	public Collection<AddOnRecord> getAllPatchRecords(){
+		List<AddOnRecord> list = new LinkedList<AddOnRecord>();
+		if(patch_entries != null) list.addAll(patch_entries.values());
+		return list;
+	}
+	
+	/**
+	 * Get the records for all DLC modules associated with this project.
+	 * @return A <code>Collection</code> containing all the DLC records
+	 * for this project, or an empty <code>Collection</code> if there are none.
+	 * @since 3.0.0
+	 */
+	public Collection<AddOnRecord> getAllDLCRecords(){
+		List<AddOnRecord> list = new LinkedList<AddOnRecord>();
+		if(added_entries != null) list.addAll(added_entries.values());
+		return list;
+	}
+	
+	/**
+	 * Get the patch record associated with this project that is mapped
+	 * to the provided <code>String</code> key.
+	 * @param key Record key associated with desired patch record.
+	 * @return The patch record, if one is found. If there is no match
+	 * to the provided key, or the key is <code>null</code>, then <code>null</code>
+	 * is returned.
+	 * @since 3.0.0
+	 */
+	public AddOnRecord getPatchRecord(String key){
+		if(key == null) return null;
+		if(patch_entries == null) return null;
+		return patch_entries.get(key);
+	}
+	
+	/**
+	 * Get the DLC record associated with this project that is mapped
+	 * to the provided <code>String</code> key.
+	 * @param key Record key associated with desired DLC record.
+	 * @return The DLC record, if one is found. If there is no match
+	 * to the provided key, or the key is <code>null</code>, then <code>null</code>
+	 * is returned.
+	 * @since 3.0.0
+	 */
+	public AddOnRecord getDLCRecord(String key){
+		if(key == null) return null;
+		if(added_entries == null) return null;
+		return added_entries.get(key);
 	}
 	
 	/*----- Setters -----*/
@@ -1072,6 +1587,18 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * @throws IOException If the ROM image file needs to be read an cannot be loaded.
 	 */
 	public abstract void resetTree(ProgressListeningDialog observer) throws IOException;
+	
+	/**
+	 * Reset the project file tree to the tree found on the associated software ROM.
+	 * This variation of resetTree produces a tree view that includes FS data as files and
+	 * low level divisions. Use this method instead of resetTree to really see what's on the ROM
+	 * rather than just the user-friendly file system.
+	 * @param observer Progress dialog that displays reset/image reparse process to user.
+	 * This parameter can be null, in which case progress updates will not be visible.
+	 * @throws IOException If the ROM image file needs to be read an cannot be loaded.
+	 * @since 2.3.0
+	 */
+	public abstract void resetTreeFSDetail(ProgressListeningDialog observer) throws IOException;
 	
 	/**
 	 * Set the banner icon by generating a 1 frame/image animation
@@ -1112,6 +1639,221 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 */
 	public void setPublisherName(String str){this.pubName = str;}
 	
+	/**
+	 * Change the short gamecode for this project. This method also
+	 * updates the long gamecode containing the short gamecode.
+	 * @param code The new short gamecode to set.
+	 * @since 2.3.0
+	 */
+	public void changeShortcode(String code){
+		//String gcold = gamecode;
+		//String gcold_long = fullcode;
+		
+		gamecode = code;
+		switch(console){
+		case GAMECUBE:
+		case WII:
+		case WIIU:
+		case DS:
+		case DSi:
+		case _3DS:
+		case SWITCH:
+			fullcode = console.getShortCode() + "_" + code + "_" + region.getShortCode();
+			break;
+		case PS1:
+		default: 
+			fullcode = code;
+			break;
+		}
+		
+		//Remap if needed
+		
+		
+	}
+	
+	/**
+	 * Add a patch state to this project, provided both the record containing
+	 * the key and other <code>String</code> info, and the patched image tree.
+	 * @param record Record containing <code>String</code> info for patch state to add.
+	 * If this parameter is left <code>null</code>, then one is generated automatically.
+	 * @param patched_tree File tree for patched image. This tree replaces the base image
+	 * tree when the patch state is set as the active state. If the provided parameter is <code>null</code>,
+	 * this method will throw a <code>NullPointerException</code>.
+	 * @return The <code>String</code> key representing the added patch state in this project.
+	 * Although it will try to map to the key specified by the provided record, if the key
+	 * is already in use, a new key will be generated.
+	 * @throws IOException If an error occurs while saving the patched file tree.
+	 * @throws NullPointerException If the provided tree parameter is <code>null</code>, or a <code>null</code>
+	 * reference is encountered in an unexpected matter downstream.
+	 * @since 3.0.0
+	 */
+	public String addPatchState(AddOnRecord record, DirectoryNode patched_tree) throws IOException{
+
+		if(patched_tree == null) throw new NullPointerException("Patched tree parameter cannot be null!");
+		if(record == null) record = new AddOnRecord(true);
+		
+		//Check to see if the key is already in use...
+		if(patch_entries != null){
+			while(patch_entries.containsKey(record.getKey())){
+				record.resetToRandomKey();
+			}
+		}
+		else patch_entries = new HashMap<String, AddOnRecord>();
+		
+		//Add patch record
+		patch_entries.put(record.getKey(), record);
+		
+		//Save tree
+		String tpath = getAddonTreeSavePath(record.getKey());
+		FileTreeSaver.saveTree(patched_tree, tpath, false, true);
+		
+		return record.getKey();
+	}
+	
+	/**
+	 * Remove the patch state associated with the provided key and return
+	 * the removed record. If a record is matched to the key, the saved
+	 * patch tree file will be deleted as well. If the target patch state
+	 * is the currently set patch state, the state will revert to the base
+	 * state before deletion of patch state.
+	 * @param key <code>String</code> key of patch to remove.
+	 * @return The removed record, if found.
+	 * @throws IOException If there is an error deleting the patch tree file.
+	 * @throws UnsupportedFileTypeException If there is an error refreshing the tree.
+	 * @since 3.0.0
+	 */
+	public AddOnRecord removePatchState(String key) throws IOException, UnsupportedFileTypeException{
+		//Don't forget to unload before deleting...
+		
+		if(p_state != null && p_state.getKey().equals(key)){
+			setToUnpatchedState();
+		}
+		
+		if(patch_entries == null) return null;
+		AddOnRecord aor = patch_entries.remove(key);
+		if(aor == null) return null;
+		
+		String tpath = getAddonTreeSavePath(key);
+		Files.deleteIfExists(Paths.get(tpath));
+		
+		return aor;
+	}
+	
+	/**
+	 * Remove all patch states from this project. If the current state is set
+	 * to a patch state, the project is first reset to its base state.
+	 * All patch tree save files are deleted.
+	 * @throws IOException If there is an error deleting any tree save files.
+	 * @throws UnsupportedFileTypeException If there is an error refreshing the tree.
+	 * @since 3.0.0
+	 */
+	public void clearPatchStates() throws IOException, UnsupportedFileTypeException{
+		//Don't forget to unload before deleting...
+		if(p_state != null) setToUnpatchedState();
+		
+		if(patch_entries == null) return;
+		Collection<String> keys = getAllPatchKeys();
+		for(String k : keys){
+			AddOnRecord aor = patch_entries.remove(k);
+			Files.deleteIfExists(Paths.get(getAddonTreeSavePath(aor.getKey())));
+		}
+		patch_entries.clear(); //Just in case
+		patch_entries = null;
+	}
+	
+	/**
+	 * Add a DLC module to this project provided the given record and list of
+	 * nodes (which should be linked to the existing tree).
+	 * If the key stored in the record is already in use, a new key will be generated.
+	 * The tree file will be generated from the node list when this method is called.
+	 * <br>This method is protected since subclasses should implement
+	 * a method of importing DLC. The tree mounting can be kind of a mess.
+	 * @param record Record containing <code>String</code> info for DLC module to add.
+	 * If this parameter is left <code>null</code>, then one is generated automatically.
+	 * @param dlc_nodes List of nodes (if not linked to the tree, will be mounted to 
+	 * a new dir automatically) comprising DLC.
+	 * If the provided parameter is <code>null</code>,
+	 * this method will throw a <code>NullPointerException</code>.
+	 * @return The <code>String</code> key representing the added DLC module in this project.
+	 * Although it will try to map to the key specified by the provided record, if the key
+	 * is already in use, a new key will be generated.
+	 * @throws IOException If an error occurs while saving the DLC file tree.
+	 * @throws NullPointerException If the provided node list parameter is 
+	 * <code>null</code>, or a <code>null</code>
+	 * reference is encountered in an unexpected matter downstream.
+	 * @since 3.0.0
+	 */
+	protected String addDLCRecord(AddOnRecord record, Collection<FileNode> dlc_nodes) throws IOException{
+		if(dlc_nodes == null) throw new NullPointerException("Node list parameter cannot be null!");
+		if(record == null) record = new AddOnRecord(false);
+		
+		//Check to see if the key is already in use...
+		if(added_entries != null){
+			while(added_entries.containsKey(record.getKey())){
+				record.resetToRandomKey();
+			}
+		}
+		else added_entries = new HashMap<String, AddOnRecord>();
+		
+		//Add record
+		added_entries.put(record.getKey(), record);
+		
+		//Save tree
+		String tpath = getAddonTreeSavePath(record.getKey());
+		FileTreeSaver.saveNodes(dlc_nodes, tpath, false);
+		
+		return record.getKey();
+	}
+	
+	/**
+	 * Remove the DLC module associated with the provided key and return
+	 * the removed record. If a record is matched to the key, the saved
+	 * DLC tree file will be deleted as well. If the target DLC module
+	 * is the currently loaded to the project tree, it will be dismounted
+	 * before deletion of module.
+	 * @param key <code>String</code> key of DLC module to remove.
+	 * @return The removed record, if found.
+	 * @throws IOException If there is an error deleting the DLC tree file.
+	 * @since 3.0.0
+	 */
+	public AddOnRecord removeDLCRecord(String key) throws IOException{
+		//Don't forget to unload before deleting...
+		if(loaded_addons != null && loaded_addons.contains(key)){
+			dismountDLC(key);
+		}
+		
+		if(added_entries == null) return null;
+		AddOnRecord aor = added_entries.remove(key);
+		if(aor == null) return null;
+		
+		String tpath = getAddonTreeSavePath(key);
+		Files.deleteIfExists(Paths.get(tpath));
+		
+		return aor;
+	}
+	
+	/**
+	 * Remove all DLC modules from this project. 
+	 * If any DLC modules are currently loaded, they will be unmounted
+	 * before deletion.
+	 * All DLC tree save files are deleted.
+	 * @throws IOException If there is an error deleting any tree save files.
+	 * @since 3.0.0
+	 */
+	public void clearDLCRecords() throws IOException{
+		//Don't forget to unload before deleting...
+		if(loaded_addons != null) dismountAllDLC();
+		
+		if(added_entries == null) return;
+		Collection<String> keys = getAllDLCKeys();
+		for(String k : keys){
+			AddOnRecord aor = added_entries.remove(k);
+			Files.deleteIfExists(Paths.get(getAddonTreeSavePath(aor.getKey())));
+		}
+		added_entries.clear(); //Just in case
+		added_entries = null;
+	}
+	
 	protected void setConsole(Console c){console = c;}
 	public void setDefoLanguage(DefoLanguage lan){this.language = lan;}
 	public void setRegion(GameRegion r){this.region = r;}
@@ -1126,6 +1868,23 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	protected void setVolumeTime(OffsetDateTime time){this.volume_time = time;}
 	protected void setImportedTime(OffsetDateTime time){this.imported_time = time;}
 	protected void setModifiedTime(OffsetDateTime time){this.modified_time = time;}
+	
+	/*----- Callbacks -----*/
+	
+	/**
+	 * A callback method to be called when the project is opened.
+	 * Sets up program state so that project can be fully utilized.
+	 * @since 2.2.0
+	 */
+	public void onProjectOpen(){}
+	
+	/**
+	 * A callback method to be called when the project is closed.
+	 * Disposes of any temporary files or resources that were used by
+	 * this project and are no longer needed on close.
+	 * @since 2.2.0
+	 */
+	public void onProjectClose(){}
 	
 	/*----- Decryption -----*/
 	
@@ -1157,7 +1916,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 								else sz = end - child.getOffset();
 							}
 						}
-						child.setEncryption(reg.getDefintion(), off, sz);
+						child.addEncryption(reg.getDefintion(), off, sz);
 						break;
 					}
 				}
@@ -1292,6 +2051,172 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		
 		DirectoryNode newparent = (DirectoryNode)target;
 		node.setParent(newparent);
+		
+		return true;
+	}
+	
+	private static Collection<FileNode> dismountDLCFromTree(String key, DirectoryNode tree){
+
+		//Util core, only removes nodes from provided tree.
+		//Does not remove key from "loaded" list.
+		List<FileNode> outlist = new LinkedList<FileNode>();
+		//Leaves...
+		outlist.addAll(tree.getNodesThat(new NodeMatchCallback(){
+
+			public boolean meetsCondition(FileNode n) {
+				if(n.isDirectory()) return false;
+				String metaval = n.getMetadataValue(METAKEY_DLCGROUP);
+				if(metaval.equals(key)){
+					n.hideFromParent();
+					return true;
+				}
+				return false;
+			}
+		}));
+		
+		//Empty directories...
+		outlist.addAll(tree.getNodesThat(new NodeMatchCallback(){
+
+			public boolean meetsCondition(FileNode n) {
+				if(!n.isDirectory()) return false;
+				String metaval = n.getMetadataValue(METAKEY_DLCGROUP);
+				if(metaval.equals(key) && n.getChildCount() < 1){
+					n.hideFromParent();
+					return true;
+				}
+				return false;
+			}
+		}));
+		
+		return outlist;
+	}
+	
+	/**
+	 * Set the project tree to its base unpatched state. This method
+	 * loads the base tree from disk in place of any patched tree currently loaded.
+	 * If there are no patched states or no patched state is loaded, this method
+	 * does nothing.
+	 * @throws UnsupportedFileTypeException If there is an error parsing the tree file.
+	 * @throws IOException If there is an error loading the tree file.
+	 * @since 3.0.0
+	 */
+	public void setToUnpatchedState() throws IOException, UnsupportedFileTypeException{
+		if(p_state == null) return; //Don't bother reloading.
+		p_state = null;
+		loadSavedTree();
+	}
+	
+	/**
+	 * Set the patch state to the one specified by the provided key. If no state
+	 * with the provided key is associated with this project, this method
+	 * returns false. Otherwise, the patched tree state is loaded from disk in place
+	 * of the current tree.
+	 * @param key Key referring to patch state to load.
+	 * @return True if load was successful, false if load failed.
+	 * @since 3.0.0
+	 */
+	public boolean setPatchState(String key){
+
+		if(key == null) return false;
+		if(p_state != null && p_state.getKey().equals(key)) return true; //Already set.
+		
+		AddOnRecord aor = getPatchRecord(key);
+		if(aor == null) return false;
+		
+		p_state = aor;
+		try{loadSavedTree();}
+		catch(IOException e){
+			e.printStackTrace();
+			return false;
+		} 
+		catch (UnsupportedFileTypeException e) {
+			e.printStackTrace();
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Mount the DLC module associated with the provided key to the current
+	 * project tree. If no DLC module is found or the load fails, this method
+	 * returns false.
+	 * @param key Key of DLC module to mount.
+	 * @return True if mount was successful, false if it failed.
+	 * @since 3.0.0
+	 */
+	public boolean mountDLC(String key){
+		if(key == null) return false;
+		if(loaded_addons != null && loaded_addons.contains(key)) return true;
+		
+		AddOnRecord aor = getDLCRecord(key);
+		if(aor == null) return false;
+		
+		if(loaded_addons == null) loaded_addons = new HashSet<String>();
+		loaded_addons.add(aor.getKey());
+		
+		try{loadSavedTree();}
+		catch(IOException e){
+			e.printStackTrace();
+			return false;
+		} 
+		catch (UnsupportedFileTypeException e) {
+			e.printStackTrace();
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Dismount the DLC module associates with the provided key from
+	 * the current project tree. If not DLC module is found or the refresh
+	 * fails, this method returns false.
+	 * @param key Key of DLC module to dismount.
+	 * @return True if dismount was successful, false if it failed.
+	 * @since 3.0.0
+	 */
+	public boolean dismountDLC(String key){
+		
+		if(key == null) return false;
+		if(loaded_addons == null) return true;
+		if(!loaded_addons.contains(key)) return true;
+		
+		loaded_addons.remove(key);
+		
+		try{loadSavedTree();}
+		catch(IOException e){
+			e.printStackTrace();
+			return false;
+		} 
+		catch (UnsupportedFileTypeException e) {
+			e.printStackTrace();
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Dismount all loaded DLC modules from the current tree.
+	 * @return True if full dismount succeeds, false if it fails.
+	 * @since 3.0.0
+	 */
+	public boolean dismountAllDLC(){
+		if(loaded_addons == null) return true;
+		
+		loaded_addons.clear();
+		loaded_addons = null;
+		
+		try{loadSavedTree();}
+		catch(IOException e){
+			e.printStackTrace();
+			return false;
+		} 
+		catch (UnsupportedFileTypeException e) {
+			e.printStackTrace();
+			return false;
+		}
 		
 		return true;
 	}

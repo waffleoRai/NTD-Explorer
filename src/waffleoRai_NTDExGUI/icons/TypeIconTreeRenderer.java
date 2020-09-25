@@ -10,8 +10,8 @@ import javax.swing.JTree;
 import javax.swing.border.LineBorder;
 import javax.swing.tree.DefaultTreeCellRenderer;
 
-import waffleoRai_Utils.DirectoryNode;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.DirectoryNode;
+import waffleoRai_Files.tree.FileNode;
 
 public class TypeIconTreeRenderer extends DefaultTreeCellRenderer{
 

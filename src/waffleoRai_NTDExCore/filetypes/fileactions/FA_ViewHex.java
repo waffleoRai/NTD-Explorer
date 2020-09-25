@@ -10,7 +10,7 @@ import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExGUI.dialogs.HexLaunchDialog;
 import waffleoRai_NTDExGUI.dialogs.HexPreviewDialog;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public class FA_ViewHex implements FileAction{
 	

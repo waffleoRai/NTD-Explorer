@@ -5,15 +5,15 @@ import java.util.Collection;
 
 import waffleoRai_Containers.ISO;
 import waffleoRai_Containers.ISOXAImage;
-import waffleoRai_Files.ISOFileNode;
+import waffleoRai_Files.tree.ISOFileNode;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.consoleproj.PSXProject;
 import waffleoRai_NTDExCore.memcard.BannerImporter.BannerStruct;
 import waffleoRai_NTDExCore.memcard.PSXMCBannerImporter;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public class TestPSXImport {
 

@@ -27,7 +27,7 @@ import waffleoRai_NTDExGUI.panels.preview.SoundPreviewPanel;
 import waffleoRai_Sound.nintendo.DSStream;
 import waffleoRai_Sound.nintendo.NinSound;
 import waffleoRai_Utils.FileBuffer;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 
 public class TM_NitroSTM extends TypeManager{

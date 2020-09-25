@@ -7,8 +7,8 @@ import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.forms.NinSeqPlayerFrame;
 import waffleoRai_SeqSound.ninseq.NinSeq;
 import waffleoRai_SoundSynth.SynthBank;
-import waffleoRai_Utils.DirectoryNode;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.DirectoryNode;
+import waffleoRai_Files.tree.FileNode;
 import waffleoRai_brseqStudioGUI.FullSeqPanel;
 import waffleoRai_soundbank.SoundbankDef;
 

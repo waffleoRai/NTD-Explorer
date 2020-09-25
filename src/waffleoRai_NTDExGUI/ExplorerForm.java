@@ -30,9 +30,9 @@ import waffleoRai_NTDExGUI.dialogs.ImportDialog;
 import waffleoRai_NTDExGUI.dialogs.OpenDialog;
 import waffleoRai_NTDExGUI.dialogs.imageinfo.ImageInfoDialogs;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
@@ -44,6 +44,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.awt.GridBagConstraints;
+import javax.swing.JSeparator;
 
 public class ExplorerForm extends JFrame {
 	
@@ -69,6 +70,10 @@ public class ExplorerForm extends JFrame {
 	
 	private NTDProject loaded_project;
 	
+	private JMenu mnSourcesAddons;
+	private JMenu mnSourcesUpdates;
+	private JMenu mnSourcesDLC;
+	
 	/*----- Build -----*/
 	
  	public ExplorerForm()
@@ -91,69 +96,68 @@ public class ExplorerForm extends JFrame {
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
 		
+		//Menus...
 		JMenu mnFile = new JMenu("File");
 		menuBar.add(mnFile);
 		always_enabled.addComponent("mnFile", mnFile);
 		
+		/*JMenu mnTools = new JMenu("Tools");
+		menuBar.add(mnTools);
+		loaded_enabled.addComponent("mnTools", mnTools);*/
+		
+		JMenu mnProject = new JMenu("Project");
+		menuBar.add(mnProject);
+		loaded_enabled.addComponent("mnProject", mnProject);
+		
+		JMenu mnDecryption = new JMenu("Decrypt");
+		menuBar.add(mnDecryption);
+		always_enabled.addComponent("mnDecryption", mnDecryption);
+		
+		JMenu mnTypes = new JMenu("Types");
+		menuBar.add(mnTypes);
+		always_enabled.addComponent("mnTypes", mnTypes);
+		
+		//Menu Options - File
 		JMenuItem mntmOpen = new JMenuItem("Open...");
 		mnFile.add(mntmOpen);
 		always_enabled.addComponent("mntmOpen", mntmOpen);
 		mntmOpen.addActionListener(new ActionListener(){
-
-			@Override
-			public void actionPerformed(ActionEvent e)
-			{
-				onFileOpen();
-			}
-			
+			public void actionPerformed(ActionEvent e){onFileOpen();}	
 		});
 		
-		JMenuItem mntmImportRom = new JMenuItem("Import ROM...");
+		JMenuItem mntmImportRom = new JMenuItem("Import...");
 		mnFile.add(mntmImportRom);
 		always_enabled.addComponent("mntmImportRom", mntmImportRom);
 		mntmImportRom.addActionListener(new ActionListener(){
-
-			@Override
-			public void actionPerformed(ActionEvent e)
-			{
+			public void actionPerformed(ActionEvent e){
 				onFileImport();
 			}
-			
 		});
 		
 		JMenuItem mntmSave = new JMenuItem("Save");
 		mnFile.add(mntmSave);
 		loaded_enabled.addComponent("mntmSave", mntmSave);
 		mntmSave.addActionListener(new ActionListener(){
-
-			@Override
-			public void actionPerformed(ActionEvent e)
-			{
+			public void actionPerformed(ActionEvent e){
 				onFileSave();
 			}
-			
 		});
 		
-		JMenuItem mntmImageInfo = new JMenuItem("Image Info...");
-		mnFile.add(mntmImageInfo);
-		loaded_enabled.addComponent("mntmImageInfo", mntmImageInfo);
-		mntmImageInfo.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){onFileInfo();}
+		JMenuItem mntmClose = new JMenuItem("Close");
+		mnFile.add(mntmClose);
+		always_enabled.addComponent("mntmClose", mntmClose);
+		mntmClose.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileClose();}
 		});
 		
-		JMenuItem mntmEditInfo = new JMenuItem("Edit Project Banner...");
-		mnFile.add(mntmEditInfo);
-		loaded_enabled.addComponent("mntmEditInfo", mntmEditInfo);
-		mntmEditInfo.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){onFileEditProjectInfo();}
+		JMenuItem mntmDeleteProject = new JMenuItem("Delete Project");
+		mnFile.add(mntmDeleteProject);
+		loaded_enabled.addComponent("mntmDeleteProject", mntmDeleteProject);
+		mntmDeleteProject.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileDeleteProject();}
 		});
 		
-		JMenuItem mntmSetTempDirectory = new JMenuItem("Set Temp Directory...");
-		mnFile.add(mntmSetTempDirectory);
-		always_enabled.addComponent("mntmSetTempDirectory", mntmSetTempDirectory);
-		mntmSetTempDirectory.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){onFileSetTemp();}
-		});
+		mnFile.add(new JSeparator());
 		
 		JMenuItem mntmImportProj = new JMenuItem("Import Project...");
 		mnFile.add(mntmImportProj);
@@ -169,26 +173,34 @@ public class ExplorerForm extends JFrame {
 			public void actionPerformed(ActionEvent e){onFileExportProject();}
 		});
 		
-		JMenuItem mntmImportCDTrack = new JMenuItem("Import Additional Data...");
-		mnFile.add(mntmImportCDTrack);
-		loaded_enabled.addComponent("mntmImportCDTrack", mntmImportCDTrack);
-		mntmImportCDTrack.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){onFileImportAdditionalData();}
+		mnFile.add(new JSeparator());
+		
+		JMenuItem mntmSetTempDirectory = new JMenuItem("Set Temp Directory...");
+		mnFile.add(mntmSetTempDirectory);
+		always_enabled.addComponent("mntmSetTempDirectory", mntmSetTempDirectory);
+		mntmSetTempDirectory.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileSetTemp();}
 		});
 		
-		JMenuItem mntmDeleteProject = new JMenuItem("Delete Project");
-		mnFile.add(mntmDeleteProject);
-		loaded_enabled.addComponent("mntmDeleteProject", mntmDeleteProject);
-		mntmDeleteProject.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){onFileDeleteProject();}
+		JMenuItem mntmSetDecryptDir = new JMenuItem("Set Decrypt Directory...");
+		mnFile.add(mntmSetDecryptDir);
+		always_enabled.addComponent("mntmSetDecryptDir", mntmSetDecryptDir);
+		mntmSetDecryptDir.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onDecryptSetDir();}
 		});
 		
-		JMenu mnTools = new JMenu("Tools");
-		menuBar.add(mnTools);
-		loaded_enabled.addComponent("mnTools", mnTools);
+		//Menu Options - Edit
+		//Menu Options - Project
+		
+		JMenuItem mntmEditInfo = new JMenuItem("Edit Banner...");
+		mnProject.add(mntmEditInfo);
+		loaded_enabled.addComponent("mntmEditInfo", mntmEditInfo);
+		mntmEditInfo.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileEditProjectInfo();}
+		});
 		
 		JMenu mnImportBanner = new JMenu("Import Banner Icon");
-		mnTools.add(mnImportBanner);
+		mnProject.add(mnImportBanner);
 		loaded_enabled.addComponent("mnImportBanner", mnImportBanner);
 		
 		JMenuItem mntmImportBannerMC = new JMenuItem("From Save Data...");
@@ -203,51 +215,74 @@ public class ExplorerForm extends JFrame {
 			public void actionPerformed(ActionEvent e){onToolsImportBannerFromComputer();}
 		});
 		
-		JMenuItem mntmAutoArchiveDump = new JMenuItem("Auto Archive Dump...");
-		mnTools.add(mntmAutoArchiveDump);
-		mntmAutoArchiveDump.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){onToolsArcDump();}
+		mnProject.add(new JSeparator());
+		
+		JMenu mnManageSources = new JMenu("Sources");
+		mnProject.add(mnManageSources);
+		loaded_enabled.addComponent("mnManageSources", mnManageSources);
+		
+		mnSourcesAddons = new JMenu("Base Data");
+		mnManageSources.add(mnSourcesAddons);
+		mnSourcesAddons.setEnabled(false);
+		//loaded_enabled.addComponent("mnSourcesAddons", mnSourcesAddons);
+		
+		mnSourcesUpdates = new JMenu("Updates");
+		mnManageSources.add(mnSourcesUpdates);
+		mnSourcesUpdates.setEnabled(false);
+		
+		mnSourcesDLC = new JMenu("DLC");
+		mnManageSources.add(mnSourcesDLC);
+		mnSourcesDLC.setEnabled(false);
+		
+		JMenuItem mntmImportCDTrack = new JMenuItem("Import Data Source...");
+		mnManageSources.add(mntmImportCDTrack);
+		loaded_enabled.addComponent("mntmImportCDTrack", mntmImportCDTrack);
+		mntmImportCDTrack.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileImportAdditionalData();}
 		});
 		
+		mnProject.add(new JSeparator());
+		
 		JMenuItem mntmDumpImageAs = new JMenuItem("Dump Image To...");
-		mnTools.add(mntmDumpImageAs);
+		mnProject.add(mntmDumpImageAs);
 		mntmDumpImageAs.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){onToolsImgDump();}
 		});
 		
-		JMenuItem mntmDumpAndConvert = new JMenuItem("Dump and Convert...");
-		mnTools.add(mntmDumpAndConvert);
+		JMenuItem mntmDumpAndConvert = new JMenuItem("Dump & Convert To...");
+		mnProject.add(mntmDumpAndConvert);
 		mntmDumpAndConvert.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){onToolsConvDump();}
 		});
 		
-		JMenuItem mntmScanForKnown = new JMenuItem("Scan for Known Types");
-		mnTools.add(mntmScanForKnown);
-		mntmScanForKnown.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){onToolsScanTypes();}
-		});
+		mnProject.add(new JSeparator());
 		
-		JMenuItem mntmMatchExts = new JMenuItem("Change Extensions to Match Types");
-		mnTools.add(mntmMatchExts);
-		mntmMatchExts.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){onToolsMatchExt();}
-		});
+		JMenu mnTreeReset = new JMenu("Reset Tree");
+		mnProject.add(mnTreeReset);
+		loaded_enabled.addComponent("mnTreeReset", mnTreeReset);
 		
-		JMenuItem mntmClearTypeNotations = new JMenuItem("Clear Type Notations");
-		mnTools.add(mntmClearTypeNotations);
-		mntmClearTypeNotations.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){onToolsClearTypes();}
-		});
-		
-		JMenuItem mntmResetImageTree = new JMenuItem("Reset Image Tree");
-		mnTools.add(mntmResetImageTree);
+		JMenuItem mntmResetImageTree = new JMenuItem("Standard View");
+		mnTreeReset.add(mntmResetImageTree);
 		mntmResetImageTree.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){onToolsTreeReset();}
 		});
 		
-		JMenu mnDecryption = new JMenu("Decryption");
-		menuBar.add(mnDecryption);
-		always_enabled.addComponent("mnDecryption", mnDecryption);
+		JMenuItem mntmResetTreeFSDetail = new JMenuItem("FS Detail View");
+		mnTreeReset.add(mntmResetTreeFSDetail);
+		mntmResetTreeFSDetail.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onTreeResetDetailFS();}
+		});
+		
+		mnProject.add(new JSeparator());
+		
+		JMenuItem mntmImageInfo = new JMenuItem("Image Info...");
+		mnProject.add(mntmImageInfo);
+		loaded_enabled.addComponent("mntmImageInfo", mntmImageInfo);
+		mntmImageInfo.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onFileInfo();}
+		});
+		
+		//Menu Options - Decrypt
 		
 		JMenu mnAddKey = new JMenu("Add Key");
 		mnDecryption.add(mnAddKey);
@@ -267,7 +302,14 @@ public class ExplorerForm extends JFrame {
 			public void actionPerformed(ActionEvent e){onDecrypt3DSKeyAdd();}
 		});
 		
-		JMenuItem mntmSetDecryptedImage = new JMenuItem("Set Decrypted Image Directory...");
+		JMenuItem mntmAddSwitchKeys = new JMenuItem("Import NX Keys...");
+		mnAddKey.add(mntmAddSwitchKeys);
+		always_enabled.addComponent("mntmAddSwitchKeys", mntmAddSwitchKeys);
+		mntmAddCtr9Key.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onDecryptNXKeyImport();}
+		});
+		
+		JMenuItem mntmSetDecryptedImage = new JMenuItem("Set Decrypt Directory...");
 		mnDecryption.add(mntmSetDecryptedImage);
 		always_enabled.addComponent("mntmSetDecryptedImage", mntmSetDecryptedImage);
 		mntmSetDecryptedImage.addActionListener(new ActionListener(){
@@ -279,6 +321,39 @@ public class ExplorerForm extends JFrame {
 		mntmRunRomDecryption.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){onDecryptRunDecrypt();}
 		});
+		
+		//Menu Options - Types
+		
+		JMenuItem mntmScanForKnown = new JMenuItem("Scan for Known Types");
+		mnTypes.add(mntmScanForKnown);
+		mntmScanForKnown.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onToolsScanTypes();}
+		});
+						
+		JMenuItem mntmMatchExts = new JMenuItem("Match Extensions to Types");
+		mnTypes.add(mntmMatchExts);
+		mntmMatchExts.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onToolsMatchExt();}
+		});
+		
+		JMenuItem mntmClearTypeNotations = new JMenuItem("Clear Type Notations");
+		mnTypes.add(mntmClearTypeNotations);
+		mntmClearTypeNotations.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onToolsClearTypes();}
+		});
+		
+		JMenuItem mntmAutoArchiveDump = new JMenuItem("Automount Archives...");
+		mnTypes.add(mntmAutoArchiveDump);
+		mntmAutoArchiveDump.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onToolsArcDump();}
+		});
+		
+		JMenuItem mntmPluginManage = new JMenuItem("Manage Plugins...");
+		mnTypes.add(mntmPluginManage);
+		mntmPluginManage.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onTypesManagePlugins();}
+		});
+		
 		
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0, 0};
@@ -324,7 +399,10 @@ public class ExplorerForm extends JFrame {
 		always_enabled.setEnabling(false);
 		loaded_enabled.setEnabling(false);
 		
+		if(loaded_project != null) loaded_project.onProjectClose();
+		
 		loaded_project = project;
+		if(loaded_project != null) loaded_project.onProjectOpen();
 		
 		pnlMain.loadProject(project);
 		
@@ -338,6 +416,7 @@ public class ExplorerForm extends JFrame {
 	{
 		if(idialog == null) return;
 		NTDProject p = idialog.getImport();
+		if(p == null) return;
 		NTDProgramFiles.addProject(p);
 		loadProject(p);
 	}
@@ -393,7 +472,7 @@ public class ExplorerForm extends JFrame {
 			public void windowClosing(WindowEvent e)
 			{
 				NTDProject selection = dialog.getSelection();
-				loadProject(selection);
+				if(selection != null) loadProject(selection);
 			}
 		});
 		dialog.setVisible(true);
@@ -808,6 +887,51 @@ public class ExplorerForm extends JFrame {
 		
 	}
 	
+	private void onTreeResetDetailFS(){
+		if(!checkSourcePath()) return;
+		
+		int op = JOptionPane.showConfirmDialog(this, 
+				"Are you sure you want to reset the tree to the ROM tree?\n"
+				+ "If you do, you won't be able to undo it!", 
+				"Tree Reset", 
+				JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+		
+		if(op != JOptionPane.YES_OPTION) return;
+		
+		IndefProgressDialog dialog = new IndefProgressDialog(this, "Tree Reset");
+		
+		dialog.setPrimaryString("Resetting Tree");
+		dialog.setSecondaryString("Parsing source ROM");
+		
+		SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+		{
+
+			protected Void doInBackground() throws Exception 
+			{
+				try
+				{
+					loaded_project.resetTreeFSDetail(dialog);
+				}
+				catch(IOException x)
+				{
+					x.printStackTrace();
+					showError("I/O Error: Reset failed!");
+				}
+				
+				return null;
+			}
+			
+			public void done()
+			{
+				pnlMain.refreshMe();
+				dialog.closeMe();
+			}
+		};
+		
+		task.execute();
+		dialog.render();
+	}
+	
 	private void onToolsMatchExt(){
 		if(!checkSourcePath()) return;
 		
@@ -889,6 +1013,10 @@ public class ExplorerForm extends JFrame {
 			}
 		}
 		
+	}
+	
+	private void onDecryptNXKeyImport(){
+		NTDTools.importSwitchKeysFromDump(this);
 	}
 	
 	private void onDecryptSetDir()
@@ -1076,10 +1204,28 @@ public class ExplorerForm extends JFrame {
 			loaded_project.setPublisherName(pub);
 			loaded_project.setRegion(r);
 			loaded_project.setDefoLanguage(lan);
+			
+			if(loaded_project.getConsole() == Console.SWITCH){
+				String code5 = dialog.getMiddleCode();
+				if(code5 != null){
+					while(code5.length() < 5) code5 += "0";
+					if(code5.length() > 5) code5 = code5.substring(0,5);
+					code5 = code5.toUpperCase();
+					loaded_project.changeShortcode(code5);
+				}
+			}
 		}
 		
 		dialog.dispose();
 		pnlMain.updateBannerPanel();
+	}
+	
+	private void onFileClose(){
+		loadProject(null);
+	}
+	
+	private void onTypesManagePlugins(){
+		//TODO
 	}
 	
 	/*----- Checks -----*/

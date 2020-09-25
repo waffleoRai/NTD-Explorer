@@ -19,10 +19,10 @@ import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
-import waffleoRai_Utils.DirectoryNode;
+import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
-import waffleoRai_Utils.FileNode;
-import waffleoRai_Utils.LinkNode;
+import waffleoRai_Files.tree.FileNode;
+import waffleoRai_Files.tree.LinkNode;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 
 public class FA_DumpArc {

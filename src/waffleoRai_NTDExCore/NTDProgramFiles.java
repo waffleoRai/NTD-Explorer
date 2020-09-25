@@ -36,7 +36,7 @@ import waffleoRai_Compression.definitions.CompressionDefs;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBufferStreamer;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 import waffleoRai_Utils.StreamWrapper;
 
 
@@ -80,9 +80,12 @@ public class NTDProgramFiles {
 	public static final String KEYNAME_CTR_CARDA = "ctr_18X";
 	public static final String KEYNAME_CTR_CARDB = "ctr_1BX";
 	
+	public static final String KEYNAME_HAC_COMMON = "hac_common";
+	public static final String KEYNAME_HAC_TITLE = "hac_title";
+	
 	public static final String[] ALL_KEYKEYS = {KEYNAME_DSI_COMMON, KEYNAME_WII_COMMON, KEYNAME_WII_SD, KEYNAME_WII_SD_IV, 
 												KEYNAME_CTR_COMMON9, KEYNAME_CTR_CARD1, KEYNAME_CTR_CARDA, KEYNAME_CTR_CARDB,
-												KEYNAME_WIIU_COMMON};
+												KEYNAME_WIIU_COMMON, KEYNAME_HAC_COMMON, KEYNAME_HAC_TITLE};
 	
 	/*----- Various Ini Keys -----*/
 	
@@ -608,7 +611,7 @@ public class NTDProgramFiles {
 	
 	private static String project_list_path;
 	private static Map<Console, Collection<NTDProject>> project_map;
-	public static final int CURRENT_VERSION_PROJBIN = 6;
+	public static final int CURRENT_VERSION_PROJBIN = 7;
 	
 	public static String getProjectBinPath()
 	{

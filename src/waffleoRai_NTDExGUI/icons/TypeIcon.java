@@ -8,8 +8,8 @@ import javax.swing.ImageIcon;
 
 import waffleoRai_Files.FileClass;
 import waffleoRai_Files.FileTypeNode;
-import waffleoRai_Utils.DirectoryNode;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.DirectoryNode;
+import waffleoRai_Files.tree.FileNode;
 
 public class TypeIcon {
 	
@@ -61,6 +61,7 @@ public class TypeIcon {
 		icon_map.put(FileClass.DAT_STRINGTBL, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_str.png")));
 		icon_map.put(FileClass.DAT_TABLE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_tbl.png")));
 		icon_map.put(FileClass.DAT_BANNER, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_bnr.png")));
+		icon_map.put(FileClass.DAT_HASHTABLE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_hsh.png")));
 		
 		icon_map.put(FileClass.MOV_MOVIE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_mov.png")));
 		icon_map.put(FileClass.MOV_VIDEO, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_vid.png")));

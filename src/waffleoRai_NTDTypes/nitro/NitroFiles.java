@@ -12,7 +12,7 @@ import waffleoRai_Files.FileTypeDefinition;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBufferStreamer;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 import waffleoRai_Utils.StreamWrapper;
 
 /*

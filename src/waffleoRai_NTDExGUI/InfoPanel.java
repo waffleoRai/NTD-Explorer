@@ -177,6 +177,7 @@ public class InfoPanel extends JPanel{
 				if(proj.getConsole() == Console.WII || proj.getConsole() == Console.WIIU) lblEnc.setText("AES-128-CBC");
 				else if(proj.getConsole() == Console.DSi) lblEnc.setText("Modcrypt");
 				else if(proj.getConsole() == Console._3DS) lblEnc.setText("AES-128-CTR");
+				else if(proj.getConsole() == Console.SWITCH) lblEnc.setText("NX AES-CTR/XTSAES");
 				lblEnc.setForeground(Color.RED);
 			}
 			else{

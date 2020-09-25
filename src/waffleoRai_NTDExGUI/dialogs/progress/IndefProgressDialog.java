@@ -4,7 +4,6 @@ import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
@@ -13,7 +12,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 
-public class IndefProgressDialog extends JDialog implements ActionListener, ProgressListeningDialog{
+public class IndefProgressDialog extends ProgressListeningDialog implements ActionListener{
 
 	private static final long serialVersionUID = 4635568052368239877L;
 	

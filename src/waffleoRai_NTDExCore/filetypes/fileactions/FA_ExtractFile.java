@@ -11,7 +11,7 @@ import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public class FA_ExtractFile implements FileAction{
 

@@ -30,7 +30,7 @@ import waffleoRai_NTDExGUI.panels.preview.seq.GeneralSeqPreviewPanel;
 import waffleoRai_SeqSound.misc.SMD;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 import waffleoRai_soundbank.procyon.SWD;
 
 public class TM_ProcyonSMD extends TypeManager{

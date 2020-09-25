@@ -20,13 +20,14 @@ import waffleoRai_NTDExCore.NTDProject;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JSeparator;
 
 public class BannerEditForm extends JDialog{
 
 	private static final long serialVersionUID = 6447934741978815049L;
 	
 	public static final int WIDTH = 440;
-	public static final int HEIGHT = 300;
+	public static final int HEIGHT = 370;
 	
 	private boolean accepted;
 	
@@ -37,6 +38,11 @@ public class BannerEditForm extends JDialog{
 	
 	private JComboBox<GameRegion> cmbxReg;
 	private JComboBox<DefoLanguage> cmbxLan;
+	
+	private JLabel lblProductCode;
+	private JTextField txtCode;
+	private JLabel lblCodePost;
+	private JLabel lblCodePre;
 	
 	public BannerEditForm(Frame parent){
 		super(parent, true);
@@ -109,7 +115,7 @@ public class BannerEditForm extends JDialog{
 		getContentPane().add(cmbxLan);
 		
 		JButton btnCancel = new JButton("Cancel");
-		btnCancel.setBounds(335, 237, 89, 23);
+		btnCancel.setBounds(335, 307, 89, 23);
 		getContentPane().add(btnCancel);
 		btnCancel.addActionListener(new ActionListener(){
 
@@ -121,8 +127,36 @@ public class BannerEditForm extends JDialog{
 		});
 		
 		JButton btnOk = new JButton("OK");
-		btnOk.setBounds(241, 237, 89, 23);
+		btnOk.setBounds(241, 307, 89, 23);
 		getContentPane().add(btnOk);
+		
+		lblProductCode = new JLabel("Product Code");
+		lblProductCode.setHorizontalAlignment(SwingConstants.CENTER);
+		lblProductCode.setFont(new Font("Tahoma", Font.BOLD, 12));
+		lblProductCode.setBounds(170, 228, 94, 14);
+		getContentPane().add(lblProductCode);
+		
+		txtCode = new JTextField();
+		txtCode.setHorizontalAlignment(SwingConstants.CENTER);
+		txtCode.setBounds(170, 253, 95, 20);
+		getContentPane().add(txtCode);
+		txtCode.setColumns(10);
+		txtCode.setEnabled(false);
+		
+		lblCodePost = new JLabel("");
+		lblCodePost.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblCodePost.setBounds(275, 256, 66, 14);
+		getContentPane().add(lblCodePost);
+		
+		lblCodePre = new JLabel("");
+		lblCodePre.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblCodePre.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblCodePre.setBounds(94, 256, 66, 14);
+		getContentPane().add(lblCodePre);
+		
+		JSeparator separator = new JSeparator();
+		separator.setBounds(10, 289, 414, 7);
+		getContentPane().add(separator);
 		btnOk.addActionListener(new ActionListener(){
 
 			public void actionPerformed(ActionEvent e) {
@@ -172,9 +206,47 @@ public class BannerEditForm extends JDialog{
 		cmbxReg.setSelectedItem(proj.getRegion());
 		cmbxLan.setSelectedItem(proj.getDefoLanguage());
 		
+		switch(proj.getConsole()){
+		case PS1:
+			setProductCode("", proj.getGameCode12(), "", false);
+			break;
+		case DS:
+		case DSi:
+		case GAMECUBE:
+		case NEW_3DS:
+		case WII:
+		case WIIU:
+		case _3DS:
+			setProductCode(proj.getConsole().getShortCode() + " -", proj.getGameCode4(), 
+					"- " + proj.getRegion().getShortCode(), false);
+			break;
+		case SWITCH:
+			setProductCode("HAC P ", proj.getGameCode4(), 
+					proj.getRegion().getShortCode(), true);
+			break;
+		default:
+			break;
+		}
+		
 	}
 	
 	public boolean selectionApproved(){return accepted;}
+	
+	public void setProductCode(String pre, String mid, String post, boolean editable){
+		
+		if(pre != null) lblCodePre.setText(pre);
+		else lblCodePre.setText("");
+		if(post != null) lblCodePost.setText(post);
+		else lblCodePost.setText("");
+		
+		if(mid != null) txtCode.setText(mid);
+		else txtCode.setText("");
+		txtCode.setEnabled(editable);
+		
+		lblCodePre.repaint();
+		lblCodePost.repaint();
+		txtCode.repaint();
+	}
 	
 	public String getBannerTitle(){
 		String line1 = txtLine1.getText();
@@ -193,6 +265,10 @@ public class BannerEditForm extends JDialog{
 		return txtPublisher.getText();
 	}
 	
+	public String getMiddleCode(){
+		return txtCode.getText();
+	}
+	
 	public GameRegion getSelectedRegion(){
 		return cmbxReg.getItemAt(cmbxReg.getSelectedIndex());
 	}
@@ -204,5 +280,5 @@ public class BannerEditForm extends JDialog{
 	public void closeMe(){
 		this.setVisible(false);
 	}
-	
+
 }

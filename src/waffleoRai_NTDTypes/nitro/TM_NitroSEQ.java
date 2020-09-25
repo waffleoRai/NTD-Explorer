@@ -27,7 +27,7 @@ import waffleoRai_SeqSound.ninseq.DSSeq;
 import waffleoRai_SoundSynth.SynthBank;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 import waffleoRai_soundbank.nintendo.DSBank;
 
 public class TM_NitroSEQ extends TypeManager{

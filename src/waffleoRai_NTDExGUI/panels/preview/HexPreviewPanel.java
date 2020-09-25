@@ -15,7 +15,7 @@ import javax.swing.table.TableColumnModel;
 
 import waffleoRai_NTDExGUI.DisposableJPanel;
 import waffleoRai_Utils.FileBuffer;
-import waffleoRai_Utils.FileNode;
+import waffleoRai_Files.tree.FileNode;
 
 public class HexPreviewPanel extends DisposableJPanel{
 	
