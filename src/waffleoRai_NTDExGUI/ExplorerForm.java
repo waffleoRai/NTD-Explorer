@@ -30,6 +30,8 @@ import waffleoRai_NTDExGUI.dialogs.ImportDialog;
 import waffleoRai_NTDExGUI.dialogs.OpenDialog;
 import waffleoRai_NTDExGUI.dialogs.imageinfo.ImageInfoDialogs;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
+import waffleoRai_NTDExGUI.nightmode.DarkMenu;
+import waffleoRai_NTDExGUI.nightmode.DarkMenuBar;
 import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Files.tree.FileNode;
@@ -45,6 +47,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.awt.GridBagConstraints;
 import javax.swing.JSeparator;
+import java.awt.Color;
 
 public class ExplorerForm extends JFrame {
 	
@@ -58,6 +61,9 @@ public class ExplorerForm extends JFrame {
 	public static final int MIN_WIDTH = ImageMasterPanel.MIN_WIDTH;
 	public static final int MIN_HEIGHT = ImageMasterPanel.MIN_HEIGHT + 50;
 	public static final int PREF_HEIGHT = 350;
+	
+	public static final int MAX_WIDTH = InfoPanel.MAX_WIDTH;
+	public static final int MAX_HEIGHT = 720;
 	
 	public static final String INIKEY_LASTDUMP = "LAST_RAW_DUMP_PATH";
 	
@@ -78,6 +84,7 @@ public class ExplorerForm extends JFrame {
 	
  	public ExplorerForm()
 	{
+ 		setBackground(Color.DARK_GRAY);
  		always_enabled = new ComponentGroup();
  		loaded_enabled = new ComponentGroup();
  		
@@ -89,15 +96,16 @@ public class ExplorerForm extends JFrame {
 		setTitle("NTD Explorer");
 		Dimension sz = new Dimension(MIN_WIDTH, MIN_HEIGHT);
 		setMinimumSize(sz);
+		setMaximumSize(new Dimension(MAX_WIDTH, MAX_HEIGHT));
 		sz = new Dimension(MIN_WIDTH, PREF_HEIGHT);
 		setPreferredSize(sz);
 		setLocation(GUITools.getScreenCenteringCoordinates(this));
 		
-		JMenuBar menuBar = new JMenuBar();
+		JMenuBar menuBar = new DarkMenuBar();
 		setJMenuBar(menuBar);
 		
 		//Menus...
-		JMenu mnFile = new JMenu("File");
+		JMenu mnFile = new DarkMenu("File");
 		menuBar.add(mnFile);
 		always_enabled.addComponent("mnFile", mnFile);
 		
@@ -105,21 +113,23 @@ public class ExplorerForm extends JFrame {
 		menuBar.add(mnTools);
 		loaded_enabled.addComponent("mnTools", mnTools);*/
 		
-		JMenu mnProject = new JMenu("Project");
+		JMenu mnProject = new DarkMenu("Project");
 		menuBar.add(mnProject);
 		loaded_enabled.addComponent("mnProject", mnProject);
 		
-		JMenu mnDecryption = new JMenu("Decrypt");
+		JMenu mnDecryption = new DarkMenu("Decrypt");
 		menuBar.add(mnDecryption);
 		always_enabled.addComponent("mnDecryption", mnDecryption);
 		
-		JMenu mnTypes = new JMenu("Types");
+		JMenu mnTypes = new DarkMenu("Types");
 		menuBar.add(mnTypes);
 		always_enabled.addComponent("mnTypes", mnTypes);
 		
 		//Menu Options - File
 		JMenuItem mntmOpen = new JMenuItem("Open...");
 		mnFile.add(mntmOpen);
+		mntmOpen.setBackground(Color.darkGray);
+		mntmOpen.setOpaque(false);
 		always_enabled.addComponent("mntmOpen", mntmOpen);
 		mntmOpen.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){onFileOpen();}	
@@ -305,7 +315,7 @@ public class ExplorerForm extends JFrame {
 		JMenuItem mntmAddSwitchKeys = new JMenuItem("Import NX Keys...");
 		mnAddKey.add(mntmAddSwitchKeys);
 		always_enabled.addComponent("mntmAddSwitchKeys", mntmAddSwitchKeys);
-		mntmAddCtr9Key.addActionListener(new ActionListener(){
+		mntmAddSwitchKeys.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){onDecryptNXKeyImport();}
 		});
 		
@@ -363,6 +373,8 @@ public class ExplorerForm extends JFrame {
 		getContentPane().setLayout(gridBagLayout);
 		
 		pnlMain = new ImageMasterPanel(this);
+		pnlMain.setForeground(Color.LIGHT_GRAY);
+		pnlMain.setBackground(Color.DARK_GRAY);
 		GridBagConstraints gbc_panel = new GridBagConstraints();
 		gbc_panel.fill = GridBagConstraints.BOTH;
 		gbc_panel.gridx = 0;

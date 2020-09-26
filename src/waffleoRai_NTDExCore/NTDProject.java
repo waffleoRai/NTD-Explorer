@@ -47,6 +47,7 @@ import waffleoRai_Utils.BinFieldSize;
 import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
+import waffleoRai_Utils.FileUtils;
 import waffleoRai_Files.tree.FileNode;
 import waffleoRai_Files.tree.FileTreeSaver;
 import waffleoRai_Utils.SerializedString;
@@ -80,6 +81,9 @@ import waffleoRai_Utils.SerializedString;
  * 2020.09.19 | 2.3.0 -> 3.0.0
  * 	Added patch & DLC referencing
  * 
+ * 2020.09.25 | 3.0.0 -> 3.1.0
+ * 	Added base version string
+ * 
  */
 
 /**
@@ -88,7 +92,7 @@ import waffleoRai_Utils.SerializedString;
  * can be found allowing for flexibility and memory conservation. Also includes
  * many fields for metadata such as software title and region.
  * @author Blythe Hospelhorn
- * @version 3.0.0
+ * @version 3.1.0
  * @since September 19, 2020
  *
  */
@@ -117,6 +121,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * 
 	 * ROM Path [VLS 2x2]
 	 * Decrypted ROM Path [VLS 2x2] (This is just a short 0 if N/A) (V1 only)
+	 * Base Version String [VLS 2x2] (V8+)
 	 * Encrypted Region count [2] (If applicable) (V2+)
 	 * Encrypted Regions (If applicable) (V2+)
 	 * 		Definition [4]
@@ -129,8 +134,8 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * 			KeyDat [Len]
 	 * 
 	 * Patches (V7+)
-	 * 	Loaded Index [2] (0xFFFF if base. Last loaded patch state.)
 	 * 	Patch Count [2]
+	 * 	Loaded Index [2] (0xFFFF if base. Last loaded patch state.) - Field only included if patch count > 0
 	 * 		Key [VLS 2x2] (This is for naming the tree file)
 	 * 		Version Str [VLS 2x2] (Display string)
 	 * 		Source Path [VLS 2x2]
@@ -147,9 +152,9 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * Publisher String [VLS 2x2] (V4+)
 	 * Publish Date [8] (V4+)
 	 * # of image frames [1]
-	 * Image width [1]
-	 * Image height [1]
-	 * (Icon is max 255x255)
+	 * Image width [2] (1 byte in V1-V6, 2 bytes V7+)
+	 * Image height [2] (1 byte in V1-V6, 2 bytes V7+)
+	 * (V1-V6 Icon is max 255x255)
 	 * Animation Sequence Nodes [1] (V6+) / RESERVED (V5-) [1]
 	 * 		(If this is 0 or there is only one image, the animation fields are not present)
 	 * Animation Flags [2] (V6+)
@@ -221,6 +226,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	
 	private AddOnRecord p_state; //Current patch state
 	private Set<String> loaded_addons; //Currently loaded add-ons
+	private String base_ver;
 	private DirectoryNode custom_tree;
 	
 	private OffsetDateTime volume_time;
@@ -418,6 +424,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		}
 		
 		encrypted_regs = new LinkedList<EncryptionRegion>();
+		base_ver = "1.0.0";
 	}
 	
 	/*----- Console Specific Project Creators -----*/
@@ -506,9 +513,17 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	
 	private static Animation readBannerIconData(FileBuffer file, long stoff, int version) throws DataFormatException, IOException{
 		long cpos = stoff;
+		int iwidth = 0;
+		int iheight = 0;
 		int iframes = Byte.toUnsignedInt(file.getByte(cpos++));
-		int iwidth = Byte.toUnsignedInt(file.getByte(cpos++));
-		int iheight = Byte.toUnsignedInt(file.getByte(cpos++));
+		if(version >= 7){
+			iwidth = Short.toUnsignedInt(file.shortFromFile(cpos)); cpos+=2;
+			iheight = Short.toUnsignedInt(file.shortFromFile(cpos)); cpos+=2;
+		}
+		else{
+			iwidth = Byte.toUnsignedInt(file.getByte(cpos++));
+			iheight = Byte.toUnsignedInt(file.getByte(cpos++));
+		}
 		int nframes = Byte.toUnsignedInt(file.getByte(cpos++));
 
 		//Animation data (if applicable)
@@ -687,6 +702,12 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		proj.rom_path = ss.getString();
 		cpos += ss.getSizeOnDisk();
 		
+		if(version >= 8){
+			ss = file.readVariableLengthString(NTDProgramFiles.ENCODING, cpos, BinFieldSize.WORD, 2);
+			proj.base_ver = ss.getString();
+			cpos += ss.getSizeOnDisk();	
+		}
+		
 		if(version < 2)
 		{
 			ss = file.readVariableLengthString(NTDProgramFiles.ENCODING, cpos, BinFieldSize.WORD, 2);
@@ -731,10 +752,10 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		
 		//Read add-on info...
 		if(version >= 7){
-			int last_patch = Short.toUnsignedInt(file.shortFromFile(cpos)); cpos+=2;
-			AddOnRecord[] arr = null;
 			int pcount = Short.toUnsignedInt(file.shortFromFile(cpos)); cpos+=2;
+			AddOnRecord[] arr = null;
 			if(pcount > 0){
+				int last_patch = Short.toUnsignedInt(file.shortFromFile(cpos)); cpos+=2;
 				arr = new AddOnRecord[pcount];
 				proj.patch_entries = new HashMap<String, AddOnRecord>();
 				for(int i = 0; i < pcount; i++){
@@ -863,7 +884,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 			int w = img.getWidth(); int h = img.getHeight();
 			int idatsize = (w*h) << 2; //Size of one image decomp in bytes
 			
-			size += 8; //Image lead-in data + compression size
+			size += 10; //Image lead-in data + compression size
 			if(fcount > 1){
 				//Animation data
 				size += 2 + (fcount << 2);
@@ -903,8 +924,8 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		FileBuffer imgdat = new FileBuffer(sz, true);
 		
 		imgdat.addToFile((byte)icount);
-		imgdat.addToFile((byte)width);
-		imgdat.addToFile((byte)height);
+		imgdat.addToFile((short)width);
+		imgdat.addToFile((short)height);
 		imgdat.addToFile((byte)afcount);
 		
 		if(afcount > 1){
@@ -995,8 +1016,8 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 					}
 				}
 				
-				out.addToFile((short)idx);
 				out.addToFile((short)pcount);
+				out.addToFile((short)idx);
 				for(AddOnRecord r : rarr){
 					out.addVariableLengthString(r.getKey(), BinFieldSize.WORD, 2);
 					out.addVariableLengthString("UTF8", r.getDisplayString(), BinFieldSize.WORD, 2);
@@ -1059,6 +1080,10 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 			str_rom.addVariableLengthString(NTDProgramFiles.ENCODING, PATH_PLACEHOLDER, BinFieldSize.WORD, 2);
 			sz += str_rom.getFileSize();
 		}
+		
+		FileBuffer str_ver = new FileBuffer(3 + (base_ver.length() << 1), true);
+		str_ver.addVariableLengthString(NTDProgramFiles.ENCODING, base_ver, BinFieldSize.WORD, 2);
+		sz += str_ver.getFileSize();
 
 		FileBuffer str_name = new FileBuffer(3+(localName.length() << 1), true);
 		str_name.addVariableLengthString(NTDProgramFiles.ENCODING, localName, BinFieldSize.WORD, 2);
@@ -1110,13 +1135,15 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 			out.printASCIIToFile(gamecode);
 		}
 		else if(console == Console.SWITCH){
-			if(gamecode.length() > 6) gamecode = gamecode.substring(0,6);
+			if(gamecode.length() > 5) gamecode = gamecode.substring(0,5);
 			out.printASCIIToFile(gamecode);
+			out.addToFile(FileBuffer.ZERO_BYTE);
 			if(makercode.length() > 2) makercode = makercode.substring(0,2);
 			out.printASCIIToFile(makercode);
 			String fcode = fullcode.replace("_", "");
-			if(fcode.length() > 12) fcode = fcode.substring(0,12);
+			if(fcode.length() > 11) fcode = fcode.substring(0,11);
 			out.printASCIIToFile(fcode);
+			out.addToFile(FileBuffer.ZERO_BYTE);
 		}
 		else{
 			if(gamecode.length() > 4) gamecode = gamecode.substring(0,4);
@@ -1131,6 +1158,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		
 		out.addToFile(str_rom);
 		//out.addToFile(str_dec);
+		out.addToFile(str_ver);
 		
 		//Encryption info
 		if(isEncrypted()){
@@ -1429,6 +1457,27 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	}
 	
 	/**
+	 * Get the display string representing the version of the base image
+	 * tree.
+	 * @return Display version string
+	 * @since 3.1.0
+	 */
+	public String getBaseVersionString(){
+		return this.base_ver;
+	}
+	
+	/**
+	 * Get the display string representing the current patch version
+	 * of this project.
+	 * @return Current version string
+	 * @since 3.1.0
+	 */
+	public String getCurrentVersionString(){
+		if(p_state != null) return p_state.getDisplayString();
+		return base_ver;
+	}
+	
+	/**
 	 * Get the info structure of the currently set patch state. If
 	 * the project is currently set to the base tree, then this method
 	 * returns <code>null</code>.
@@ -1640,6 +1689,13 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	public void setPublisherName(String str){this.pubName = str;}
 	
 	/**
+	 * Set the base version string for this project.
+	 * @param str Value to set for base version string
+	 * @since 3.1.0
+	 */
+	public void setBaseVersionString(String str){this.base_ver = str;}
+	
+	/**
 	 * Change the short gamecode for this project. This method also
 	 * updates the long gamecode containing the short gamecode.
 	 * @param code The new short gamecode to set.
@@ -1658,11 +1714,11 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		case DSi:
 		case _3DS:
 		case SWITCH:
-			fullcode = console.getShortCode() + "_" + code + "_" + region.getShortCode();
+			setFullCode(console.getShortCode() + "_" + code + "_" + region.getShortCode());
 			break;
 		case PS1:
 		default: 
-			fullcode = code;
+			setFullCode(code);
 			break;
 		}
 		
@@ -1859,7 +1915,6 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	public void setRegion(GameRegion r){this.region = r;}
 	protected void setGameCode(String code){this.gamecode = code;}
 	protected void setMakerCode(String code){this.makercode = code;}
-	protected void setFullCode(String code){this.fullcode = code;}
 	protected void setROMPath(String path){this.rom_path = path;}
 	protected void reinstantiateEncryptedRegionsList(){this.encrypted_regs = new LinkedList<EncryptionRegion>();}
 	protected void reinstantiateEncryptedRegionsList(int size){this.encrypted_regs = new ArrayList<EncryptionRegion>(size);}
@@ -1868,6 +1923,30 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	protected void setVolumeTime(OffsetDateTime time){this.volume_time = time;}
 	protected void setImportedTime(OffsetDateTime time){this.imported_time = time;}
 	protected void setModifiedTime(OffsetDateTime time){this.modified_time = time;}
+	
+	
+	protected void setFullCode(String code){
+		String olddir = getCustomDataDirPath();
+		String olddec = getDecryptedDataDir();
+		
+		this.fullcode = code;
+		
+		this.my_dir_path = null;
+		this.tdecrypt_path = null;
+		
+		//Move main data path
+		String newdir = getCustomDataDirPath();
+		String newdec = getDecryptedDataDir();
+		
+		try{
+			if(FileBuffer.directoryExists(olddir)) FileUtils.moveDirectory(olddir, newdir);
+			if(FileBuffer.directoryExists(olddec)) FileUtils.moveDirectory(olddec, newdec);	
+		}
+		catch(IOException x){
+			x.printStackTrace();
+		}
+		
+	}
 	
 	/*----- Callbacks -----*/
 	

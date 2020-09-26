@@ -25,6 +25,7 @@ import waffleoRai_NTDExCore.EncryptionRegion;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.banners.Unanimator;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
@@ -91,12 +92,8 @@ public class NXProject extends NTDProject{
 	 */
 	public static NXProject createFromXCI(String xci_path, String code5, GameRegion reg) throws IOException, UnsupportedFileTypeException{
 		//Load NXCrypt
-		NXCrypt crypto = new NXCrypt();
-		String cpath = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_COMMON);
-		if(FileBuffer.fileExists(cpath)) crypto.loadCommonKeys(cpath);
-		cpath = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_TITLE);
-		if(FileBuffer.fileExists(cpath)) crypto.loadTitleKeys(cpath);
-		
+		NXCrypt crypto = NTDTools.loadNXCrypt();
+
 		//Load XCI
 		NXCartImage xci = NXCartImage.readXCI(xci_path);
 		xci.unlock(crypto);
@@ -118,7 +115,6 @@ public class NXProject extends NTDProject{
 		proj.setGameCode(code5);
 		proj.setMakerCode("00");
 		proj.setDefoLanguage(DefoLanguage.ANY);
-		proj.setFullCode("HAC_" + code5 + "_" + reg.getShortCode());
 		proj.setROMPath(xci_path);
 		
 		proj.setBannerTitle("HAC Cartridge Image " + Long.toHexString(xci.getPackageID()));
@@ -131,14 +127,7 @@ public class NXProject extends NTDProject{
 		//Save crypt table
 		NinCryptTable ctbl = xci.generateCryptTable();
 		proj.crypt_table = ctbl;
-		proj.saveCryptTable();
-		
-		//For encrypted regions, I'm just going to be lazy and mark the whole main HFS
-		List<EncryptionRegion> encregs = proj.getEncRegListReference();
-		long hfsoff = 0xf000;
-		EncryptionRegion ereg = new EncryptionRegion(NXSysDefs.getXTSCryptoDef(), hfsoff, FileBuffer.fileSize(xci_path) - hfsoff, proj.getDecryptedDataDir()); //Partition table
-		encregs.add(ereg);
-		
+				
 		//Extract banner
 		NXUtils.setActiveCryptTable(ctbl);
 		String[] bdat = NXUtils.getControlStrings(tree, NXUtils.LANIDX_AMENG);
@@ -151,7 +140,8 @@ public class NXProject extends NTDProject{
 			//Save that info!
 			proj.setBannerTitle(bdat[NXUtils.CTRLSTR_IDX_TITLE]);
 			proj.setPublisherName(bdat[NXUtils.CTRLSTR_IDX_PUBLISHER]);
-			proj.setGameCode(bdat[NXUtils.CTRLSTR_IDX_ERRCODE]);
+			if(!bdat[NXUtils.CTRLSTR_IDX_ERRCODE].isEmpty()) proj.setGameCode(bdat[NXUtils.CTRLSTR_IDX_ERRCODE]);
+			proj.setBaseVersionString(bdat[NXUtils.CTRLSTR_IDX_VERSION]);
 			
 			//Get icon image
 			BufferedImage ico = NXUtils.getBannerIcon(tree, NXUtils.LANIDX_AMENG);
@@ -159,8 +149,17 @@ public class NXProject extends NTDProject{
 			proj.setBannerIcon(new BufferedImage[]{ico});
 		}
 		
-		
+		proj.setFullCode("HAC_" + proj.getGameCode4() + "_" + reg.getShortCode());
 		NXUtils.clearActiveCryptTable();
+		
+		//For encrypted regions, I'm just going to be lazy and mark the whole main HFS
+		List<EncryptionRegion> encregs = proj.getEncRegListReference();
+		long hfsoff = 0xf000;
+		EncryptionRegion ereg = new EncryptionRegion(NXSysDefs.getXTSCryptoDef(), hfsoff, FileBuffer.fileSize(xci_path) - hfsoff, proj.getDecryptedDataDir()); //Partition table
+		encregs.add(ereg);
+		
+		proj.saveCryptTable();
+		proj.saveTree();
 		
 		return proj;
 	}
@@ -304,11 +303,7 @@ public class NXProject extends NTDProject{
 	private void treeResetCore(int complex) throws IOException{
 		
 		//Load NXCrypt
-		NXCrypt crypto = new NXCrypt();
-		String cpath = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_COMMON);
-		if(FileBuffer.fileExists(cpath)) crypto.loadCommonKeys(cpath);
-		cpath = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_TITLE);
-		if(FileBuffer.fileExists(cpath)) crypto.loadTitleKeys(cpath);
+		NXCrypt crypto = NTDTools.loadNXCrypt();
 		
 		try{
 			//Main tree.
@@ -439,11 +434,7 @@ public class NXProject extends NTDProject{
 	 * @since 2.0.0
 	 */
 	public String importPatch(String patch_path, boolean lowfs) throws IOException, UnsupportedFileTypeException{
-		NXCrypt crypto = new NXCrypt();
-		String cpath = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_COMMON);
-		if(FileBuffer.fileExists(cpath)) crypto.loadCommonKeys(cpath);
-		cpath = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_TITLE);
-		if(FileBuffer.fileExists(cpath)) crypto.loadTitleKeys(cpath);
+		NXCrypt crypto = NTDTools.loadNXCrypt();
 		
 		PatchedInfo pinfo = null;
 		if(!lowfs) pinfo = NXPatcher.patchXCI(super.getROMPath(), patch_path, crypto, true);
@@ -473,11 +464,7 @@ public class NXProject extends NTDProject{
 	 */
 	public String importDLC(String dlc_path, String dlc_name) throws IOException, UnsupportedFileTypeException{
 
-		NXCrypt crypto = new NXCrypt();
-		String cpath = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_COMMON);
-		if(FileBuffer.fileExists(cpath)) crypto.loadCommonKeys(cpath);
-		cpath = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_TITLE);
-		if(FileBuffer.fileExists(cpath)) crypto.loadTitleKeys(cpath);
+		NXCrypt crypto = NTDTools.loadNXCrypt();
 		
 		String tag = dlc_name.replace(" ", "-");
 		DirectoryNode root = super.getTreeRoot();

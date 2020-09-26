@@ -611,7 +611,7 @@ public class NTDProgramFiles {
 	
 	private static String project_list_path;
 	private static Map<Console, Collection<NTDProject>> project_map;
-	public static final int CURRENT_VERSION_PROJBIN = 7;
+	public static final int CURRENT_VERSION_PROJBIN = 8;
 	
 	public static String getProjectBinPath()
 	{

@@ -27,6 +27,7 @@ import waffleoRai_Files.tree.FileNode;
 
 import java.awt.FlowLayout;
 import java.awt.Frame;
+import java.awt.Color;
 
 public class ImageMasterPanel extends JPanel implements TreePanelListener, FileActionListener{
 
@@ -54,6 +55,8 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 	
 	public ImageMasterPanel(Frame myparent)
 	{
+		setForeground(Color.LIGHT_GRAY);
+		setBackground(Color.DARK_GRAY);
 		parent = myparent;
 		//System.err.print("Parent is null? " + (parent == null));
 		initGUI();
@@ -69,20 +72,24 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		setLayout(gridBagLayout);
 		
 		pnlTop = new JPanel();
-		FlowLayout flowLayout = (FlowLayout) pnlTop.getLayout();
-		flowLayout.setAlignment(FlowLayout.LEFT);
-		flowLayout.setVgap(1);
-		flowLayout.setHgap(1);
-		InfoPanel pnlInfo = new InfoPanel(null);
+		pnlTop.setBackground(Color.red);
 		GridBagConstraints gbc_panel_3 = new GridBagConstraints();
-		gbc_panel_3.anchor = GridBagConstraints.WEST;
 		gbc_panel_3.weighty = 0.01;
 		gbc_panel_3.gridwidth = 2;
 		gbc_panel_3.fill = GridBagConstraints.HORIZONTAL;
 		gbc_panel_3.gridx = 0;
 		gbc_panel_3.gridy = 0;
-		pnlTop.add(pnlInfo);
+		
+		GridBagLayout gbl_pnlTop = new GridBagLayout();
+		gbl_pnlTop.columnWidths = new int[]{525, 0};
+		gbl_pnlTop.rowHeights = new int[]{75, 0};
+		gbl_pnlTop.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_pnlTop.rowWeights = new double[]{0.0, Double.MIN_VALUE};
+		pnlTop.setLayout(gbl_pnlTop);
 		add(pnlTop, gbc_panel_3);
+		InfoPanel pnlInfo = new InfoPanel(null);
+		GridBagConstraints gbc_pnlInfo = genInfoPanelGBC();
+		pnlTop.add(pnlInfo, gbc_pnlInfo);
 		
 		pnlLeft = new JPanel();
 		GridBagConstraints gbc_panel_2 = new GridBagConstraints();
@@ -173,6 +180,15 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 	
 	/*----- GUI Sync -----*/
 	
+	private GridBagConstraints genInfoPanelGBC(){
+		GridBagConstraints gbc = new GridBagConstraints();
+		gbc.anchor = GridBagConstraints.NORTHWEST;
+		gbc.gridx = 0;
+		gbc.gridy = 0;
+		gbc.fill = GridBagConstraints.BOTH;
+		return gbc;
+	}
+	
 	private void clearProject()
 	{
 		pnlTop.removeAll();
@@ -184,7 +200,8 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		gbc_panel_3.fill = GridBagConstraints.HORIZONTAL;
 		gbc_panel_3.gridx = 0;
 		gbc_panel_3.gridy = 0;
-		pnlTop.add(pnlInfo);
+		GridBagConstraints gbc_pnlInfo = genInfoPanelGBC();
+		pnlTop.add(pnlInfo, gbc_pnlInfo);
 		pnlTop.updateUI();
 		
 		pnlLeft.removeAll();
@@ -213,7 +230,8 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		//Top panel
 		pnlTop.removeAll();
 		InfoPanel pnlInfo = new InfoPanel(project);
-		pnlTop.add(pnlInfo);
+		GridBagConstraints gbc_pnlInfo = genInfoPanelGBC();
+		pnlTop.add(pnlInfo, gbc_pnlInfo);
 		pnlTop.updateUI();
 		
 		//Default ROM panel for right (initially)
@@ -229,7 +247,8 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 	public void updateBannerPanel(){
 		pnlTop.removeAll();
 		InfoPanel pnlInfo = new InfoPanel(myproject);
-		pnlTop.add(pnlInfo);
+		GridBagConstraints gbc_pnlInfo = genInfoPanelGBC();
+		pnlTop.add(pnlInfo, gbc_pnlInfo);
 		pnlTop.updateUI();
 		repaint();
 	}

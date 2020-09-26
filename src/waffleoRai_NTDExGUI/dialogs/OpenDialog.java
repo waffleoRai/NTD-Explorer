@@ -208,6 +208,7 @@ public class OpenDialog extends JDialog{
 				if(pnlbkg != null) g.drawImage(pnlbkg, 0, 0, null);
 			}
 		};
+		spSwitch.getViewport().setOpaque(false);
 		spSwitch.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		tabbedPane.addTab("Switch", null, spSwitch, null);
 		tabbedPane.setEnabledAt(TAB_IDX_SWITCH, false);

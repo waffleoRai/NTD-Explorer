@@ -626,4 +626,13 @@ public class NTDTools {
 		}
 	}
 
+	public static NXCrypt loadNXCrypt() throws IOException{
+		NXCrypt crypto = new NXCrypt();
+		String cpath = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_COMMON);
+		if(FileBuffer.fileExists(cpath)) crypto.loadCommonKeys(cpath);
+		cpath = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_HAC_TITLE);
+		if(FileBuffer.fileExists(cpath)) crypto.loadTitleKeys(cpath);
+		return crypto;
+	}
+	
 }
