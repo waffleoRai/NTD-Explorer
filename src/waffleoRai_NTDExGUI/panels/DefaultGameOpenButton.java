@@ -29,7 +29,7 @@ public class DefaultGameOpenButton extends AbstractGameOpenButton{
 	 //Top lbl x, info lbl x, top lbl w, info lbl w
 	public static final int[][] X_LBL = {{61, 42, 105, 146},
 										 {78, 60, 105, 140},
-			                             {86, 70, 105, 140}};
+			                             {86, 70, 110, 140}};
 	
 	public static final int Y1 = 22;
 	public static final int Y2 = 34;

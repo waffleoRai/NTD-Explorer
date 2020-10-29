@@ -1,10 +1,12 @@
 package waffleoRai_NTDExGUI;
 
+import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import java.awt.GridBagLayout;
 import javax.swing.JScrollPane;
 
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
@@ -14,6 +16,7 @@ import javax.swing.event.PopupMenuListener;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
+import waffleoRai_NTDExGUI.dialogs.OpenDialog;
 import waffleoRai_NTDExGUI.icons.TypeIconTreeRenderer;
 import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Files.tree.FileNode;
@@ -22,9 +25,12 @@ import java.awt.Insets;
 import java.util.LinkedList;
 import java.util.List;
 import javax.swing.JPopupMenu;
+
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 
 public class TreePanel extends JPanel{
 
@@ -34,6 +40,10 @@ public class TreePanel extends JPanel{
 	
 	public static final int MIN_WIDTH = 200;
 	public static final int MIN_HEIGHT = 300;
+	
+	/*----- Static Variables -----*/
+	
+	private static BufferedImage tree_bkg;
 	
 	/*----- Instance Variables -----*/
 	
@@ -63,6 +73,10 @@ public class TreePanel extends JPanel{
 
 	private void initGUI()
 	{
+		getPanelBackground(); //Loads the bkg image
+		setBackground(Color.darkGray);
+		setForeground(Color.lightGray);
+		
 		Dimension mindim = new Dimension(MIN_WIDTH, MIN_HEIGHT);
 		setMinimumSize(mindim);
 		//setPreferredSize(mindim);
@@ -74,7 +88,15 @@ public class TreePanel extends JPanel{
 		gridBagLayout.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
-		scrollPane = new JScrollPane();
+		scrollPane = new JScrollPane(){
+			private static final long serialVersionUID = 936676086168590100L;
+
+			public void paintComponent(Graphics g){
+				super.paintComponent(g);
+				if(tree_bkg != null) g.drawImage(tree_bkg, 0, 0, null);
+			}
+		};
+		scrollPane.getViewport().setOpaque(false);
 		scrollPane.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 		gbc_scrollPane.insets = new Insets(5, 5, 5, 5);
@@ -86,7 +108,7 @@ public class TreePanel extends JPanel{
 		tree = new JTree();
 		tree.setExpandsSelectedPaths(true);
 		tree.setCellRenderer(new TypeIconTreeRenderer());
-		tree.setToolTipText("ROM image internal file system.\r\n(With optional custom link tree)");
+		//tree.setToolTipText("ROM image internal file system.\r\n(With optional custom link tree)");
 		tree.setBorder(null);
 		scrollPane.setViewportView(tree);
 		tree.addMouseListener(new MouseAdapter(){
@@ -114,6 +136,18 @@ public class TreePanel extends JPanel{
 	}
 	
 	/*----- Getters -----*/
+	
+	public static BufferedImage getPanelBackground(){
+		if(tree_bkg == null){
+			try{
+				tree_bkg = ImageIO.read(OpenDialog.class.getResource("/waffleoRai_NTDExCore/res/boring_gradient_1080_white.png"));
+			}
+			catch(Exception x){
+				x.printStackTrace();
+			}
+		}
+		return tree_bkg;
+	}
 	
 	/*----- Setters -----*/
 	

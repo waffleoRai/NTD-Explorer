@@ -24,7 +24,7 @@ public class InfoPanel extends JPanel{
 
 	private static final long serialVersionUID = -2849616410459530735L;
 	
-	public static final int MIN_WIDTH = 525;
+	public static final int MIN_WIDTH = 575;
 	public static final int MAX_WIDTH = 1080;
 	public static final int HEIGHT = 75;
 	

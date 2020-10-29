@@ -5,8 +5,6 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -15,6 +13,8 @@ import waffleoRai_Containers.nintendo.citrus.CitrusCrypt;
 import waffleoRai_Containers.nintendo.citrus.CitrusNCC;
 import waffleoRai_Containers.nintendo.citrus.CitrusNCSD;
 import waffleoRai_Containers.nintendo.citrus.CitrusSMDH;
+import waffleoRai_Containers.nintendo.citrus.CitrusUtil;
+import waffleoRai_Encryption.nintendo.NinCryptTable;
 import waffleoRai_Image.Animation;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.DefoLanguage;
@@ -47,19 +47,24 @@ import waffleoRai_fdefs.nintendo.CitrusAESCTRDef;
  * 2020.08.16 | 1.0.1 -> 1.1.0
  * 	Added low-level FS method
  * 
+ * 2020.09.27 | 1.1.0 -> 2.0.0
+ * 	Update to read directly from encrypted ROM w/o dec buffer
+ * 
  */
 
 /**
  * NTDProject implementation for a 3DS CCI image.
  * @author Blythe Hospelhorn
- * @version 1.1.0
- * @since August 16, 2020
+ * @version 2.0.0
+ * @since September 27, 2020
  */
 public class CitrusProject extends NTDProject{
 	
 	/*----- Constant -----*/
 	
 	/*----- Instance Variables -----*/
+	
+	private NinCryptTable crypt_table;
 	
 	/*----- Construction -----*/	
 	
@@ -81,21 +86,8 @@ public class CitrusProject extends NTDProject{
 	 * @since 1.0.0
 	 */
 	public static CitrusProject create3DSProject(String imgpath, GameRegion reg, ProgressListeningDialog observer) throws IOException, UnsupportedFileTypeException{
-
 		//First, check for keys...
-		String key9_path = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_CTR_COMMON9);
-		CitrusCrypt crypto = null;
-		if(FileBuffer.fileExists(key9_path)){
-			crypto = CitrusCrypt.loadCitrusCrypt(FileBuffer.createBuffer(key9_path));
-			
-			//Look for additional keys
-			byte[] key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_CTR_CARD1);
-			if(key != null) crypto.setKeyX(0x25, key);
-			key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_CTR_CARDA);
-			if(key != null) crypto.setKeyX(0x18, key);
-			key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_CTR_CARDB);
-			if(key != null) crypto.setKeyX(0x1B, key);
-		}
+		CitrusCrypt crypto = NTDProgramFiles.load3DSKeystate();
 		
 		//Load Image...
 		FileBuffer buffer = FileBuffer.createBuffer(imgpath, false);
@@ -119,8 +111,8 @@ public class CitrusProject extends NTDProject{
 		proj.setFullCode("CTR_" + code4 + "_" + reg.getShortCode());
 		
 		//Get decdir and mark encrypted regions
-		String decdir = proj.getDecryptedDataDir();
-		if(!FileBuffer.directoryExists(decdir)) Files.createDirectories(Paths.get(decdir));
+		/*String decdir = proj.getDecryptedDataDir();
+		if(!FileBuffer.directoryExists(decdir)) Files.createDirectories(Paths.get(decdir));*/
 		List<EncryptionRegion> encregs = proj.getEncRegListReference(); //Eh, lazy. So just do exheader, ExeFS(as one), and RomFS
 		for(int i = 0; i < 8; i++){
 			CitrusNCC part = ncsd.getPartition(i);
@@ -145,20 +137,29 @@ public class CitrusProject extends NTDProject{
 				encregs.add(r);
 				
 				//Run decryption (if possible)
-				if(crypto != null){
+				/*if(crypto != null){
 					observer.setSecondaryString("Decrypting partition " + i);
 					part.setDecBufferLocation(buffpath);
 					part.refreshDecBuffer(crypto, true);
-				}
+				}*/
 			}
 		}
 		
-		//Nab tree
+		//Parse what can be parsed.
+		observer.setSecondaryString("Attempting unlock");
+		if(crypto != null) ncsd.unlock(crypto);
+		proj.crypt_table = ncsd.generateCryptTable();
+		proj.saveCryptTable();
+		
 		observer.setSecondaryString("Parsing file tree");
-		DirectoryNode root = ncsd.getFileTree();
+		//DirectoryNode root = ncsd.getFileTree();
+		DirectoryNode root = ncsd.getFileTreeDirect(false);
+		//root.printMeToStdErr(0);
+		//proj.crypt_table.printMe();
 		proj.setTreeRoot(root);
 		
 		//Try to nab icon/banner
+		CitrusUtil.setActiveCryptTable(proj.crypt_table);
 		observer.setSecondaryString("Parsing banner");
 		boolean ico_found = false;
 		if(crypto != null){
@@ -182,11 +183,56 @@ public class CitrusProject extends NTDProject{
 			proj.setBannerTitle("3DS Software " + part0.getProductID());
 			proj.setPublisherName("Publisher Unknown");
 		}
+		CitrusUtil.clearActiveCryptTable();
 		
 		return proj;
 	}
 	
 	/*----- Decryption -----*/
+	
+	/**
+	 * Get the path to the saved crypt table for this project. This
+	 * should be in the project directory.
+	 * <br>The crypt table is used to store the locations, keys,
+	 * and base CTRs for encrypted regions in the source
+	 * file(s) so that files can be easily read directly off the raw image instead
+	 * of from a decrypted copy.
+	 * @return Crypt table path on local file system for this project as a string.
+	 * @since 2.0.0
+	 */
+	public String getCryptTablePath(){
+		return super.getCustomDataDirPath() + File.separator + "ctbl.bin";
+	}
+	
+	/**
+	 * Save the project crypt table to project directory.
+	 * <br>The crypt table is used to store the locations, keys,
+	 * and base CTRs for encrypted regions in the source
+	 * file(s) so that files can be easily read directly off the raw image instead
+	 * of from a decrypted copy.
+	 * @throws IOException If there is an error writing the file.
+	 * @since 2.0.0
+	 */
+	public void saveCryptTable() throws IOException{
+		String cpath = getCryptTablePath();
+		if(crypt_table != null) crypt_table.exportToFile(cpath);
+	}
+	
+	/**
+	 * Load the project crypt table from the project directory.
+	 * <br>The crypt table is used to store the locations, keys,
+	 * and base CTRs for encrypted regions in the source
+	 * file(s) so that files can be easily read directly off the raw image instead
+	 * of from a decrypted copy.
+	 * @throws IOException If the target file does not exist or there is an error
+	 * reading the file off disk.
+	 * @since 2.0.0
+	 */
+	public void loadCryptTable() throws IOException{
+		String cpath = getCryptTablePath();
+		crypt_table = new NinCryptTable();
+		crypt_table.importFromFile(cpath);
+	}
 	
 	/**
 	 * Generate the path to the decryption buffer file that should be used for 
@@ -196,6 +242,7 @@ public class CitrusProject extends NTDProject{
 	 * @since 1.0.0
 	 */
 	public String generatePartitionBufferPath(long part_id){
+		//Obsolete, but too lazy to delete deps so will keep for now
 		String path = getDecryptedDataDir();
 		path += File.separator + NTDProgramFiles.DECSTEM_CTR_PART;
 		path += Long.toHexString(part_id) + ".bin";
@@ -205,45 +252,26 @@ public class CitrusProject extends NTDProject{
 	public boolean decrypt(ProgressListeningDialog observer) throws IOException{
 
 		//Load keys
-		String key9_path = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_CTR_COMMON9);
-		CitrusCrypt crypto = null;
-		if(FileBuffer.fileExists(key9_path)){
-			crypto = CitrusCrypt.loadCitrusCrypt(FileBuffer.createBuffer(key9_path));
-			
-			//Look for additional keys
-			byte[] key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_CTR_CARD1);
-			if(key != null) crypto.setKeyX(0x25, key);
-			key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_CTR_CARDA);
-			if(key != null) crypto.setKeyX(0x18, key);
-			key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_CTR_CARDB);
-			if(key != null) crypto.setKeyX(0x1B, key);
-		}
+		CitrusCrypt crypto = NTDProgramFiles.load3DSKeystate();
 		
 		if(crypto == null){
 			//Decryption cannot be done...
 			return false;
 		}
 		
-		
 		//Out of laziness, we'll just reload the NCSD from the ROM path...
 		try{
 			FileBuffer src = FileBuffer.createBuffer(getROMPath(), false);
 			CitrusNCSD ncsd = CitrusNCSD.readNCSD(src, 0, true);
 			
-			int pcount = ncsd.getPartitionCount();
-			for(int i = 0; i < pcount; i++){
-				CitrusNCC part = ncsd.getPartition(i);
-				if(part != null){
-					observer.setSecondaryString("Decrypting partition " + i);
-					String buffpath = generatePartitionBufferPath(part.getPartitionID());
-					part.setDecBufferLocation(buffpath);
-					part.refreshDecBuffer(crypto, true);
-				}
-			}
-			
-			setTreeRoot(ncsd.getFileTree());
+			//Unlock & reparse the tree
+			ncsd.unlock(crypto);
+			crypt_table = ncsd.generateCryptTable();
+			setTreeRoot(ncsd.getFileTreeDirect(false));
+			saveCryptTable();
 			
 			//Try again to grab the banner.
+			CitrusUtil.setActiveCryptTable(crypt_table);
 			CitrusNCC part0 = ncsd.getPartition(0);
 			String ico_path = "/" + Long.toHexString(part0.getPartitionID()) + "/ExeFS/icon";
 			FileNode ico_node = getTreeRoot().getNodeAt(ico_path);
@@ -261,6 +289,7 @@ public class CitrusProject extends NTDProject{
 				setBannerTitle("3DS Software " + part0.getProductID());
 				setPublisherName("Publisher Unknown");
 			}
+			CitrusUtil.clearActiveCryptTable();
 			
 		}
 		catch(UnsupportedFileTypeException x){
@@ -274,15 +303,52 @@ public class CitrusProject extends NTDProject{
 	
 	/*----- Alt Methods -----*/
 	
+	public void onProjectOpen(){
+		try {
+			loadCryptTable();
+			CitrusUtil.setActiveCryptTable(crypt_table);
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public void onProjectClose(){
+		try {
+			saveCryptTable();
+			CitrusUtil.clearActiveCryptTable();
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void resetTreeCore(boolean lowfs) throws IOException{
+		CitrusCrypt crypto = NTDProgramFiles.load3DSKeystate();
+		
+		try{
+			FileBuffer src = FileBuffer.createBuffer(getROMPath(), false);
+			CitrusNCSD ncsd = CitrusNCSD.readNCSD(src, 0, true);
+			
+			//Unlock & reparse the tree
+			ncsd.unlock(crypto);
+			crypt_table = ncsd.generateCryptTable();
+			setTreeRoot(ncsd.getFileTreeDirect(lowfs));
+			saveCryptTable();			
+		}
+		catch(UnsupportedFileTypeException x){
+			x.printStackTrace();
+			throw new IOException("3DS Image parsing error");
+		}
+	}
+	
 	public void resetTree(ProgressListeningDialog observer) throws IOException{	
-		//TODO could do something faster by reading directly from the existing dec buffer files
-		//but that takes work, man.
-		decrypt(observer);
+		resetTreeCore(false);
 	}
 	
 	public void resetTreeFSDetail(ProgressListeningDialog observer) throws IOException{
-		//TODO
-		resetTree(observer);
+		resetTreeCore(true);
 	}
 	
 	public String[] getBannerLines(){

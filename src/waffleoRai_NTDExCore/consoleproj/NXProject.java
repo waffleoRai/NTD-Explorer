@@ -6,14 +6,21 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 
 import waffleoRai_Containers.nintendo.nx.NXCartImage;
 import waffleoRai_Containers.nintendo.nx.NXCrypt;
+import waffleoRai_Containers.nintendo.nx.NXPFS;
 import waffleoRai_Containers.nintendo.nx.NXPatcher;
 import waffleoRai_Containers.nintendo.nx.NXPatcher.PatchedInfo;
 import waffleoRai_Containers.nintendo.nx.NXUtils;
@@ -26,8 +33,10 @@ import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.NTDTools;
+import waffleoRai_NTDExCore.importer.addons.AddonImporter;
 import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.banners.Unanimator;
+import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
 import waffleoRai_NTDExGUI.panels.DefaultGameOpenButton;
@@ -481,4 +490,117 @@ public class NXProject extends NTDProject{
 		return k;
 	}
 	
+	public boolean supportsAddOnImport(){return true;}
+	
+	public AddonImporter getAddOnImporter(){
+		//Allows you to import an NSP
+		//Auto-detects patch or DLC, I guess.
+		
+		AddonImporter importer = new AddonImporter(){
+
+			public void importAddOn(Frame gui) {
+				//File browser
+				JFileChooser fc = new JFileChooser(getROMPath());
+				fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				int retVal = fc.showOpenDialog(gui);
+				
+				if (retVal != JFileChooser.APPROVE_OPTION) return;
+				File f = fc.getSelectedFile();
+				String fpath = f.getAbsolutePath();
+				
+				//Dialog
+				IndefProgressDialog dialog = new IndefProgressDialog(gui, "Importing Add-On");
+				dialog.setPrimaryString("Initializing");
+				dialog.setSecondaryString("Checking import target");
+				
+				//Task
+				SwingWorker<Void, Void> task = new SwingWorker<Void, Void>(){
+
+					protected Void doInBackground() throws Exception 
+					{
+						try{
+							//Load NX crypto
+							NXCrypt crypto = NTDTools.loadNXCrypt();
+							
+							//Scan to determine if patch or DLC...
+							boolean ispatch = NXUtils.isNSPPatch(fpath, crypto);
+							
+							//Attempt import...
+							DirectoryStream<Path> dstr = Files.newDirectoryStream(Paths.get(fpath));
+							if(ispatch){
+								dialog.setPrimaryString("Importing Patch");
+								for(Path p : dstr){
+									//Load PFS
+									String pstr = p.toAbsolutePath().toString();
+									dialog.setSecondaryString("Initializing " + pstr);
+									
+									//Check if PFS
+									FileBuffer prev = new FileBuffer(pstr, 0L, 0x10, true);
+									if(prev.findString(0L, 0x10, NXPFS.MAGIC) != 0L){
+										dialog.setSecondaryString("Skipping " + pstr);
+										continue;
+									}
+									
+									//Do patch...
+									dialog.setSecondaryString("Importing " + pstr);
+									importPatch(pstr, false);
+								}
+							}
+							else{
+								dialog.setPrimaryString("Importing DLC");
+								
+								//Derive DLC name...
+								int slash = fpath.lastIndexOf(File.separator);
+								String dlc_name = null;
+								if(slash >= 0) dlc_name = fpath.substring(slash+1);
+								int dot = dlc_name.lastIndexOf('.');
+								if(dot >= 0) dlc_name = dlc_name.substring(0, dot);
+								
+								int ctr = 0;
+								for(Path p : dstr){
+									//Load PFS
+									String pstr = p.toAbsolutePath().toString();
+									dialog.setSecondaryString("Initializing " + pstr);
+									
+									//Check if PFS
+									FileBuffer prev = new FileBuffer(pstr, 0L, 0x10, true);
+									if(prev.findString(0L, 0x10, NXPFS.MAGIC) != 0L){
+										dialog.setSecondaryString("Skipping " + pstr);
+										continue;
+									}
+									
+									//Do patch...
+									dialog.setSecondaryString("Importing " + pstr);
+									String mname = dlc_name;
+									if(ctr > 0) mname += String.format("_%02d", ctr++);
+									else ctr++;
+									importDLC(pstr, mname);
+								}
+							}
+							dstr.close();
+						}
+						catch (Exception e){
+							e.printStackTrace();
+							dialog.showWarningMessage("ERROR: Add-on import failed! See stderr for details.");
+						}
+						return null;
+					}
+					
+					public void done(){
+						dialog.closeMe();
+					}
+					
+				};
+				
+				//Go
+				task.execute();
+				dialog.render();
+				
+			}
+			
+		};
+		
+		
+		return importer;
+	}
 }

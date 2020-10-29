@@ -2,12 +2,14 @@ package waffleoRai_NTDExGUI;
 
 import java.awt.Dimension;
 
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JRadioButton;
 import javax.swing.SwingWorker;
 
 import waffleoRai_Containers.nintendo.citrus.CitrusCrypt;
@@ -19,8 +21,10 @@ import waffleoRai_NTDExCore.DefoLanguage;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.NTDProject.AddOnRecord;
 import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
+import waffleoRai_NTDExCore.importer.addons.AddonImporter;
 import waffleoRai_NTDExGUI.dialogs.AddCTRKeyDialog;
 import waffleoRai_NTDExGUI.dialogs.AddKeyDialog;
 import waffleoRai_NTDExGUI.dialogs.BannerEditForm;
@@ -43,6 +47,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.awt.GridBagConstraints;
@@ -74,11 +79,76 @@ public class ExplorerForm extends JFrame {
 	private ComponentGroup always_enabled;
 	private ComponentGroup loaded_enabled;
 	
+	private JMenuItem mntmImportBannerMC;
+	private JMenuItem mntmImportCDTrack;
+	
 	private NTDProject loaded_project;
 	
 	private JMenu mnSourcesAddons;
 	private JMenu mnSourcesUpdates;
 	private JMenu mnSourcesDLC;
+	
+	private AddonCheckbox[] rawsrc_list;
+	private AddonRadioButton[] update_list;
+	private AddonCheckbox[] dlc_list;
+	
+	/*----- Component Subclasses -----*/
+	
+	protected class AddonRadioButton extends JRadioButton{
+		
+		private static final long serialVersionUID = -2982772178050918259L;
+		
+		private int index;
+		private String addon_key;
+		
+		public AddonRadioButton(int idx, String key, String display_txt){
+			super(display_txt);
+			addon_key = key;
+			index = idx;
+			
+			this.addActionListener(new ActionListener(){
+
+				public void actionPerformed(ActionEvent e) {
+					onSelectUpdate(index);
+				}
+				
+			});
+		}
+		
+		public String getKey(){
+			return addon_key;
+		}
+		
+	}
+	
+	protected class AddonCheckbox extends JCheckBox{
+
+		private static final long serialVersionUID = 7947632154241242893L;
+		private String addon_key;
+		private boolean for_dlc;
+		private int index;
+		
+		public AddonCheckbox(int idx, String key, String display_txt, boolean dlc){
+			super(display_txt);
+			addon_key = key;
+			for_dlc = dlc;
+			index = idx;
+			
+			this.addActionListener(new ActionListener(){
+
+				public void actionPerformed(ActionEvent e) {
+					if(for_dlc) onSelectDLC(index);
+					else onSelectRawAddon(index);
+				}
+				
+			});
+			
+		}
+		
+		public String getKey(){
+			return addon_key;
+		}
+	}
 	
 	/*----- Build -----*/
 	
@@ -213,7 +283,7 @@ public class ExplorerForm extends JFrame {
 		mnProject.add(mnImportBanner);
 		loaded_enabled.addComponent("mnImportBanner", mnImportBanner);
 		
-		JMenuItem mntmImportBannerMC = new JMenuItem("From Save Data...");
+		mntmImportBannerMC = new JMenuItem("From Save Data...");
 		mnImportBanner.add(mntmImportBannerMC);
 		mntmImportBannerMC.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){onToolsImportBannerFromSave();}
@@ -244,9 +314,9 @@ public class ExplorerForm extends JFrame {
 		mnManageSources.add(mnSourcesDLC);
 		mnSourcesDLC.setEnabled(false);
 		
-		JMenuItem mntmImportCDTrack = new JMenuItem("Import Data Source...");
+		mntmImportCDTrack = new JMenuItem("Import Data Source...");
 		mnManageSources.add(mntmImportCDTrack);
-		loaded_enabled.addComponent("mntmImportCDTrack", mntmImportCDTrack);
+		//loaded_enabled.addComponent("mntmImportCDTrack", mntmImportCDTrack);
 		mntmImportCDTrack.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){onFileImportAdditionalData();}
 		});
@@ -406,20 +476,119 @@ public class ExplorerForm extends JFrame {
 	
 	/*----- GUI Update -----*/
 	
+	public void syncAddOnMenus(){
+		mnSourcesAddons.removeAll();
+		mnSourcesAddons.setEnabled(false);
+		mnSourcesUpdates.removeAll();
+		mnSourcesUpdates.setEnabled(false);
+		mnSourcesDLC.removeAll();
+		mnSourcesDLC.setEnabled(false);
+		if(loaded_project != null){
+			List<AddOnRecord> list = new LinkedList<AddOnRecord>();	
+			//Patches
+			list.addAll(loaded_project.getAllPatchRecords());
+			AddOnRecord pstate = loaded_project.getCurrentPatchState();
+			
+			if(!list.isEmpty()){
+				Collections.sort(list);
+				int count = list.size();
+				update_list = new AddonRadioButton[count+1]; //Base!
+				AddonRadioButton rb = new AddonRadioButton(0, null, loaded_project.getBaseVersionString());
+				update_list[0] = rb; mnSourcesUpdates.add(rb);
+				if(pstate == null) rb.setSelected(true);
+				int i = 1;
+				for(AddOnRecord r : list){
+					rb = new AddonRadioButton(i, r.getKey(), r.getDisplayString());
+					if(pstate != null && pstate.getKey().equals(r.getKey())) rb.setSelected(true);
+					update_list[i++] = rb;
+					mnSourcesUpdates.add(rb);
+				}
+				
+				mnSourcesUpdates.setEnabled(true);
+				
+			}
+			
+			//DLC
+			list.clear();
+			list.addAll(loaded_project.getAllDLCRecords());
+			
+			if(!list.isEmpty()){
+				Collections.sort(list);
+				Collection<String> loaded = loaded_project.getLoadedDLCKeys();
+				int count = list.size();
+				dlc_list = new AddonCheckbox[count];
+				int i = 0;
+				for(AddOnRecord r : list){
+					AddonCheckbox cb = new AddonCheckbox(i, r.getKey(), r.getDisplayString(), true);
+					if(loaded.contains(r.getKey())) cb.setSelected(true);
+					dlc_list[i++] = cb;
+					mnSourcesDLC.add(cb);
+				}
+				mnSourcesDLC.setEnabled(true);
+			}
+			
+		}
+		else{
+			//Clear
+			rawsrc_list = null;
+			update_list = null;
+			dlc_list = null;
+		}
+	}
+	
 	public void loadProject(NTDProject project)
 	{
 		always_enabled.setEnabling(false);
 		loaded_enabled.setEnabling(false);
 		
-		if(loaded_project != null) loaded_project.onProjectClose();
+		IndefProgressDialog dialog = new IndefProgressDialog(this, "Loading Project");
+		dialog.setPrimaryString("Please Wait");
+		dialog.setSecondaryString("Loading project into browser");
 		
-		loaded_project = project;
-		if(loaded_project != null) loaded_project.onProjectOpen();
+		SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+		{
+
+			protected Void doInBackground() throws Exception 
+			{
+				try{
+					if(loaded_project != null) loaded_project.onProjectClose();
+					
+					loaded_project = project;
+					if(loaded_project != null) loaded_project.onProjectOpen();
+					
+					if(loaded_project != null){
+						//Check whether to enable add-on and save banner import...
+						mntmImportBannerMC.setEnabled(loaded_project.supportsSaveBannerImport());
+						mntmImportCDTrack.setEnabled(loaded_project.supportsAddOnImport());
+					}
+					
+					//Load add-ons
+					syncAddOnMenus();
+					
+					pnlMain.loadProject(project);
+					
+					always_enabled.setEnabling(true);
+					loaded_enabled.setEnabling(project != null);
+					
+					repaint();
+				}
+				catch (Exception e){
+					e.printStackTrace();
+					dialog.showWarningMessage("ERROR: Project load failed! See stderr for details.");
+				}
+				return null;
+			}
+			
+			public void done(){
+				dialog.closeMe();
+			}
+			
+		};
 		
-		pnlMain.loadProject(project);
+		//Execute task...
+		task.execute();
+		dialog.render();
 		
-		always_enabled.setEnabling(true);
-		loaded_enabled.setEnabling(project != null);
 	}
 	
 	/*----- Actions -----*/
@@ -1150,7 +1319,24 @@ public class ExplorerForm extends JFrame {
 	}
 	
 	private void onFileImportAdditionalData(){
-		//TODO
+
+		if(loaded_project == null){
+			showError("No project loaded!"); return;
+		}
+		if(!loaded_project.supportsAddOnImport()){
+			showError("Current project does not support add-on import!"); return;
+		}
+		
+		AddonImporter importer = loaded_project.getAddOnImporter();
+		if(importer == null){
+			showError("Current project does not support add-on import!"); return;
+		}
+		
+		importer.importAddOn(this);
+		
+		syncAddOnMenus();
+		pnlMain.refreshMe();
+		repaint();
 		
 	}
 	
@@ -1238,6 +1424,111 @@ public class ExplorerForm extends JFrame {
 	
 	private void onTypesManagePlugins(){
 		//TODO
+	}
+	
+	/*----- Menu Addon Actions -----*/
+	
+	private void onSelectRawAddon(int idx){
+		//TODO
+	}
+	
+	private void onSelectDLC(int idx){
+		//Get key and check if set or unset
+		if(loaded_project == null) return;
+		
+		if(dlc_list == null) return;
+		if(dlc_list[idx] == null) return;
+		boolean set = dlc_list[idx].isSelected();
+		String key = dlc_list[idx].getKey();
+		if(key == null) return;
+		
+		//Generate wait dialog and task...
+		IndefProgressDialog dialog = new IndefProgressDialog(this, "Setting DLC Module");
+		dialog.setPrimaryString("Reading");
+		dialog.setSecondaryString("Loading DLC Module");
+		
+		SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+		{
+
+			protected Void doInBackground() throws Exception 
+			{
+				try{
+					if(set) loaded_project.mountDLC(key);
+					else loaded_project.dismountDLC(key);
+				}
+				catch (Exception e){
+					e.printStackTrace();
+					dialog.showWarningMessage("ERROR: DLC state change failed! See stderr for details.");
+				}
+				return null;
+			}
+			
+			public void done(){
+				dialog.closeMe();
+			}
+			
+		};
+		
+		//Execute task...
+		task.execute();
+		dialog.render();
+		
+		//Refresh this form
+		pnlMain.refreshMe();
+	}
+	
+	private void onSelectUpdate(int idx){
+		//Set the radio buttons (and get key)...
+		String key = null;
+		if(update_list == null) return;
+		for(int i = 0; i < update_list.length; i++){
+			if(update_list[i] != null){
+				if(i == idx){
+					update_list[i].setSelected(true);
+					key = update_list[i].getKey();
+				}
+				else{
+					update_list[i].setSelected(false);
+				}	
+			}
+		}
+		if(loaded_project == null) return;
+		
+		//Generate wait dialog and task...
+		IndefProgressDialog dialog = new IndefProgressDialog(this, "Setting Patch Version");
+		dialog.setPrimaryString("Reading");
+		dialog.setSecondaryString("Loading patch state");
+		
+		String fkey = key;
+		SwingWorker<Void, Void> task = new SwingWorker<Void, Void>()
+		{
+
+			protected Void doInBackground() throws Exception 
+			{
+				try{
+					if(fkey == null) loaded_project.setToUnpatchedState();
+					else loaded_project.setPatchState(fkey);
+				}
+				catch (Exception e){
+					e.printStackTrace();
+					dialog.showWarningMessage("ERROR: Patch state change failed! See stderr for details.");
+				}
+				return null;
+			}
+			
+			public void done(){
+				dialog.closeMe();
+			}
+			
+		};
+		
+		//Execute task...
+		task.execute();
+		dialog.render();
+		
+		//Refresh this form
+		pnlMain.refreshMe();
+		
 	}
 	
 	/*----- Checks -----*/

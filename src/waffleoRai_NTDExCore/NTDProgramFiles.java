@@ -33,6 +33,7 @@ import javax.imageio.ImageIO;
 import waffleoRai_Compression.definitions.AbstractCompDef;
 import waffleoRai_Compression.definitions.CompDefNode;
 import waffleoRai_Compression.definitions.CompressionDefs;
+import waffleoRai_Containers.nintendo.citrus.CitrusCrypt;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBufferStreamer;
@@ -252,6 +253,23 @@ public class NTDProgramFiles {
 		for(String s : ALL_KEYKEYS)list.add(s);
 		
 		return list;
+	}
+	
+	public static CitrusCrypt load3DSKeystate() throws IOException{
+		String key9_path = NTDProgramFiles.getKeyFilePath(NTDProgramFiles.KEYNAME_CTR_COMMON9);
+		CitrusCrypt crypto = null;
+		if(FileBuffer.fileExists(key9_path)){
+			crypto = CitrusCrypt.loadCitrusCrypt(FileBuffer.createBuffer(key9_path));
+			
+			//Look for additional keys
+			byte[] key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_CTR_CARD1);
+			if(key != null) crypto.setKeyX(0x25, key);
+			key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_CTR_CARDA);
+			if(key != null) crypto.setKeyX(0x18, key);
+			key = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_CTR_CARDB);
+			if(key != null) crypto.setKeyX(0x1B, key);
+		}
+		return crypto;
 	}
 	
 	/*----- Default Images -----*/

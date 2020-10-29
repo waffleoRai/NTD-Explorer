@@ -40,6 +40,7 @@ import waffleoRai_NTDExCore.consoleproj.NXProject;
 import waffleoRai_NTDExCore.consoleproj.PSXProject;
 import waffleoRai_NTDExCore.consoleproj.WiiProject;
 import waffleoRai_NTDExCore.consoleproj.WiiUProject;
+import waffleoRai_NTDExCore.importer.addons.AddonImporter;
 import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
 import waffleoRai_NTDExGUI.panels.AbstractGameOpenButton;
@@ -84,6 +85,12 @@ import waffleoRai_Utils.SerializedString;
  * 2020.09.25 | 3.0.0 -> 3.1.0
  * 	Added base version string
  * 
+ * 2020.09.26 | 3.1.0 -> 3.1.1
+ *  Uhhhh getting the patch/DLC keys shouldn't return null, dummy
+ * 
+ * 2020.09.26 | 3.1.1 -> 3.2.0
+ *  Method for generating an add-on importer
+ * 
  */
 
 /**
@@ -92,8 +99,8 @@ import waffleoRai_Utils.SerializedString;
  * can be found allowing for flexibility and memory conservation. Also includes
  * many fields for metadata such as software title and region.
  * @author Blythe Hospelhorn
- * @version 3.1.0
- * @since September 19, 2020
+ * @version 3.2.0
+ * @since September 26, 2020
  *
  */
 public abstract class NTDProject implements Comparable<NTDProject>{
@@ -248,7 +255,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * @version 1.0.0
 	 * @since 3.0.0
 	 */
-	public static class AddOnRecord{
+	public static class AddOnRecord implements Comparable<AddOnRecord>{
 		
 		private String key;
 		private String display;
@@ -394,6 +401,19 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		}
 		
 		public String toString(){return display;}
+
+		public int hashCode(){
+			return key.hashCode();
+		}
+		
+		public boolean equals(Object o){
+			return key.equals(o);
+		}
+		
+		public int compareTo(AddOnRecord o) {
+			if(display == null) return -1;
+			return display.compareTo(o.display);
+		}
 		
 	}
 	
@@ -1533,7 +1553,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	public Collection<String> getAllPatchKeys(){
 		Set<String> keys = new HashSet<String>();
 		if(this.patch_entries != null)keys.addAll(patch_entries.keySet());
-		return null;
+		return keys;
 	}
 	
 	/**
@@ -1547,7 +1567,7 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	public Collection<String> getAllDLCKeys(){
 		Set<String> keys = new HashSet<String>();
 		if(this.added_entries != null)keys.addAll(added_entries.keySet());
-		return null;
+		return keys;
 	}
 	
 	/**
@@ -2339,6 +2359,33 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 	 * @since 2.0.0
 	 */
 	public abstract String[] getBannerLines();
+	
+	/**
+	 * Get whether this project supports banner import from a game
+	 * save file. This will be console dependent.
+	 * @return True if this project supports save data banner
+	 * import. False if not.
+	 * @since 3.2.0
+	 */
+	public boolean supportsSaveBannerImport(){return false;}
+	
+	/**
+	 * Get whether this project supports add-on import.
+	 * @return True if this project supports the addition of patches,
+	 * data sources, or DLC. False if it does not.
+	 * @since 3.2.0
+	 */
+	public boolean supportsAddOnImport(){return false;}
+	
+	/**
+	 * Generate an <code>AddOnImporter</code> for GUI use that allows
+	 * for importing of add-on modules to this project.
+	 * @return <code>AddOnImporter</code> that can be used with this project.
+	 * @since 3.2.0
+	 */
+	public AddonImporter getAddOnImporter(){
+		return null;
+	}
 	
 	/*----- Misc Utility -----*/
 	

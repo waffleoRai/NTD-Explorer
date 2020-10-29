@@ -46,13 +46,16 @@ import waffleoRai_fdefs.psx.PSXSysDefs;
  * 2020.08.16 | 1.1.1 -> 1.2.0
  * 	Added low-level FS method
  * 
+ * 2020.09.26 | 1.2.0 -> 1.2.1
+ * 	supportsSaveBannerImport() (yes)
+ * 
  */
 
 /**
  * NTDProject implementation for a PlayStation 1 software disk image.
  * @author Blythe Hospelhorn
- * @version 1.2.0
- * @since August 16, 2020
+ * @version 1.2.1
+ * @since September 26, 2020
  */
 public class PSXProject extends NTDProject{
 	
@@ -287,5 +290,7 @@ public class PSXProject extends NTDProject{
 		
 		return new StandardAnimator(anim, millis, l);
 	}
+	
+	public boolean supportsSaveBannerImport(){return true;}
 	
 }

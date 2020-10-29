@@ -1,5 +1,6 @@
 package waffleoRai_NTDExGUI;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -8,9 +9,10 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
+import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 import java.io.File;
 
-import javax.swing.JScrollPane;
 import javax.swing.SwingWorker;
 import javax.swing.border.BevelBorder;
 
@@ -18,6 +20,7 @@ import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
+import waffleoRai_NTDExGUI.dialogs.OpenDialog;
 import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
 import waffleoRai_NTDExGUI.dialogs.TreeDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
@@ -25,8 +28,8 @@ import waffleoRai_NTDExGUI.panels.FileViewPanel;
 import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Files.tree.FileNode;
 
-import java.awt.FlowLayout;
 import java.awt.Frame;
+import java.awt.Graphics;
 import java.awt.Color;
 
 public class ImageMasterPanel extends JPanel implements TreePanelListener, FileActionListener{
@@ -39,6 +42,11 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 	public static final int MIN_HEIGHT = InfoPanel.HEIGHT + 200;
 	public static final int PREF_HEIGHT = 350;
 
+	/*----- Static Variables -----*/
+	
+	private static BufferedImage empty_prev_bkg;
+	private static BufferedImage empty_prev_txt;
+	
 	/*----- Instance Variables -----*/
 	
 	private Frame parent;
@@ -50,24 +58,80 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 	
 	//private InfoPanel pnlInfo;
 	private TreePanel pnlTree;
+	
+	/*----- Inner Classes -----*/
+	
+	protected static class EmptyPreviewPanel extends JPanel{
+
+		private static final long serialVersionUID = 7441506192083949078L;
+		
+		public EmptyPreviewPanel(){
+			if(empty_prev_bkg == null || empty_prev_txt == null){
+				try{
+					empty_prev_bkg = ImageIO.read(OpenDialog.class.getResource("/waffleoRai_NTDExCore/res/boring_gradient_1080_lite.png"));
+					empty_prev_txt = ImageIO.read(OpenDialog.class.getResource("/waffleoRai_NTDExCore/res/no_load_text_eng.png"));
+				}
+				catch(Exception x){
+					x.printStackTrace();
+				}
+			}
+		}
+		
+		public void paintComponent(Graphics g){
+			super.paintComponent(g);
+			if(empty_prev_bkg != null) g.drawImage(empty_prev_bkg, 0, 0, null);
+			if(empty_prev_txt != null){
+				Rectangle cb = g.getClipBounds();
+				
+				int cx = cb.width >>> 1;
+				int cy = cb.height >>> 1;
+				
+				cx -= empty_prev_txt.getWidth() >>> 1;
+				cy -= empty_prev_txt.getHeight() >>> 1;
+				
+				g.drawImage(empty_prev_txt, cx, cy, null);	
+			}
+			
+		}
+		
+	}
+	
+	protected static class EmptyTreePanel extends JPanel{
+
+		private static final long serialVersionUID = 75518715244473961L;
+		
+		public EmptyTreePanel(){
+			setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		}
+		
+		public void paintComponent(Graphics g){
+			super.paintComponent(g);
+			BufferedImage tree_bkg = TreePanel.getPanelBackground();
+			if(tree_bkg != null) g.drawImage(tree_bkg, 0, 0, null);		
+		}
+		
+	}
 
 	/*----- Construction -----*/
 	
 	public ImageMasterPanel(Frame myparent)
 	{
-		setForeground(Color.LIGHT_GRAY);
-		setBackground(Color.DARK_GRAY);
 		parent = myparent;
 		//System.err.print("Parent is null? " + (parent == null));
+		
 		initGUI();
 	}
 
 	private void initGUI()
 	{
+
+		setForeground(Color.LIGHT_GRAY);
+		setBackground(Color.DARK_GRAY);
+		
 		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[]{0, 229, 0};
+		gridBagLayout.columnWidths = new int[]{0, 275, 0};
 		gridBagLayout.rowHeights = new int[]{InfoPanel.HEIGHT, 0, 0};
-		gridBagLayout.columnWeights = new double[]{1.0, 1.0, Double.MIN_VALUE};
+		gridBagLayout.columnWeights = new double[]{0.5, 1.0, Double.MIN_VALUE};
 		gridBagLayout.rowWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
@@ -92,8 +156,10 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		pnlTop.add(pnlInfo, gbc_pnlInfo);
 		
 		pnlLeft = new JPanel();
+		pnlLeft.setBackground(Color.darkGray);
+		pnlLeft.setForeground(Color.lightGray);
 		GridBagConstraints gbc_panel_2 = new GridBagConstraints();
-		gbc_panel_2.weightx = 0.3;
+		gbc_panel_2.weightx = 0.5;
 		gbc_panel_2.weighty = 1.0;
 		gbc_panel_2.insets = new Insets(0, 0, 0, 5);
 		gbc_panel_2.fill = GridBagConstraints.BOTH;
@@ -105,13 +171,16 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		gbl_pnlLeft.columnWeights = new double[]{1.0};
 		pnlLeft.setLayout(gbl_pnlLeft);
 		
-		JScrollPane scrollPane_2 = new JScrollPane();
+		resetTree();
+		
+		/*JScrollPane scrollPane_2 = new JScrollPane();
 		scrollPane_2.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		GridBagConstraints gbc_scrollPane_2 = new GridBagConstraints();
 		gbc_scrollPane_2.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane_2.gridx = 0;
 		gbc_scrollPane_2.gridy = 0;
-		pnlLeft.add(scrollPane_2, gbc_scrollPane_2);
+		pnlLeft.add(scrollPane_2, gbc_scrollPane_2);*/
+		
 		
 		/*JScrollPane scrollPane = new JScrollPane();
 		scrollPane.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
@@ -138,13 +207,14 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		gbl_pnlRight.rowWeights = new double[]{1.0, Double.MIN_VALUE};
 		pnlRight.setLayout(gbl_pnlRight);
 		
-		JScrollPane scrollPane_1 = new JScrollPane();
+		/*JScrollPane scrollPane_1 = new JScrollPane();
 		scrollPane_1.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		GridBagConstraints gbc_scrollPane_1 = new GridBagConstraints();
 		gbc_scrollPane_1.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane_1.gridx = 0;
 		gbc_scrollPane_1.gridy = 0;
-		pnlRight.add(scrollPane_1, gbc_scrollPane_1);
+		pnlRight.add(scrollPane_1, gbc_scrollPane_1);*/
+		refreshFileViewPanel(null);
 		
 		Dimension sz = new Dimension(MIN_WIDTH, MIN_HEIGHT);
 		setMinimumSize(sz);
@@ -193,30 +263,12 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 	{
 		pnlTop.removeAll();
 		InfoPanel pnlInfo = new InfoPanel(null);
-		GridBagConstraints gbc_panel_3 = new GridBagConstraints();
-		gbc_panel_3.anchor = GridBagConstraints.WEST;
-		gbc_panel_3.weighty = 0.01;
-		gbc_panel_3.gridwidth = 2;
-		gbc_panel_3.fill = GridBagConstraints.HORIZONTAL;
-		gbc_panel_3.gridx = 0;
-		gbc_panel_3.gridy = 0;
 		GridBagConstraints gbc_pnlInfo = genInfoPanelGBC();
 		pnlTop.add(pnlInfo, gbc_pnlInfo);
 		pnlTop.updateUI();
 		
-		pnlLeft.removeAll();
-		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
-		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
-		gbc_scrollPane.insets = new Insets(0, 5, 5, 5);
-		gbc_scrollPane.fill = GridBagConstraints.BOTH;
-		gbc_scrollPane.gridx = 0;
-		gbc_scrollPane.gridy = 0;
-		pnlLeft.add(scrollPane, gbc_scrollPane);
-		pnlLeft.updateUI();
-		
-		pnlRight.removeAll();
-		pnlRight.updateUI();
+		resetTree();
+		refreshFileViewPanel(null);
 	}
 	
 	public void loadProject(NTDProject project)
@@ -235,8 +287,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		pnlTop.updateUI();
 		
 		//Default ROM panel for right (initially)
-		pnlRight.removeAll();
-		pnlRight.updateUI();
+		refreshFileViewPanel(null);
 		
 		//Tree panel
 		resetTree();
@@ -259,17 +310,28 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		if(pnlTree != null) pnlTree.clearTreeListeners();
 
 		pnlLeft.removeAll();
-		DirectoryNode root = myproject.getTreeRoot();
-		root.setFileName("");
-		pnlTree = new TreePanel(root);
-		pnlTree.addTreeListener(this);
+		
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.fill = GridBagConstraints.BOTH;
 		gbc.gridx = 0;
 		gbc.gridy = 0;
-		pnlLeft.add(pnlTree, gbc);
-		pnlTree.updateGUITree();
-		pnlLeft.updateUI();
+		if(myproject != null){
+			DirectoryNode root = myproject.getTreeRoot();
+			root.setFileName("");
+			pnlTree = new TreePanel(root);
+			pnlTree.addTreeListener(this);
+			pnlLeft.add(pnlTree, gbc);
+			pnlTree.updateGUITree();
+			pnlLeft.updateUI();			
+		}
+		else{
+			//System.err.println("Drawing empty tree panel");
+			EmptyTreePanel pnl = new EmptyTreePanel();
+			gbc.insets = new Insets(5,5,5,0);
+			pnlLeft.add(pnl, gbc);
+			pnlLeft.updateUI();	
+		}
+
 	}
 	
 	public void refreshFileViewPanel(FileNode node)
@@ -284,16 +346,24 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		}
 		
 		pnlRight.removeAll();
-		FileViewPanel pnl = new FileViewPanel(parent);
+		
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 0;
 		gbc.gridy = 0;
 		gbc.fill = GridBagConstraints.BOTH;
+		if(node != null){
+			FileViewPanel pnl = new FileViewPanel(parent);
+			
+			pnl.loadFile(node, myproject);
+			pnl.addFileActionListener(this);	
+			pnlRight.add(pnl,gbc);
+		}
+		else{
+			EmptyPreviewPanel pnl = new EmptyPreviewPanel();
+			pnlRight.add(pnl, gbc);
+		}
 		
-		pnl.loadFile(node, myproject);
-		pnl.addFileActionListener(this);
-		pnlRight.add(pnl,gbc);
-		pnlTree.updateUI();
+		if(pnlTree != null) pnlTree.updateUI();
 		pnlRight.updateUI();
 	}
 	
