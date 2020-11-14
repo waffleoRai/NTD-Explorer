@@ -1024,7 +1024,7 @@ public class ExplorerForm extends JFrame {
 	private void onToolsTreeReset()
 	{
 		if(!checkSourcePath()) return;
-		
+		//TODO refresh preview panel
 		int op = JOptionPane.showConfirmDialog(this, 
 				"Are you sure you want to reset the tree to the ROM tree?\n"
 				+ "If you do, you won't be able to undo it!", 
@@ -1070,7 +1070,7 @@ public class ExplorerForm extends JFrame {
 	
 	private void onTreeResetDetailFS(){
 		if(!checkSourcePath()) return;
-		
+		//TODO refresh preview panel
 		int op = JOptionPane.showConfirmDialog(this, 
 				"Are you sure you want to reset the tree to the ROM tree?\n"
 				+ "If you do, you won't be able to undo it!", 

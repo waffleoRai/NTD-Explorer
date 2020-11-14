@@ -1,6 +1,7 @@
 package waffleoRai_NTDTypes.encryption;
 
 import waffleoRai_Containers.nintendo.NDS;
+import waffleoRai_Containers.nintendo.cafe.CafeCrypt;
 import waffleoRai_Files.EncryptionDefinition;
 import waffleoRai_NTDExCore.NTDEncTypeLoader;
 import waffleoRai_fdefs.nintendo.CitrusAESCTRDef;
@@ -25,6 +26,14 @@ public class NinEncLoaders {
 		public EncryptionDefinition getDefinition() {return CitrusAESCTRDef.getDefinition();}
 	}
 	
+	public static class WUPAESDefLoader implements NTDEncTypeLoader{
+		public EncryptionDefinition getDefinition() {return CafeCrypt.getStandardAESDef();}
+	}
+	
+	public static class WUPSecAESDefLoader implements NTDEncTypeLoader{
+		public EncryptionDefinition getDefinition() {return CafeCrypt.getSectoredAESDef();}
+	}
+	
 	public static class NXCTRDefLoader implements NTDEncTypeLoader{
 		public EncryptionDefinition getDefinition() {return NXSysDefs.getCTRCryptoDef();}
 	}
@@ -32,5 +41,6 @@ public class NinEncLoaders {
 	public static class NXXTSDefLoader implements NTDEncTypeLoader{
 		public EncryptionDefinition getDefinition() {return NXSysDefs.getXTSCryptoDef();}
 	}
+	
 
 }

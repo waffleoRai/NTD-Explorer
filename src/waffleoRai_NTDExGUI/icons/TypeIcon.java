@@ -25,6 +25,7 @@ public class TypeIcon {
 		icon_map.put(FileClass.CONFIG_FILE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_cfg.png")));
 		icon_map.put(FileClass.TEXT_FILE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_txt.png")));
 		icon_map.put(FileClass.XML, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_xml.png")));
+		icon_map.put(FileClass.MARKUP_SCRIPT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_mud.png")));
 		
 		icon_map.put(FileClass.EXECUTABLE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_exe.png")));
 		icon_map.put(FileClass.CODELIB, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_lib.png")));

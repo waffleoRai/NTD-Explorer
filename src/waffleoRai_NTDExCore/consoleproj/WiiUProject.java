@@ -6,15 +6,15 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
 import javax.xml.stream.XMLStreamException;
 
+import waffleoRai_Containers.nintendo.cafe.CafeCrypt;
 import waffleoRai_Containers.nintendo.cafe.WiiUDisc;
+import waffleoRai_Encryption.nintendo.NinCryptTable;
 import waffleoRai_Image.Animation;
 import waffleoRai_Image.files.TGAFile;
 import waffleoRai_NTDExCore.Console;
@@ -32,7 +32,6 @@ import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 import waffleoRai_Files.tree.FileNode;
-import waffleoRai_fdefs.nintendo.WiiAESDef;
 
 /*
  * UPDATES
@@ -42,19 +41,24 @@ import waffleoRai_fdefs.nintendo.WiiAESDef;
  * 
  * 2020.08.16 | 1.0.0 -> 1.1.0
  * 	Added low-level FS method
+ * 
+ * 2020.10.29 | 1.1.0 -> 2.0.0
+ * 	Updated for direct image reference (no dec buffer :3)
  */
 
 /**
  * A project implementation for Wii U WUD images.
  * @author Blythe Hospelhorn
- * @version 1.1.0
- * @since August 16, 2020
+ * @version 2.0.0
+ * @since October 29, 2020
  */
 public class WiiUProject extends NTDProject{
 	
 	/*----- Constant -----*/
 	
 	/*----- Instance Variables -----*/
+	
+	private NinCryptTable crypt_table;
 	
 	/*----- Construction -----*/
 	
@@ -76,7 +80,6 @@ public class WiiUProject extends NTDProject{
 	 * @since 1.0.0
 	 */
 	public static WiiUProject createFromWUD(String imgpath, byte[] gamekey, GameRegion reg, ProgressListeningDialog observer) throws IOException, UnsupportedFileTypeException{
-
 		//(Try to) Load common key
 		byte[] ckey = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_WIIU_COMMON);
 		if(ckey != null) WiiUDisc.setCommonKey(ckey);
@@ -111,7 +114,7 @@ public class WiiUProject extends NTDProject{
 		//Save key and get dec dir
 		proj.saveGameKey(gamekey);
 		String decdir = proj.getDecryptedDataDir();
-		if(!FileBuffer.directoryExists(decdir)) Files.createDirectories(Paths.get(decdir));
+		//if(!FileBuffer.directoryExists(decdir)) Files.createDirectories(Paths.get(decdir));
 		
 		//Mark encrypted regions
 		int pcount = disc.getPartitionCount();
@@ -120,10 +123,10 @@ public class WiiUProject extends NTDProject{
 			long poff = disc.getPartitionOffset(i);
 			long psz = disc.getPartitionSize(i);
 			
-			EncryptionRegion ereg = new EncryptionRegion(WiiAESDef.getDefinition(), poff, psz, decdir);
+			EncryptionRegion ereg = new EncryptionRegion(CafeCrypt.getStandardAESDef(), poff, psz, decdir);
 			encregs.add(ereg);
 		}
-		EncryptionRegion ereg = new EncryptionRegion(WiiAESDef.getDefinition(), 0x18000, 0x8000, decdir); //Partition table
+		EncryptionRegion ereg = new EncryptionRegion(CafeCrypt.getStandardAESDef(), 0x18000, 0x8000, decdir); //Partition table
 		encregs.add(ereg);
 		
 		//Set default icon...
@@ -136,49 +139,29 @@ public class WiiUProject extends NTDProject{
 			proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_unknown()});
 		}
 		
-		//Decryption
-		WudDecObserver obs = null;
-		if(observer != null) obs = new WudDecObserver(observer);
-		disc.decryptPartitionsTo(decdir, obs);
-		if(observer != null) obs.dispose();
-		DirectoryNode root = disc.getFileTree();
-		proj.setTreeRoot(root);
-		
-		//Get banner data...
-		if(observer != null){
-			observer.setPrimaryString("Importing Data");
-			observer.setSecondaryString("Reading banner data");
-		}
-		String icopath = disc.getIconPath();
-		String metapath = disc.getMetaXMLPath();
-		
-		FileNode iconode = root.getNodeAt(icopath);
-		BufferedImage icon = null;
-		if(iconode != null){
-			icon = TGAFile.readTGA(iconode).getImage();
-			proj.setBannerIcon(new BufferedImage[]{icon});
-		}
-		
-		FileNode metanode = root.getNodeAt(metapath);
-		Map<String, String[]> bannerstr = null;
-		if(metanode != null){
-			try {bannerstr = WiiUDisc.readMetaXML(metanode);} 
-			catch (XMLStreamException e) {e.printStackTrace();}
-		}
-		
-		//TODO for now, just default to English
-		if(bannerstr != null){
-			String[] bnr = bannerstr.get("en");
-			if(bnr != null){
-				proj.setBannerTitle(bnr[1]);
-				proj.setPublisherName(bnr[2]);
-			}	
-		}
+		proj.resetTree(observer, false, true);
 		
 		return proj;
 	}
 	
 	/*----- Decryption -----*/
+	
+	private String getCryptTablePath(){
+		return super.getCustomDataDirPath() + File.separator + "ctbl.bin";
+	}
+	
+	private void saveCryptTable() throws IOException{
+		if(crypt_table != null){
+			crypt_table.exportToFile(getCryptTablePath());
+		}
+	}
+	
+	private void loadCryptTable() throws IOException{
+		String path = getCryptTablePath();
+		if(!FileBuffer.fileExists(path)) return;
+		crypt_table = new NinCryptTable();
+		crypt_table.importFromFile(path);
+	}
 	
 	/**
 	 * Load the game/disk key associated with this software from the project save directory.
@@ -216,100 +199,71 @@ public class WiiUProject extends NTDProject{
 	
 	public boolean decrypt(ProgressListeningDialog observer) throws IOException{
 		//Load things...
-		byte[] ckey = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_WIIU_COMMON);
-		if(ckey != null) WiiUDisc.setCommonKey(ckey);
-		byte[] gkey = loadGameKey();
-		String imgpath = getROMPath();
-		
-		//Initial disc read...
-		try{
-			if(observer != null){
-				observer.setSecondaryString("Parsing disc structure");
-			}
-			WiiUDisc disc = WiiUDisc.readWUD(imgpath, gkey);
-			//WiiUDisc disc = WiiUDisc.loadPredecedWUD(imgpath, gkey, getDecryptedDataDir());
-			
-			String decdir = getDecryptedDataDir();
-			if(!FileBuffer.directoryExists(decdir)) Files.createDirectories(Paths.get(decdir));
-			
-			if(ckey == null || gkey == null){
-				setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_lock()});
-				return false;
-			}
-			setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_unknown()});
-
-			//Decryption
-			WudDecObserver obs = null;
-			if(observer != null) obs = new WudDecObserver(observer);
-			disc.decryptPartitionsTo(decdir, obs);
-			if(observer != null) obs.dispose();
-			DirectoryNode root = disc.getFileTree();
-			setTreeRoot(root);
-			
-			//Get banner data...
-			if(observer != null){
-				observer.setPrimaryString("Importing Data");
-				observer.setSecondaryString("Reading banner data");
-			}
-			String icopath = disc.getIconPath();
-			String metapath = disc.getMetaXMLPath();
-			
-			//System.err.println("icopath = " + icopath);
-			//System.err.println("metapath = " + metapath);
-			//root.printMeToStdErr(0);
-			//System.err.println("freaking hello??!?!?");
-			
-			FileNode iconode = root.getNodeAt(icopath);
-			BufferedImage icon = null;
-			if(iconode != null){
-				icon = TGAFile.readTGA(iconode).getImage();
-				setBannerIcon(new BufferedImage[]{icon});
-			}
-			
-			FileNode metanode = root.getNodeAt(metapath);
-			Map<String, String[]> bannerstr = null;
-			if(metanode != null){
-				try {bannerstr = WiiUDisc.readMetaXML(metanode);} 
-				catch (XMLStreamException e) {e.printStackTrace();}
-			}
-			
-			//TODO for now, just default to English
-			if(bannerstr != null){
-				String[] bnr = bannerstr.get("en");
-				if(bnr != null){
-					setBannerTitle(bnr[1]);
-					setPublisherName(bnr[2]);
-				}	
-			}
-			
-		}
-		catch(UnsupportedFileTypeException x){
-			x.printStackTrace();
-			return false;
-		}
-		
-		setModifiedTime(OffsetDateTime.now());
+		resetTree(observer, false, true);
 		return true;
+	}
+	
+	/*----- Banner -----*/
+	
+	private void readBanner(WiiUDisc disc, ProgressListeningDialog observer) throws IOException{
+		
+		if(observer != null){
+			observer.setPrimaryString("Importing Data");
+			observer.setSecondaryString("Reading banner data");
+		}
+		String icopath = disc.getIconPath();
+		String metapath = disc.getMetaXMLPath();
+		
+		DirectoryNode root = super.getTreeRoot();
+		
+		FileNode iconode = root.getNodeAt(icopath);
+		BufferedImage icon = null;
+		if(iconode != null){
+			icon = TGAFile.readTGA(iconode).getImage();
+			setBannerIcon(new BufferedImage[]{icon});
+		}
+		
+		FileNode metanode = root.getNodeAt(metapath);
+		Map<String, String[]> bannerstr = null;
+		if(metanode != null){
+			try {bannerstr = WiiUDisc.readMetaXML(metanode);} 
+			catch (XMLStreamException e) {e.printStackTrace();}
+		}
+		
+		//TODO for now, just default to English
+		if(bannerstr != null){
+			String[] bnr = bannerstr.get("en");
+			if(bnr != null){
+				setBannerTitle(bnr[1]);
+				setPublisherName(bnr[2]);
+			}	
+		}
 	}
 	
 	/*----- Alt Methods -----*/
 	
-	public void resetTree(ProgressListeningDialog observer) throws IOException{
+	private void resetTree(ProgressListeningDialog observer, boolean fs_raw, boolean resetBanner) throws IOException{
+		
+		if(observer != null){
+			observer.setPrimaryString("Resetting tree");
+			observer.setSecondaryString("Loading key data");
+		}
+		
 		byte[] ckey = NTDProgramFiles.getKey(NTDProgramFiles.KEYNAME_WIIU_COMMON);
 		if(ckey != null) WiiUDisc.setCommonKey(ckey);
 		byte[] gkey = loadGameKey();
 		String imgpath = getROMPath();
 		
-		boolean dec = true;
-		String decdir = getDecryptedDataDir();
-		if(!FileBuffer.directoryExists(decdir)) dec = false;
-		dec = dec && (ckey != null) && (gkey != null);
-		
+		boolean dec = (ckey != null) && (gkey != null);
 		if(!dec){
 			try{
+				if(observer != null){
+					observer.setSecondaryString("Game or common key not found. Loading encrypted partition tree.");
+				}
+				
 				WiiUDisc disc = WiiUDisc.readWUD(imgpath, gkey);
-				setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_lock()});
-				setTreeRoot(disc.getFileTree());
+				if(resetBanner) setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_lock()});
+				super.setTreeRoot(disc.getDirectFileTree(fs_raw));
 			}
 			catch(UnsupportedFileTypeException x){
 				x.printStackTrace();
@@ -318,8 +272,29 @@ public class WiiUProject extends NTDProject{
 		}
 		else{
 			try{
-				WiiUDisc disc = WiiUDisc.loadPredecedWUD(imgpath, gkey, decdir);
-				setTreeRoot(disc.getFileTree());
+				if(observer != null){
+					observer.setSecondaryString("Reading disc structure");
+				}		
+				WiiUDisc disc = WiiUDisc.readWUD(imgpath, gkey);
+				
+				if(observer != null){
+					observer.setSecondaryString("Generating crypt table");
+				}
+				crypt_table = disc.genCryptTable();
+				saveCryptTable();
+				
+				if(observer != null){
+					observer.setSecondaryString("Generating file tree");
+				}
+				DirectoryNode root = disc.getDirectFileTree(fs_raw);
+				root.setFileName("");
+				super.setTreeRoot(root);
+				
+				//Don't forget to set crypto state!
+				CafeCrypt.initCafeCryptState(crypt_table);
+				
+				//Banner
+				if(resetBanner) readBanner(disc, observer);
 			}
 			catch(UnsupportedFileTypeException x){
 				x.printStackTrace();
@@ -330,9 +305,12 @@ public class WiiUProject extends NTDProject{
 		setModifiedTime(OffsetDateTime.now());
 	}
 	
+	public void resetTree(ProgressListeningDialog observer) throws IOException{
+		resetTree(observer, false, false);
+	}
+	
 	public void resetTreeFSDetail(ProgressListeningDialog observer) throws IOException{
-		//TODO
-		resetTree(observer);
+		resetTree(observer, true, false);
 	}
 	
 	public String[] getBannerLines(){
@@ -402,5 +380,18 @@ public class WiiUProject extends NTDProject{
 		return new Unanimator(out);
 	}
 	
+	public void onProjectOpen(){
+		try {
+			loadCryptTable();
+			if(crypt_table != null) CafeCrypt.initCafeCryptState(crypt_table);
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void onProjectClose(){
+		CafeCrypt.clearCafeCryptState();
+	}
 	
 }

@@ -378,8 +378,9 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 	public void refreshMe(){
 		updateBannerPanel();
 		resetTree();
-		pnlRight.removeAll();
-		pnlRight.updateUI();
+		refreshFileViewPanel(null);
+		//pnlRight.removeAll();
+		//pnlRight.updateUI();
 	}
 	
 	/*----- Tree Actions -----*/

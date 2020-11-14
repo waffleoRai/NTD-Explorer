@@ -42,7 +42,7 @@ public abstract class TypeManager {
 		id_map = new ConcurrentHashMap<Integer, TypeManager>();
 		
 		registerTypeManager(0, "bin", BIN_DETECTOR); //Defo binary - when don't know wtf to do with it
-		
+		registerTypeManager(0, "dat", BIN_DETECTOR); //Make dat scan
 	}
 	
 	public static boolean registerTypeManager(int id, String ext, TypeManager manager)
@@ -98,7 +98,7 @@ public abstract class TypeManager {
 		if(lastdot >= 0)
 		{
 			String ext = fname.substring(lastdot + 1).trim().toLowerCase();
-			if(!ext.equals("bin")){
+			if(!ext.equals("bin") && !ext.equals("dat")){
 				//Ext is taken as a hint. See what types are matched to that ext.
 				//System.err.println("ext = " + ext);
 				List<TypeManager> list = ext_map.get(ext);

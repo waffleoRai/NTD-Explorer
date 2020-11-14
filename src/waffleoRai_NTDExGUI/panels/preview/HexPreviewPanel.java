@@ -64,18 +64,27 @@ public class HexPreviewPanel extends DisposableJPanel{
 
 	public void load(FileNode node, long offset, boolean decomp) throws IOException
 	{
+		/*System.err.println("Node info: " + node.getFullPath());
+		if(node.getVirtualSource() != null){
+			System.err.println("Source: " + node.getVirtualSource().getSourcePath() + " @ " + node.getVirtualSource().getLocationString());
+		}
+		System.err.println("Location: " + node.getLocationString());*/
+		
 		FileBuffer buffer = null;
 		if(decomp) buffer = node.loadDecompressedData();
 		else buffer = node.loadData();
 		long edpos = offset + MAX_LOAD_SIZE;
 		if(edpos > buffer.getFileSize()) edpos = buffer.getFileSize();
 		
+		//System.err.println("Load data -- size = 0x" + Long.toHexString(buffer.getFileSize()));
+		//System.err.println("Load data -- first 16: " + AES.bytes2str(buffer.getBytes(0, 0x10)));
 		loadTable(buffer.createCopy(offset, edpos), offset);
 	}
 	
 	private void loadTable(FileBuffer data, long stoff)
 	{
 		//System.err.println("Load data -- size = 0x" + Long.toHexString(data.getFileSize()));
+		//System.err.println("Load data -- first 16: " + AES.bytes2str(data.getBytes(0, 0x10)));
 		dat = data;
 		String[] cols = new String[18];
 		cols[0] = "Offset";
@@ -84,6 +93,8 @@ public class HexPreviewPanel extends DisposableJPanel{
 		
 		int row_count = (int)(data.getFileSize() >>> 4);
 		if(data.getFileSize() % 0x10 != 0) row_count++;
+		//System.err.println("Load data -- size = 0x" + Long.toHexString(data.getFileSize()));
+		//System.err.println("Row count = 0x" + Long.toHexString(row_count));
 		
 		String[][] tbl = new String[row_count][cols.length];
 		
