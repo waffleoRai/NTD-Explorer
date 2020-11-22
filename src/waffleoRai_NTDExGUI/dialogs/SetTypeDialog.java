@@ -14,6 +14,7 @@ import waffleoRai_NTDExGUI.panels.ChainViewPanel;
 import waffleoRai_NTDExGUI.panels.TypeBrowserPane;
 import waffleoRai_NTDExGUI.panels.TypeCompBrowserPane;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import javax.swing.JPanel;
 import java.awt.Insets;
@@ -29,13 +30,19 @@ public class SetTypeDialog extends JDialog{
 
 	private static final long serialVersionUID = -2724065137446577482L;
 	
+	public static final int MIN_WIDTH = 500;
+	public static final int MIN_HEIGHT = 450;
+	
+	public static final int CB_COL_COUNT = 6;
+	
 	public static final FileClass[] GROUP_SYSTEM = {FileClass.SYSTEM, FileClass.EXECUTABLE, 
-												    FileClass.CODELIB, FileClass.CONFIG_FILE};
+												    FileClass.CODELIB, FileClass.CONFIG_FILE,
+												    FileClass.DAT_HASHTABLE, FileClass.DAT_BANNER};
 	public static final FileClass[] GROUP_ARCHIVE = {FileClass.ARCHIVE, FileClass.SOUND_ARC, 
 		    										 FileClass.SOUND_WAVEARC};
 	public static final FileClass[] GROUP_CODE = {FileClass.EXECUTABLE, FileClass.CODELIB, 
 			 									  FileClass.CODESCRIPT};
-	public static final FileClass[] GROUP_AUDIO = {FileClass.SOUND_ARC, FileClass.SOUND_WAVEARC, 
+	public static final FileClass[] GROUP_AUDIO = {FileClass.SOUND_ARC,  
 			  					                   FileClass.SOUND_WAVEARC, FileClass.SOUND_WAVE,
 			  					                   FileClass.SOUND_STREAM, FileClass.SOUNDBANK,
 			  					                   FileClass.SOUND_SEQ};
@@ -52,10 +59,10 @@ public class SetTypeDialog extends JDialog{
 			  										   FileClass._3D_MAT_ANIM, FileClass._3D_TXR_ANIM,
 			  										   FileClass._3D_UV_ANIM};
 	public static final FileClass[] GROUP_TEXT = {FileClass.TEXT_FILE, FileClass.DAT_STRINGTBL, 
-			   									  FileClass.CODESCRIPT, FileClass.XML};
+			   									  FileClass.CODESCRIPT, FileClass.XML, FileClass.MARKUP_SCRIPT};
 	public static final FileClass[] GROUP_DATA = {FileClass.XML, FileClass.DAT_COLLISION, 
 													FileClass.DAT_LAYOUT, FileClass.DAT_TABLE,
-													FileClass.DAT_STRINGTBL};
+													FileClass.DAT_STRINGTBL, FileClass.DAT_HASHTABLE};
 	
 	private ChainViewPanel pnlChainView;
 	
@@ -70,6 +77,10 @@ public class SetTypeDialog extends JDialog{
 	}
 	
 	private void initGUI(){
+		setMinimumSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
+		setPreferredSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
+		setResizable(false);
+		
 		setTitle("Edit Type Chain");
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0, 0, 0};
@@ -195,7 +206,7 @@ public class SetTypeDialog extends JDialog{
 			}
 		});
 		
-		TypeBrowserPane pnlSys = new TypeBrowserPane(arr2List(GROUP_SYSTEM), false);
+		TypeBrowserPane pnlSys = new TypeBrowserPane(arr2List(GROUP_SYSTEM), false, CB_COL_COUNT);
 		tabs.addTab("System", null, pnlSys, null);
 		pnlSys.setButtonText("Set Tail");
 		pnlSys.addActionListener(new ActionListener(){
@@ -204,7 +215,7 @@ public class SetTypeDialog extends JDialog{
 			}
 		});
 		
-		TypeBrowserPane pnlArc = new TypeBrowserPane(arr2List(GROUP_ARCHIVE), false);
+		TypeBrowserPane pnlArc = new TypeBrowserPane(arr2List(GROUP_ARCHIVE), false, CB_COL_COUNT);
 		tabs.addTab("Archive", null, pnlArc, null);
 		pnlArc.setButtonText("Set Tail");		
 		pnlArc.addActionListener(new ActionListener(){
@@ -213,7 +224,7 @@ public class SetTypeDialog extends JDialog{
 			}
 		});
 		
-		TypeBrowserPane pnlCode = new TypeBrowserPane(arr2List(GROUP_CODE), false);
+		TypeBrowserPane pnlCode = new TypeBrowserPane(arr2List(GROUP_CODE), false, CB_COL_COUNT);
 		tabs.addTab("Code", null, pnlCode, null);
 		pnlCode.setButtonText("Set Tail");
 		pnlCode.addActionListener(new ActionListener(){
@@ -222,7 +233,7 @@ public class SetTypeDialog extends JDialog{
 			}
 		});
 		
-		TypeBrowserPane pnlData = new TypeBrowserPane(arr2List(GROUP_DATA), false);
+		TypeBrowserPane pnlData = new TypeBrowserPane(arr2List(GROUP_DATA), false, CB_COL_COUNT);
 		tabs.addTab("Data", null, pnlData, null);
 		pnlData.setButtonText("Set Tail");
 		pnlData.addActionListener(new ActionListener(){
@@ -231,7 +242,7 @@ public class SetTypeDialog extends JDialog{
 			}
 		});
 		
-		TypeBrowserPane pnlText = new TypeBrowserPane(arr2List(GROUP_TEXT), false);
+		TypeBrowserPane pnlText = new TypeBrowserPane(arr2List(GROUP_TEXT), false, CB_COL_COUNT);
 		tabs.addTab("Text", null, pnlText, null);
 		pnlText.setButtonText("Set Tail");
 		pnlText.addActionListener(new ActionListener(){
@@ -240,7 +251,7 @@ public class SetTypeDialog extends JDialog{
 			}
 		});
 		
-		TypeBrowserPane pnlAudio = new TypeBrowserPane(arr2List(GROUP_AUDIO), false);
+		TypeBrowserPane pnlAudio = new TypeBrowserPane(arr2List(GROUP_AUDIO), false, CB_COL_COUNT);
 		tabs.addTab("Audio", null, pnlAudio, null);
 		pnlAudio.setButtonText("Set Tail");
 		pnlAudio.addActionListener(new ActionListener(){
@@ -249,7 +260,7 @@ public class SetTypeDialog extends JDialog{
 			}
 		});
 		
-		TypeBrowserPane pnlG2 = new TypeBrowserPane(arr2List(GROUP_2DGRAPHIC), false);
+		TypeBrowserPane pnlG2 = new TypeBrowserPane(arr2List(GROUP_2DGRAPHIC), false, CB_COL_COUNT);
 		tabs.addTab("2D Graphics", null, pnlG2, null);
 		pnlG2.setButtonText("Set Tail");
 		pnlG2.addActionListener(new ActionListener(){
@@ -258,7 +269,7 @@ public class SetTypeDialog extends JDialog{
 			}
 		});
 		
-		TypeBrowserPane pnlG3 = new TypeBrowserPane(arr2List(GROUP_3DGRAPHIC), false);
+		TypeBrowserPane pnlG3 = new TypeBrowserPane(arr2List(GROUP_3DGRAPHIC), false, CB_COL_COUNT);
 		tabs.addTab("3D Graphics", null, pnlG3, null);
 		pnlG3.setButtonText("Set Tail");
 		pnlG3.addActionListener(new ActionListener(){

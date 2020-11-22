@@ -15,7 +15,7 @@ public class PSXLoaders {
 	}
 	
 	public static class PSXCFGLoader implements NTDTypeLoader{
-		public TypeManager getTypeManager() {return TypeManager.getDefaultManager();}
+		public TypeManager getTypeManager() {return new TM_PSXCFG();}
 		public FileTypeDefinition getDefinition() {return PSXSysDefs.getConfigDef();}
 	}
 

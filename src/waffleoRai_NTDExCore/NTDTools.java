@@ -224,6 +224,9 @@ public class NTDTools {
 		}
 		
 		List<FileNode> children = dir.getChildren();
+		//Check if empty...
+		if(children.isEmpty()) dir.setFileClass(FileClass.EMPTY_DIR);
+		
 		for(FileNode child : children)
 		{
 			if(child instanceof DirectoryNode){
@@ -332,6 +335,23 @@ public class NTDTools {
 			}
 		}
 		
+	}
+	
+	public static void scanForEmptyDirectories(DirectoryNode root){
+
+		if(root == null) return;
+		root.doForTree(new FileNodeModifierCallback(){
+
+			public void doToNode(FileNode node) {
+				if(node.isDirectory()){
+					if(node.getChildCount() <= 0 && node instanceof DirectoryNode){
+						DirectoryNode dn = (DirectoryNode)node;
+						dn.setFileClass(FileClass.EMPTY_DIR);
+					}
+				}
+			}
+			
+		});
 	}
 	
 	public static void runExport(Frame gui_parent, ExportAction exp, String failmsg){

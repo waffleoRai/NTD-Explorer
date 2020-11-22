@@ -23,7 +23,7 @@ import waffleoRai_NTDExCore.EncryptionRegion;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
-
+import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.banners.PingpongAnimator;
 import waffleoRai_NTDExGUI.banners.StandardAnimator;
@@ -57,17 +57,20 @@ import waffleoRai_fdefs.nintendo.WiiAESDef;
  * 2020.09.26 | 1.2.0 -> 1.2.1
  * 	supportsSaveBannerImport() (yes)
  * 
- * 2020.10.28 | 1.2.1 -> 2.2.0
+ * 2020.10.28 | 1.2.1 -> 2.0.0
  * 	update to read directly from image without
  * 		generating decrypted files first
+ * 
+ * 2020.11.20 | 2.0.0 -> 2.0.1
+ * 	Added scan for empty dirs on import/tree reset
  * 
  */
 
 /**
  * NTDProject implementation for a Wii disc image.
  * @author Blythe Hospelhorn
- * @version 2.0.0
- * @since October 28, 2020
+ * @version 2.0.1
+ * @since November 20, 2020
  */
 public class WiiProject extends NTDProject{
 	
@@ -182,6 +185,7 @@ public class WiiProject extends NTDProject{
 		//Load tree
 		//proj.setTreeRoot(img.getDiscTree(imgpath, decdir + File.separator + NTDProgramFiles.DECSTEM_WII_PART));
 		proj.setTreeRoot(img.buildDirectTree(imgpath, false));
+		NTDTools.doTypeScan(proj.getTreeRoot(), observer);
 		
 		//img.deleteParsingTempFiles();
 		return proj;
@@ -267,6 +271,7 @@ public class WiiProject extends NTDProject{
 		//Set crypto state
 		WiiCrypt.initializeDecryptorState(crypt_table);
 		
+		NTDTools.doTypeScan(getTreeRoot(), observer);
 		setModifiedTime(OffsetDateTime.now());
 	}
 	

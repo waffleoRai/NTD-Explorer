@@ -10,6 +10,7 @@ import javax.swing.SwingUtilities;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExGUI.dialogs.InstallDialog;
 import waffleoRai_NTDExGUI.dialogs.IntroDialog;
+import waffleoRai_NTDScriptAPI.NTDScripts;
 
 public class GUIMain {
 	
@@ -148,6 +149,7 @@ public class GUIMain {
             			{
             				NTDProgramFiles.saveProgramInfo();
             				NTDProgramFiles.clearTempDir();
+            				NTDScripts.setActiveForm(null);
             				System.exit(0);
             			}
             			catch(Exception x)
@@ -177,6 +179,7 @@ public class GUIMain {
             			{
             				NTDProgramFiles.saveProgramInfo();
             				NTDProgramFiles.clearTempDir();
+            				NTDScripts.setActiveForm(null);
             				System.exit(0);
             			}
             			catch(Exception x)

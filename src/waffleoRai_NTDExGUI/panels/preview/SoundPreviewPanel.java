@@ -200,19 +200,27 @@ public class SoundPreviewPanel extends DisposableJPanel{
 		
 		//Set track cmbx
 		DefaultComboBoxModel<TrackSelection> model = new DefaultComboBoxModel<TrackSelection>();
-		int tcount = sound.countTracks();
-		if(sound == null || tcount < 2){
+		if(sound != null){
+			int tcount = sound.countTracks();
+			if(tcount < 2){
+				model.addElement(new TrackSelection(0));
+				cmbxTrack.setModel(model);
+				cmbxTrack.setEnabled(false);
+			}
+			else{
+				for(int i = 0; i < tcount; i++){
+					model.addElement(new TrackSelection(i));
+				}
+				cmbxTrack.setModel(model);
+				cmbxTrack.setEnabled(true);
+			}
+		}
+		else{
 			model.addElement(new TrackSelection(0));
 			cmbxTrack.setModel(model);
 			cmbxTrack.setEnabled(false);
 		}
-		else{
-			for(int i = 0; i < tcount; i++){
-				model.addElement(new TrackSelection(i));
-			}
-			cmbxTrack.setModel(model);
-			cmbxTrack.setEnabled(true);
-		}
+		
 		updateControlButtons();
 		
 		//Write info

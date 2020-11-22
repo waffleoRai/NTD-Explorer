@@ -149,6 +149,19 @@ public class TreePanel extends JPanel{
 		return tree_bkg;
 	}
 	
+	public String getSelectedNodePath(){
+		TreePath tp = tree.getSelectionPath();
+		String spath = FileNode.readTreePath(tp);
+		return spath;
+	}
+	
+	public FileNode getSelectedNode(){
+		if(tree_root == null) return null;
+		String nodepath = this.getSelectedNodePath();
+		FileNode node = tree_root.getNodeAt(nodepath);
+		return node;
+	}
+	
 	/*----- Setters -----*/
 	
 	public void addTreeListener(TreePanelListener l){listeners.add(l);}

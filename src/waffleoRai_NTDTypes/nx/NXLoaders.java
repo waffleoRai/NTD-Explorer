@@ -50,4 +50,20 @@ public class NXLoaders {
 		public FileTypeDefinition getDefinition() {return NXNACP.getDefinition();}
 	}
 	
+	public static class NXNSODefLoader implements NTDTypeLoader{
+		public TypeManager getTypeManager() {return new NXSysTypes.NXNSOManager();}
+		public FileTypeDefinition getDefinition() {return NXSysDefs.getNSODef();}
+	}
+	
+	public static class NXNRODefLoader implements NTDTypeLoader{
+		public TypeManager getTypeManager() {return new NXSysTypes.NXNROManager();}
+		public FileTypeDefinition getDefinition() {return NXSysDefs.getNRODef();}
+	}
+	
+	public static class NXNRRDefLoader implements NTDTypeLoader{
+		public TypeManager getTypeManager() {return new NXSysTypes.NXNRRManager();}
+		public FileTypeDefinition getDefinition() {return NXSysDefs.getNRRDef();}
+	}
+	
+	
 }

@@ -15,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.swing.JPanel;
 
 import waffleoRai_Files.Converter;
+import waffleoRai_Files.FileDefinitions;
+import waffleoRai_Files.FileTypeDefNode;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.FileAction;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
@@ -90,6 +92,11 @@ public abstract class TypeManager {
 	public static FileTypeNode detectType(FileNode node)
 	{
 		if(ext_map == null) buildDetectorMap();
+		
+		//Check if empty
+		if(node.getLength() <= 0){
+			return new FileTypeDefNode(FileDefinitions.getEmptyFileDef());
+		}
 		
 		//Get initial extension...
 		String fname = node.getFileName();

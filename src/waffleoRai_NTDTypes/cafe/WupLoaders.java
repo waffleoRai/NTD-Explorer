@@ -28,5 +28,15 @@ public class WupLoaders {
 		public TypeManager getTypeManager() {return TypeManager.getDefaultManager();}
 		public FileTypeDefinition getDefinition() {return PowerGCSysFileDefs.getWiiUFSTDef();}
 	}
+	
+	public static class WiiURPXDefLoader implements NTDTypeLoader{
+		public TypeManager getTypeManager() {return new CafeELFManager();}
+		public FileTypeDefinition getDefinition() {return PowerGCSysFileDefs.getWiiUExeDef();}
+	}
+	
+	public static class WiiURPLDefLoader implements NTDTypeLoader{
+		public TypeManager getTypeManager() {return new CafeELFManager();}
+		public FileTypeDefinition getDefinition() {return PowerGCSysFileDefs.getWiiURPLDef();}
+	}
 
 }

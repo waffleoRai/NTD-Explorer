@@ -43,13 +43,11 @@ public class TM_BIN extends TypeManager{
 		return alist;
 	}
 	
-	public Converter getStandardConverter()
-	{
+	public Converter getStandardConverter(){
 		return null;
 	}
 	
-	public boolean isOfType(FileNode node)
-	{
+	public boolean isOfType(FileNode node){
 		return true;
 	}
 

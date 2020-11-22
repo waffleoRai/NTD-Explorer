@@ -49,13 +49,16 @@ import waffleoRai_fdefs.psx.PSXSysDefs;
  * 2020.09.26 | 1.2.0 -> 1.2.1
  * 	supportsSaveBannerImport() (yes)
  * 
+ * 2020.11.20 | 1.2.1 -> 1.2.2
+ * 	Added scan for empty dirs on import/tree reset
+ * 
  */
 
 /**
  * NTDProject implementation for a PlayStation 1 software disk image.
  * @author Blythe Hospelhorn
- * @version 1.2.1
- * @since September 26, 2020
+ * @version 1.2.2
+ * @since November 20, 2020
  */
 public class PSXProject extends NTDProject{
 	
@@ -100,6 +103,7 @@ public class PSXProject extends NTDProject{
 		//Nab tree (will need config and exe for auto-extracting more info
 		DirectoryNode root = image.getRootNode();
 		scanTreeDir(imgpath, root); //Set path for all nodes...
+		NTDTools.scanForEmptyDirectories(root);
 		proj.setTreeRoot(root);
 		
 		//Nab the gamecode from the volume ident
@@ -110,6 +114,8 @@ public class PSXProject extends NTDProject{
 		proj.setPublisherName(image.getPublisherIdent().replace(" ", ""));
 		GregorianCalendar date = image.getDateCreated();
 		proj.setVolumeTime(OffsetDateTime.ofInstant(date.toInstant(), date.getTimeZone().toZoneId()));
+		
+		//root.printMeToStdErr(0);
 		
 		//Look for SYSTEM.CNF
 		FileNode cnf = root.getNodeAt("/" + volident + "/SYSTEM.CNF");

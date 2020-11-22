@@ -45,6 +45,7 @@ public class TXTManager extends TypeManager{
 		public int getTypeID() {return DEF_ID;}
 		public void setDescriptionString(String s) {str = s;}
 		public String getDefaultExtension() {return "txt";}
+		public String toString(){return FileTypeDefinition.stringMe(this);}
 		
 	}
 

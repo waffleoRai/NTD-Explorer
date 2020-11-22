@@ -21,6 +21,9 @@ public class TypeIcon {
 		Icon i = new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_arc.png"));
 		icon_map.put(FileClass.ARCHIVE, i);
 		
+		icon_map.put(FileClass.EMPTY_FILE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_0_emptyfile.png")));
+		icon_map.put(FileClass.EMPTY_DIR, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico032_emptydir.png")));
+		
 		icon_map.put(FileClass.SYSTEM, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_sys.png")));
 		icon_map.put(FileClass.CONFIG_FILE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_cfg.png")));
 		icon_map.put(FileClass.TEXT_FILE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_txt.png")));
@@ -56,7 +59,10 @@ public class TypeIcon {
 		icon_map.put(FileClass._3D_MORPH_DAT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_mph.png")));
 		icon_map.put(FileClass._3D_RIG_DAT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_rig.png")));
 		icon_map.put(FileClass._3D_UVMAP, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_uvm.png")));
-
+		icon_map.put(FileClass._3D_MAT_ANIM, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_msa.png")));
+		icon_map.put(FileClass._3D_TXR_ANIM, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_tsa.png")));
+		icon_map.put(FileClass._3D_UV_ANIM, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_uva.png")));
+		
 		icon_map.put(FileClass.DAT_COLLISION, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_cls.png")));
 		icon_map.put(FileClass.DAT_LAYOUT, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_lay.png")));
 		icon_map.put(FileClass.DAT_STRINGTBL, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_str.png")));

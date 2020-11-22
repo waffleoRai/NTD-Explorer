@@ -41,13 +41,16 @@ import waffleoRai_fdefs.nintendo.DSSysFileDefs;
  * 
  * 2020.08.16 | 1.1.1 -> 1.2.0
  * 	Added low-level FS method
+ * 
+ * 2020.11.20 | 1.2.0 -> 1.2.1
+ * 	Added scan for empty dirs on import
  */
 
 /**
  * NTDProject implementation for a DS or DSi cartridge ROM image.
  * @author Blythe Hospelhorn
- * @version 1.2.0
- * @since August 16, 2020
+ * @version 1.2.1
+ * @since November 20, 2020
  *
  */
 public class DSProject extends NTDProject{
@@ -149,6 +152,7 @@ public class DSProject extends NTDProject{
 		
 		//Get main tree...
 		DirectoryNode root = image.getArchiveTree();
+		NTDTools.scanForEmptyDirectories(root);
 		proj.setTreeRoot(root);
 		
 		//Scan for empty paths...

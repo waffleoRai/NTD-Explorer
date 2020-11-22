@@ -12,6 +12,7 @@ import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.LinkedList;
 
 import javax.swing.SwingWorker;
 import javax.swing.border.BevelBorder;
@@ -22,6 +23,7 @@ import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExGUI.dialogs.OpenDialog;
 import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
+import waffleoRai_NTDExGUI.dialogs.SetTypeDialog;
 import waffleoRai_NTDExGUI.dialogs.TreeDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.panels.FileViewPanel;
@@ -61,7 +63,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 	
 	/*----- Inner Classes -----*/
 	
-	protected static class EmptyPreviewPanel extends JPanel{
+	public static class EmptyPreviewPanel extends JPanel{
 
 		private static final long serialVersionUID = 7441506192083949078L;
 		
@@ -220,6 +222,13 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		setMinimumSize(sz);
 		sz = new Dimension(MIN_WIDTH, PREF_HEIGHT);
 		setPreferredSize(sz);
+	}
+	
+	/*----- Getters -----*/
+	
+	public FileNode getSelectedNode(){
+		if(pnlTree == null) return null;
+		return pnlTree.getSelectedNode();
 	}
 	
 	/*----- Enabling -----*/
@@ -405,6 +414,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		case TreePopupMenu.MENU_OP_VIEW: onTreeActionViewNode(path); break;
 		case TreePopupMenu.MENU_OP_REFRESH: resetTree(); break;
 		case TreePopupMenu.MENU_OP_CLEARTYPE: onTreeActionClearType(path); break;
+		case TreePopupMenu.MENU_OP_ASSIGNTYPE: onTreeActionAssignType(path); break;
 		}
 	}
 	
@@ -755,6 +765,40 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		
 		//We'll just do it on this thread since it should be fast...
 		node.clearTypeChain();
+		updateTree();
+	}
+	
+	private void onTreeActionAssignType(String path){
+		//System.err.println("Assign type!");
+		
+		//Get node
+		if(myproject == null){
+			showError("No project loaded!");
+			return;
+		}
+		if(path == null) return;
+		FileNode node = myproject.getNodeAt(path);
+		if(node == null){
+			System.err.println("ERR -- Tree path \"" + path + "\" could not be matched to a node.");
+			return;
+		}
+		
+		//Get nodes
+		LinkedList<FileTypeNode> nodelist = new LinkedList<FileTypeNode>();
+		nodelist.addAll(node.getTypeChainAsList());
+		
+		//Spawn dialog
+		SetTypeDialog dialog = new SetTypeDialog(nodelist);
+		dialog.setLocationRelativeTo(this);
+		dialog.setVisible(true);
+		
+		//Get results
+		if(dialog.selectionApproved()){
+			FileTypeNode newhead = dialog.getChain();
+			node.setTypeChainHead(newhead);
+		}
+		
+		//Refresh
 		updateTree();
 	}
 	

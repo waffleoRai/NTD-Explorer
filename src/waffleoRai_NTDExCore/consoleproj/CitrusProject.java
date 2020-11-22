@@ -22,6 +22,7 @@ import waffleoRai_NTDExCore.EncryptionRegion;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.banners.PingpongAnimator;
 import waffleoRai_NTDExGUI.banners.StandardAnimator;
@@ -50,13 +51,16 @@ import waffleoRai_fdefs.nintendo.CitrusAESCTRDef;
  * 2020.09.27 | 1.1.0 -> 2.0.0
  * 	Update to read directly from encrypted ROM w/o dec buffer
  * 
+ * 2020.11.20 | 2.0.0 -> 2.0.1
+ * 	Added scan for empty dirs on import/tree reset
+ * 
  */
 
 /**
  * NTDProject implementation for a 3DS CCI image.
  * @author Blythe Hospelhorn
- * @version 2.0.0
- * @since September 27, 2020
+ * @version 2.0.1
+ * @since November 20, 2020
  */
 public class CitrusProject extends NTDProject{
 	
@@ -156,6 +160,7 @@ public class CitrusProject extends NTDProject{
 		DirectoryNode root = ncsd.getFileTreeDirect(false);
 		//root.printMeToStdErr(0);
 		//proj.crypt_table.printMe();
+		NTDTools.scanForEmptyDirectories(root);
 		proj.setTreeRoot(root);
 		
 		//Try to nab icon/banner
@@ -268,6 +273,7 @@ public class CitrusProject extends NTDProject{
 			ncsd.unlock(crypto);
 			crypt_table = ncsd.generateCryptTable();
 			setTreeRoot(ncsd.getFileTreeDirect(false));
+			NTDTools.scanForEmptyDirectories(super.getTreeRoot());
 			saveCryptTable();
 			
 			//Try again to grab the banner.
@@ -335,6 +341,7 @@ public class CitrusProject extends NTDProject{
 			ncsd.unlock(crypto);
 			crypt_table = ncsd.generateCryptTable();
 			setTreeRoot(ncsd.getFileTreeDirect(lowfs));
+			NTDTools.scanForEmptyDirectories(super.getTreeRoot());
 			saveCryptTable();			
 		}
 		catch(UnsupportedFileTypeException x){

@@ -107,6 +107,19 @@ public class TreePopupMenu extends JPopupMenu{
 		JSeparator separator = new JSeparator();
 		add(separator);
 		
+		JMenuItem opSetType = new JMenuItem("Assign Type");
+		add(opSetType);
+		opSetType.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_ASSIGNTYPE);
+				//closeMe();
+			}
+			
+		});
+		
 		JMenuItem opClearType = new JMenuItem("Clear Type Assignment");
 		add(opClearType);
 		opClearType.addActionListener(new ActionListener(){

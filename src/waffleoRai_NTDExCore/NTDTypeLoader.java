@@ -98,10 +98,10 @@ public interface NTDTypeLoader {
 		if(verbose)System.err.println("Scanning " + dirpath);
 		
 		//Get dirname (for package path)
-		if(dirpath.endsWith(File.separator)) dirpath = dirpath.substring(0, dirpath.length()-1);
+		if(dirpath.endsWith(File.separator)) dirpath = dirpath.substring(0, dirpath.length()-1); //Remove ending slash, if present
 		String dirname = null;
 		int lastslash = dirpath.lastIndexOf(File.separator);
-		if(lastslash >= 0) dirname = dirpath.substring(lastslash+1);
+		if(lastslash >= 0) dirname = dirpath.substring(lastslash+1); //Isolate directory name
 		if(dirname != null && !dirname.equals("bin")){
 			if(prefix == null || prefix.isEmpty()) prefix = dirname;
 			else prefix = prefix + "." + dirname;

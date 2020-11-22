@@ -23,6 +23,7 @@ import waffleoRai_NTDExCore.EncryptionRegion;
 import waffleoRai_NTDExCore.GameRegion;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
+import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExGUI.banners.Animator;
 import waffleoRai_NTDExGUI.banners.Unanimator;
 import waffleoRai_NTDExGUI.dialogs.progress.ProgressListeningDialog;
@@ -44,13 +45,17 @@ import waffleoRai_Files.tree.FileNode;
  * 
  * 2020.10.29 | 1.1.0 -> 2.0.0
  * 	Updated for direct image reference (no dec buffer :3)
+ * 
+ * 2020.11.20 | 2.0.0 -> 2.0.1
+ * 	Added scan for empty dirs on import/tree reset
+ * 
  */
 
 /**
  * A project implementation for Wii U WUD images.
  * @author Blythe Hospelhorn
- * @version 2.0.0
- * @since October 29, 2020
+ * @version 2.0.1
+ * @since November 20, 2020
  */
 public class WiiUProject extends NTDProject{
 	
@@ -302,6 +307,7 @@ public class WiiUProject extends NTDProject{
 			}	
 		}
 		
+		NTDTools.doTypeScan(getTreeRoot(), observer);
 		setModifiedTime(OffsetDateTime.now());
 	}
 	

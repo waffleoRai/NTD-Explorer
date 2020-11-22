@@ -62,13 +62,16 @@ import waffleoRai_fdefs.nintendo.NXSysDefs;
  * 	Better compatibility with simplified/debugged NX util methods
  * 	Patch/DLC import
  * 
+ * 2020.11.20 | 2.0.0 -> 2.0.1
+ * 	Added scan for empty dirs on import/tree reset
+ * 
  */
 
 /**
  * A project implementation for Switch XCI images.
  * @author Blythe Hospelhorn
- * @version 2.0.0
- * @since Septebmer 24, 2020
+ * @version 2.0.1
+ * @since November 20, 2020
  */
 public class NXProject extends NTDProject{
 	
@@ -167,6 +170,7 @@ public class NXProject extends NTDProject{
 		EncryptionRegion ereg = new EncryptionRegion(NXSysDefs.getXTSCryptoDef(), hfsoff, FileBuffer.fileSize(xci_path) - hfsoff, proj.getDecryptedDataDir()); //Partition table
 		encregs.add(ereg);
 		
+		NTDTools.scanForEmptyDirectories(proj.getTreeRoot());
 		proj.saveCryptTable();
 		proj.saveTree();
 		
@@ -278,6 +282,7 @@ public class NXProject extends NTDProject{
 			throw new IOException("Parsing error (see previous stack trace)");
 		}
 		
+		NTDTools.doTypeScan(getTreeRoot(), observer);
 		setModifiedTime(OffsetDateTime.now());
 		return true;
 	}
@@ -309,7 +314,7 @@ public class NXProject extends NTDProject{
 		}
 	}
 	
-	private void treeResetCore(int complex) throws IOException{
+	private void treeResetCore(int complex, ProgressListeningDialog observer) throws IOException{
 		
 		//Load NXCrypt
 		NXCrypt crypto = NTDTools.loadNXCrypt();
@@ -350,15 +355,16 @@ public class NXProject extends NTDProject{
 			throw new IOException("Parsing error (see previous stack trace)");
 		}
 		
+		NTDTools.doTypeScan(getTreeRoot(), observer);
 		setModifiedTime(OffsetDateTime.now());
 	}
 	
 	public void resetTree(ProgressListeningDialog observer) throws IOException{
-		treeResetCore(NXUtils.TREEBUILD_COMPLEXITY_MERGED);
+		treeResetCore(NXUtils.TREEBUILD_COMPLEXITY_MERGED, observer);
 	}
 	
 	public void resetTreeFSDetail(ProgressListeningDialog observer) throws IOException{
-		treeResetCore(NXUtils.TREEBUILD_COMPLEXITY_ALL);
+		treeResetCore(NXUtils.TREEBUILD_COMPLEXITY_ALL, observer);
 	}
 	
 	public String[] getBannerLines(){
@@ -455,6 +461,7 @@ public class NXProject extends NTDProject{
 		aor.setPath(patch_path);
 		aor.setDisplayString(pinfo.patched_ver);
 		
+		NTDTools.scanForEmptyDirectories(pinfo.newroot);
 		String k = super.addPatchState(aor, pinfo.newroot);
 		super.setPatchState(aor.getKey());
 		return k;

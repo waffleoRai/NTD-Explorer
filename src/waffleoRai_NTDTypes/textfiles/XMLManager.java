@@ -56,6 +56,7 @@ public class XMLManager extends TypeManager{
 		public int getTypeID() {return DEF_ID;}
 		public void setDescriptionString(String s) {str = s;}
 		public String getDefaultExtension() {return "xml";}
+		public String toString(){return FileTypeDefinition.stringMe(this);}
 		
 	}
 

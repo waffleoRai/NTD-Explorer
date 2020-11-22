@@ -664,6 +664,7 @@ public class NTDProgramFiles {
 			proj.loadModifyTime(time_modify);
 			
 			Console c = proj.getConsole();
+			//if(c == Console.PS1) continue; //DEBUG
 			if(c == null) proj.setConsole(Console.UNKNOWN);
 			Collection<NTDProject> list = project_map.get(c);
 			if(list == null)

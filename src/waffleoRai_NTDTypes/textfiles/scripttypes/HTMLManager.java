@@ -49,6 +49,7 @@ public class HTMLManager extends TypeManager{
 		public int getTypeID() {return DEF_ID;}
 		public void setDescriptionString(String s) {str = s;}
 		public String getDefaultExtension() {return "html";}
+		public String toString(){return FileTypeDefinition.stringMe(this);}
 		
 	}
 	

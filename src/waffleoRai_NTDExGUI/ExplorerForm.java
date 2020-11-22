@@ -36,6 +36,7 @@ import waffleoRai_NTDExGUI.dialogs.imageinfo.ImageInfoDialogs;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 import waffleoRai_NTDExGUI.nightmode.DarkMenu;
 import waffleoRai_NTDExGUI.nightmode.DarkMenuBar;
+import waffleoRai_NTDScriptAPI.NTDScripts;
 import waffleoRai_Files.tree.DirectoryNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Files.tree.FileNode;
@@ -159,6 +160,8 @@ public class ExplorerForm extends JFrame {
  		loaded_enabled = new ComponentGroup();
  		
 		initGUI();
+		
+		NTDScripts.setActiveForm(this);
 	}
 	
 	private void initGUI()
@@ -362,6 +365,13 @@ public class ExplorerForm extends JFrame {
 			public void actionPerformed(ActionEvent e){onFileInfo();}
 		});
 		
+		JMenuItem mntmRunScript = new JMenuItem("Run Script...");
+		mnProject.add(mntmRunScript);
+		loaded_enabled.addComponent("mntmRunScript", mntmRunScript);
+		mntmRunScript.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){onProjectRunScript();}
+		});
+		
 		//Menu Options - Decrypt
 		
 		JMenu mnAddKey = new JMenu("Add Key");
@@ -458,6 +468,17 @@ public class ExplorerForm extends JFrame {
 	{
 		pack();
 		setVisible(true);
+	}
+	
+	/*----- Getters -----*/
+	
+	public NTDProject getLoadedProject(){
+		return loaded_project;
+	}
+	
+	public FileNode getSelectedNode(){
+		if(pnlMain == null) return null;
+		return pnlMain.getSelectedNode();
 	}
 	
 	/*----- Enable/Disable -----*/
@@ -1424,6 +1445,15 @@ public class ExplorerForm extends JFrame {
 	
 	private void onTypesManagePlugins(){
 		//TODO
+	}
+	
+	private void onProjectRunScript(){
+		if(this.loaded_project == null){
+			showError("No project loaded!");
+			return;
+		}
+		
+		NTDScripts.gui_run_script();
 	}
 	
 	/*----- Menu Addon Actions -----*/
