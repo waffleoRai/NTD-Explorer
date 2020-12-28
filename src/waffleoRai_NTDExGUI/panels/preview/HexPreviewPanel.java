@@ -13,7 +13,7 @@ import javax.swing.border.BevelBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 
-import waffleoRai_NTDExGUI.DisposableJPanel;
+import waffleoRai_GUITools.DisposableJPanel;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Files.tree.FileNode;
 

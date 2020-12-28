@@ -38,6 +38,7 @@ import waffleoRai_Files.FileTypeNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBufferStreamer;
 import waffleoRai_Files.tree.FileNode;
+import waffleoRai_NTDScriptAPI.NTDScripts;
 import waffleoRai_Utils.StreamWrapper;
 
 
@@ -120,6 +121,7 @@ public class NTDProgramFiles {
 	public static final String DIRNAME_PROJECTS = "projects";
 	public static final String DIRNAME_TEMP = "temp";
 	public static final String DIRNAME_PLUGINS = "plugins";
+	public static final String DIRNAME_SCRIPTS = "scripts";
 	
 	public static final String PROJECTS_FILE_NAME = "proj.bin";
 	
@@ -163,6 +165,10 @@ public class NTDProgramFiles {
 	
 	public static String getPluginsDirectoryPath(){
 		return getInstallDir() + File.separator + DIRNAME_PLUGINS;
+	}
+	
+	public static String getScriptsDirectoryPath(){
+		return getInstallDir() + File.separator + DIRNAME_SCRIPTS;
 	}
 	
 	/*----- Crypto -----*/
@@ -343,6 +349,9 @@ public class NTDProgramFiles {
 		NTDTypeLoader.registerTypes(plugin_dirs, true);
 		NTDCompTypeLoader.registerTypes(plugin_dirs, true);
 		NTDEncTypeLoader.registerTypes(plugin_dirs, true);
+		
+		//Scripts
+		NTDScripts.loadScriptsDirectory(NTDProgramFiles.getScriptsDirectoryPath());
 	}
 	
 	/*----- Init Values -----*/
@@ -563,6 +572,9 @@ public class NTDProgramFiles {
 		if(!FileBuffer.directoryExists(ndir)) Files.createDirectory(Paths.get(ndir));
 		
 		ndir = installDir + File.separator + DIRNAME_PLUGINS;
+		if(!FileBuffer.directoryExists(ndir)) Files.createDirectory(Paths.get(ndir));
+		
+		ndir = installDir + File.separator + DIRNAME_SCRIPTS;
 		if(!FileBuffer.directoryExists(ndir)) Files.createDirectory(Paths.get(ndir));
 		
 		readIni();

@@ -45,13 +45,17 @@ import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
  * 2020.11.20 | 1.2.1 -> 1.2.2
  * 	Fiddled with icon frame rate
  * 	Added scan for empty directories
+ * 
+ * 2020.12.12 | 1.2.2 -> 1.2.3
+ * 	Fiddled with icon frame rate
+ * 	
  */
 
 /**
  * NTDProject implementation for a GameCube disk image.
  * @author Blythe Hospelhorn
- * @version 1.2.2
- * @since November 20, 2020
+ * @version 1.2.3
+ * @since December 12, 2020
  *
  */
 public class GCProject extends NTDProject{
@@ -207,7 +211,7 @@ public class GCProject extends NTDProject{
 		if(anim.getNumberFrames() == 1) return new Unanimator(anim.getFrameImage(0));
 		if(anim.getAnimationMode() == Animation.ANIM_MODE_PINGPONG) return new PingpongAnimator(anim, GCMemCard.ICO_FRAME_MILLIS << 1, l);
 		
-		return new StandardAnimator(anim, GCMemCard.ICO_FRAME_MILLIS << 1, l);
+		return new StandardAnimator(anim, GCMemCard.ICO_FRAME_MILLIS << 2, l);
 	}
 	
 	public boolean supportsSaveBannerImport(){return true;}

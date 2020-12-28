@@ -16,7 +16,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.border.BevelBorder;
 
-import waffleoRai_NTDExGUI.DisposableJPanel;
+import waffleoRai_GUITools.DisposableJPanel;
 import waffleoRai_Sound.Sound;
 import waffleoRai_SoundSynth.AudioSampleStream;
 

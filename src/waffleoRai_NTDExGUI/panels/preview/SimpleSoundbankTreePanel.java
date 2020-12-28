@@ -1,6 +1,6 @@
 package waffleoRai_NTDExGUI.panels.preview;
 
-import waffleoRai_NTDExGUI.DisposableJPanel;
+import waffleoRai_GUITools.DisposableJPanel;
 import waffleoRai_NTDExGUI.panels.preview.soundbank.SoundbankKeyboardPanel;
 import waffleoRai_NTDExGUI.panels.preview.soundbank.SoundbankTreeListener;
 import waffleoRai_NTDExGUI.panels.preview.soundbank.SoundbankTreePanel;

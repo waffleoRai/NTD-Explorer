@@ -10,4 +10,6 @@ public interface NTDScript {
 	public StyledDocument getUsageInfo();
 	public int run(String[] args, IndefProgressDialog observer);
 	
+	public String getErrorMessage();
+	
 }

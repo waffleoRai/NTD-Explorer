@@ -37,11 +37,11 @@ public class TM_ProcyonSMD extends TypeManager{
 
 	public FileTypeNode detectFileType(FileNode node) {
 		
-		String path = node.getSourcePath();
-		long offset = node.getOffset();
+		//String path = node.getSourcePath();
+		//long offset = node.getOffset();
 		
 		try{
-			FileBuffer head = new FileBuffer(path, offset, offset+0x10, false);
+			FileBuffer head = node.loadData(0, 0x10);
 			long mpos = head.findString(0, 0x10, SMD.MAGIC);
 			if(mpos != 0) return null;
 			

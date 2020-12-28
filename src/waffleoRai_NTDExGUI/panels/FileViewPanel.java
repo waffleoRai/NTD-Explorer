@@ -5,7 +5,7 @@ import javax.swing.JPanel;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
-import waffleoRai_NTDExGUI.DisposableJPanel;
+import waffleoRai_GUITools.DisposableJPanel;
 import waffleoRai_NTDExGUI.FileActionListener;
 import waffleoRai_Files.tree.FileNode;
 

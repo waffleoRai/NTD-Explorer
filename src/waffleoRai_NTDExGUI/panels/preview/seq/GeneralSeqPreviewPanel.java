@@ -2,7 +2,7 @@ package waffleoRai_NTDExGUI.panels.preview.seq;
 
 import java.util.List;
 
-import waffleoRai_NTDExGUI.DisposableJPanel;
+import waffleoRai_GUITools.DisposableJPanel;
 import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
 import waffleoRai_NTDExGUI.forms.GeneralSeqPlayerFrame;
 

@@ -17,6 +17,7 @@ import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
 public class GCMCBannerImporter implements BannerImporter{
 	
 	private static String FF_RAW_DESC = "Raw GameCube Memory Card Image";
+	private static String FF_FILE_DESC = "GameCube Extracted Memory Card File";
 	
 	public Collection<BannerStruct> findBanner(String mcpath, String gamecode) throws UnsupportedFileTypeException, IOException {
 		List<BannerStruct> matches = new LinkedList<BannerStruct>();
@@ -24,8 +25,18 @@ public class GCMCBannerImporter implements BannerImporter{
 		//Load MC
 		try {
 			gamecode = gamecode.replace("DOL_", "").substring(0, 4);
-			GCMemCard mc = GCMemCard.readRawMemoryCardFile(mcpath);
-			Collection<GCMemCardFile> files = mc.getFilesFromGame(gamecode);
+			
+			Collection<GCMemCardFile> files = null;
+			if(mcpath.endsWith(".gci")){
+				GCMemCardFile mcf = GCMemCard.readGCIFile(mcpath);
+				files = new ArrayList<GCMemCardFile>(1);
+				files.add(mcf);
+			}
+			else{
+				GCMemCard mc = GCMemCard.readRawMemoryCardFile(mcpath);
+				files = mc.getFilesFromGame(gamecode);
+			}
+			
 			for(GCMemCardFile mcf : files){
 				BannerStruct banner = new BannerStruct();
 				banner.framemillis = GCMemCard.ICO_FRAME_MILLIS << 2;
@@ -49,6 +60,7 @@ public class GCMCBannerImporter implements BannerImporter{
 		list.add(new FileFilter(){
 
 			public boolean accept(File f) {
+				if(f.isDirectory()) return true;
 				String p = f.getAbsolutePath().toString().toLowerCase();
 				if(p.endsWith(".raw") || p.endsWith(".gcp")) return true;
 				return false;
@@ -56,6 +68,21 @@ public class GCMCBannerImporter implements BannerImporter{
 
 			public String getDescription() {
 				return FF_RAW_DESC + "(.raw, .gcp)";
+			}
+			
+		});
+		
+		list.add(new FileFilter(){
+
+			public boolean accept(File f) {
+				if(f.isDirectory()) return true;
+				String p = f.getAbsolutePath().toString().toLowerCase();
+				if(p.endsWith(".gci")) return true;
+				return false;
+			}
+
+			public String getDescription() {
+				return FF_FILE_DESC + "(.gci)";
 			}
 			
 		});

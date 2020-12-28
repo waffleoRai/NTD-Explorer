@@ -17,6 +17,8 @@ import java.util.Map;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 import javax.swing.border.BevelBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.SimpleAttributeSet;
@@ -53,8 +55,8 @@ public class PickScriptDialog extends JDialog{
 	private ComponentGroup disable_group;
 	
 	private JList<String> lstScripts;
-	private JTextPane txtArgs;
-	private JTextArea txtDoc;
+	private JTextPane txtDoc;
+	private JTextArea txtArgs;
 	
 	private boolean selection;
 	private Map<String, NTDScript> scriptMap;
@@ -77,9 +79,9 @@ public class PickScriptDialog extends JDialog{
 		setPreferredSize(new Dimension(WIDTH, HEIGHT));
 		
 		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[]{0, 0, 0};
+		gridBagLayout.columnWidths = new int[]{0, 350, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0};
-		gridBagLayout.columnWeights = new double[]{1.0, 4.0, Double.MIN_VALUE};
+		gridBagLayout.columnWeights = new double[]{1.0, 0.0, Double.MIN_VALUE};
 		gridBagLayout.rowWeights = new double[]{1.0, 2.0, 0.0, Double.MIN_VALUE};
 		getContentPane().setLayout(gridBagLayout);
 		
@@ -97,6 +99,13 @@ public class PickScriptDialog extends JDialog{
 		lstScripts.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		spScriptList.setViewportView(lstScripts);
 		disable_group.addComponent("lstScripts", lstScripts);
+		lstScripts.addListSelectionListener(new ListSelectionListener(){
+
+			public void valueChanged(ListSelectionEvent e) {
+				onScriptSelection();
+			}
+			
+		});
 		
 		JScrollPane spDoc = new JScrollPane();
 		spDoc.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
@@ -109,9 +118,10 @@ public class PickScriptDialog extends JDialog{
 		getContentPane().add(spDoc, gbc_spDoc);
 		disable_group.addComponent("spDoc", spDoc);
 		
-		txtArgs = new JTextPane();
-		spDoc.setViewportView(txtArgs);
-		disable_group.addComponent("txtArgs", txtArgs);
+		txtDoc = new JTextPane();
+		txtDoc.setEditable(false);
+		spDoc.setViewportView(txtDoc);
+		disable_group.addComponent("txtDoc", txtDoc);
 		
 		JPanel pnlArgs = new JPanel();
 		GridBagConstraints gbc_pnlArgs = new GridBagConstraints();
@@ -145,9 +155,9 @@ public class PickScriptDialog extends JDialog{
 		pnlArgs.add(spArgs, gbc_spArgs);
 		disable_group.addComponent("spArgs", spArgs);
 		
-		txtDoc = new JTextArea();
-		spArgs.setViewportView(txtDoc);
-		disable_group.addComponent("txtDoc", txtDoc);
+		txtArgs = new JTextArea();
+		spArgs.setViewportView(txtArgs);
+		disable_group.addComponent("txtArgs", txtArgs);
 		
 		JPanel pnlButtons = new JPanel();
 		pnlButtons.setBorder(null);
@@ -320,6 +330,7 @@ public class PickScriptDialog extends JDialog{
 	}
 	
 	public void updateDoc(){
+		txtDoc.setEditable(true);
 		NTDScript script = this.getSelectedScript();
 		if(script == null){
 			txtDoc.setDocument(getEmptyDoc());
@@ -332,6 +343,7 @@ public class PickScriptDialog extends JDialog{
 			else txtDoc.setDocument(getEmptyDoc());
 			repaint();
 		}
+		txtDoc.setEditable(false);
 	}
 	
 	/*----- Actions -----*/

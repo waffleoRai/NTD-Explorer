@@ -1,6 +1,6 @@
 package waffleoRai_NTDExGUI.panels.preview;
 
-import waffleoRai_NTDExGUI.DisposableJPanel;
+import waffleoRai_GUITools.DisposableJPanel;
 import waffleoRai_NTDExGUI.dialogs.BankSelectDialog;
 import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;

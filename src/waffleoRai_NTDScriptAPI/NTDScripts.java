@@ -1,34 +1,30 @@
 package waffleoRai_NTDScriptAPI;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
-import javax.swing.filechooser.FileFilter;
+import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.StyledDocument;
 
 import waffleoRai_Files.tree.FileNode;
-import waffleoRai_NTDExCore.NTDProgramFiles;
+import waffleoRai_GUITools.MarkdownReader;
 import waffleoRai_NTDExCore.NTDProject;
-import waffleoRai_NTDExCore.NTDTypeLoader;
 import waffleoRai_NTDExGUI.ExplorerForm;
 import waffleoRai_NTDExGUI.dialogs.PickScriptDialog;
 import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
+import waffleoRai_Reflection.ReflectionUtils;
 
 public class NTDScripts {
 
 	public static final String INIKEY_LAST_LASTSCRIPTPATH = "LAST_SCRIPT_PATH";
 	
 	private static ExplorerForm active_gui;
+	private static List<Class<?>> class_list; //available scripts
 	
 	public static void setActiveForm(ExplorerForm form){
 		active_gui = form;
@@ -55,10 +51,9 @@ public class NTDScripts {
 		try {
 			if(myclass == null) return null;
 			//Make sure it's not abstract...
-			if(myclass.isInterface()) return null;
-
+			//if(myclass.isInterface()) return null;
 			Object instance = myclass.getConstructor().newInstance();
-			if(instance instanceof NTDTypeLoader){
+			if(instance instanceof NTDScript){
 				if(verbose) System.err.println("Script Class Found: " + myclass.getName());
 				return ((NTDScript)instance);
 			}
@@ -71,46 +66,35 @@ public class NTDScripts {
 		return null;
 	}
 	
-	public static List<NTDScript> loadScriptsFrom(String path) throws IOException{
-		List<NTDScript> list = new LinkedList<NTDScript>();
-		if(path == null) return list;
+	public static void loadScriptsDirectory(String scripts_dir) throws IOException{
+		class_list = new LinkedList<Class<?>>();
+		//ReflectionUtils.loadClassesFromDir(scripts_dir, NTDScripts.class);
+		ReflectionUtils.loadClassesFromDir(scripts_dir);
+		class_list.addAll(ReflectionUtils.findSubclassesOf(NTDScript.class, false));
 		
-		if(path.endsWith(".jar")){
-			List<Class<?>> clist = NTDTypeLoader.scanJAR(path, NTDScript.class, true);
-			if(clist != null){
-				for(Class<?> c : clist){
-					if(NTDScript.class.isAssignableFrom(c)){
-						NTDScript s = loadFromClass(c, true);
-						if(s != null) list.add(s);
-					}
-				}	
-			}
-		}
-		else if(path.endsWith(".class")){
-			URL url = Paths.get(path).toUri().toURL();
-			int lastslash = path.lastIndexOf(File.separator);
-			String classname = path.substring(lastslash+1, path.length()-6);
-			ClassLoader cl = URLClassLoader.newInstance(new URL[]{url}, NTDScript.class.getClassLoader());
-			try {
-				Class<?> c = cl.loadClass(classname);
-				if(NTDScript.class.isAssignableFrom(c)){
-					NTDScript s = loadFromClass(c, true);
-					if(s != null) list.add(s);
-				}
-			} 
-			catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
+		//Debug
+		/*for(Class<?> c : class_list){
+			System.err.println("Added to class list: " + c.getName());
+		}*/
+	}
+	
+	private static List<NTDScript> instantiateScripts(){
+		List<NTDScript> slist = new LinkedList<NTDScript>();
+		if(class_list == null) return slist;
+		
+		for(Class<?> c : class_list){
+			NTDScript s = loadFromClass(c, false);
+			if(s != null) slist.add(s);
 		}
 		
-		return list;
+		return slist;
 	}
 	
 	public static NTDScript gui_run_script(){
 		if(active_gui == null) return null;
 		
 		//Choose file path
-		JFileChooser fc = new JFileChooser(NTDProgramFiles.getIniValue(INIKEY_LAST_LASTSCRIPTPATH));
+		/*JFileChooser fc = new JFileChooser(NTDProgramFiles.getIniValue(INIKEY_LAST_LASTSCRIPTPATH));
 		fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 		fc.addChoosableFileFilter(new FileFilter(){
 
@@ -137,13 +121,13 @@ public class NTDScripts {
 		
 		if(op != JFileChooser.APPROVE_OPTION) return null;
 		File f = fc.getSelectedFile();
-		NTDProgramFiles.setIniValue(INIKEY_LAST_LASTSCRIPTPATH, f.getAbsolutePath());
+		NTDProgramFiles.setIniValue(INIKEY_LAST_LASTSCRIPTPATH, f.getAbsolutePath());*/
 		
 		//Check for scripts at path
 		try{
-			List<NTDScript> scripts = loadScriptsFrom(f.getAbsolutePath());	
+			List<NTDScript> scripts = instantiateScripts();	
 			if(scripts == null || scripts.isEmpty()){
-				JOptionPane.showMessageDialog(active_gui, "No compatible NTDScript classes were found in the provided file!", 
+				JOptionPane.showMessageDialog(active_gui, "No compatible NTDScript classes were found!", 
 						"No Scripts Found", JOptionPane.WARNING_MESSAGE);
 				return null;
 			}
@@ -165,7 +149,7 @@ public class NTDScripts {
 						"Null Script", JOptionPane.ERROR_MESSAGE);
 				return null;
 			}
-			op = JOptionPane.showConfirmDialog(active_gui, "Run the following script: " + script.getDisplayName() + "?", 
+			int op = JOptionPane.showConfirmDialog(active_gui, "Run the following script: " + script.getDisplayName() + "?", 
 					"Confirm Script", JOptionPane.YES_NO_OPTION);
 			
 			//Run Script...
@@ -201,15 +185,17 @@ public class NTDScripts {
 				}
 				
 				public void done(){
-					dialog.closeMe();
+					pd.closeMe();
 					if(result == 0){
 						JOptionPane.showMessageDialog(active_gui, "Script completed successfully with return value 0.", 
 								"Script Complete", JOptionPane.INFORMATION_MESSAGE);
 					}
 					else{
-						JOptionPane.showMessageDialog(active_gui, "Script aborted with return value " + result + ".", 
+						JOptionPane.showMessageDialog(active_gui, "Script aborted with return value " + result + ".\n"
+								+ "Error Message: " + script.getErrorMessage(), 
 								"Script Error", JOptionPane.ERROR_MESSAGE);
 					}
+					pd.dispose();
 				}
 				
 			};
@@ -220,16 +206,17 @@ public class NTDScripts {
 		}
 		catch(Exception x){
 			x.printStackTrace();
-			JOptionPane.showMessageDialog(active_gui, "No compatible NTDScript classes were found in the provided file!", 
+			JOptionPane.showMessageDialog(active_gui, "No compatible NTDScript classes were found!", 
 					"No Scripts Found", JOptionPane.WARNING_MESSAGE);
 			return null;
 		}
 
 	}
 	
-	public static StyledDocument parseMarkdownDocument(InputStream indoc){
-		//TODO
-		return null;
+	public static StyledDocument parseMarkdownDocument(InputStream indoc) throws IOException{
+		DefaultStyledDocument sdoc = new DefaultStyledDocument();
+		MarkdownReader.parseStream(indoc, sdoc);
+		return sdoc;
 	}
 	
 }

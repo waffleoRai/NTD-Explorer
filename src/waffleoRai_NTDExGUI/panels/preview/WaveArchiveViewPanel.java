@@ -23,7 +23,7 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.border.BevelBorder;
 
-import waffleoRai_NTDExGUI.DisposableJPanel;
+import waffleoRai_GUITools.DisposableJPanel;
 import waffleoRai_Sound.Sound;
 import waffleoRai_SoundSynth.AudioSampleStream;
 

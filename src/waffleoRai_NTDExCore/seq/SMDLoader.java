@@ -41,7 +41,6 @@ public class SMDLoader implements SeqLoader{
 	private FileNode smd_node; //For finding alt banks & setting seq name
 	private FileNode swd_node;
 	
-	
 	/*----- Construction -----*/
 	
 	public SMDLoader(FileNode smd) throws UnsupportedFileTypeException, IOException{
