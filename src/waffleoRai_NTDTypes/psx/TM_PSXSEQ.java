@@ -37,6 +37,8 @@ public class TM_PSXSEQ extends TypeManager{
 	//Manager
 	
 	public FileTypeNode detectFileType(FileNode node) {
+		if(node.getLength() <= 0) return null;
+		
 		try{
 			FileBuffer dat = null;
 			long ed = 0x10;

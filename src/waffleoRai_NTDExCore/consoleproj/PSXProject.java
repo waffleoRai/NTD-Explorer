@@ -170,8 +170,11 @@ public class PSXProject extends NTDProject{
 	
 	public void resetTree(ProgressListeningDialog observer) throws IOException{
 		try {
+			//System.err.println("ROM Path: " + super.getROMPath());
 			ISOXAImage image = new ISOXAImage(new ISO(FileBuffer.createBuffer(super.getROMPath()), false));
 			DirectoryNode root = image.getRootNode();
+			NTDTools.scanForEmptyDirectories(root);
+			root.setSourcePathForTree(super.getROMPath()); //Good to do!
 			super.setTreeRoot(root);
 			String volident = root.getMetadataValue(ISOXAImage.METAKEY_VOLUMEIDENT);
 			
@@ -218,7 +221,23 @@ public class PSXProject extends NTDProject{
 				System.err.println("PS1 ISO import error: SYSTEM.CNF not found!");
 			}
 			
-			scanTreeDir(super.getROMPath(), root);
+			//scanTreeDir(super.getROMPath(), root);
+			//DEBUG!!
+			/*root.doForTree(new FileNodeModifierCallback(){
+
+				public void doToNode(FileNode node) {
+					if(node.isDirectory()) return;
+					try{
+						byte[] sha1 = FileUtils.getSHA1Hash(node.loadDecompressedData().getBytes());
+						System.err.println(node.getFullPath() + " || " + FileUtils.bytes2str(sha1));
+					}
+					catch(Exception x){
+						System.err.println("Couldn't load " + node.getFullPath());
+						x.printStackTrace();
+					}
+				}
+				
+			});*/
 			
 			//Run initial type scan
 			NTDTools.doTypeScan(root, null);

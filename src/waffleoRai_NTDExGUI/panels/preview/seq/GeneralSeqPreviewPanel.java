@@ -20,6 +20,7 @@ import java.awt.Frame;
 import javax.swing.JComboBox;
 import javax.swing.border.BevelBorder;
 
+import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.seq.SeqLoader;
 
 import javax.swing.DefaultComboBoxModel;
@@ -81,7 +82,8 @@ public class GeneralSeqPreviewPanel extends DisposableJPanel{
 		
 		lblTitle = new JLabel("[none]");
 		if(seq_data != null) lblTitle.setText(seq_data.getSequenceName());
-		lblTitle.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		//lblTitle.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		lblTitle.setFont(NTDProgramFiles.getUnicodeFont(Font.PLAIN, 11));
 		GridBagConstraints gbc_lblTitle = new GridBagConstraints();
 		gbc_lblTitle.anchor = GridBagConstraints.WEST;
 		gbc_lblTitle.insets = new Insets(5, 0, 5, 5);
@@ -115,7 +117,8 @@ public class GeneralSeqPreviewPanel extends DisposableJPanel{
 		
 		lblBank = new JLabel("[none]");
 		if(seq_data != null) lblBank.setText(seq_data.getBankName());
-		lblBank.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		//lblBank.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		lblTitle.setFont(NTDProgramFiles.getUnicodeFont(Font.PLAIN, 11));
 		GridBagConstraints gbc_lblBank = new GridBagConstraints();
 		gbc_lblBank.anchor = GridBagConstraints.WEST;
 		gbc_lblBank.insets = new Insets(0, 0, 0, 5);

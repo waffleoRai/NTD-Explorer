@@ -72,6 +72,7 @@ public class TypeIcon {
 		
 		icon_map.put(FileClass.MOV_MOVIE, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_mov.png")));
 		icon_map.put(FileClass.MOV_VIDEO, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_vid.png")));
+		icon_map.put(FileClass.MOV_MULTIMEDIA_STR, new ImageIcon(TypeIcon.class.getResource("/waffleoRai_NTDExGUI/icons/res/node_ico32_mms.png")));
 	}
 	
 	public static Icon getTypeIcon(FileClass type){

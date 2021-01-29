@@ -87,7 +87,7 @@ public class TargaManager extends ImagePanelManager{
 				found = (spos >= 0);
 			} 
 			catch (IOException e) {
-				e.printStackTrace();
+				//e.printStackTrace();
 				return null;
 			}
 		}

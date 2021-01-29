@@ -21,6 +21,7 @@ import waffleoRai_Files.FileTypeNode;
 import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.filetypes.TypeManager;
+import waffleoRai_NTDExGUI.dialogs.MetaEditorDialog;
 import waffleoRai_NTDExGUI.dialogs.OpenDialog;
 import waffleoRai_NTDExGUI.dialogs.SetTextDialog;
 import waffleoRai_NTDExGUI.dialogs.SetTypeDialog;
@@ -415,6 +416,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		case TreePopupMenu.MENU_OP_REFRESH: resetTree(); break;
 		case TreePopupMenu.MENU_OP_CLEARTYPE: onTreeActionClearType(path); break;
 		case TreePopupMenu.MENU_OP_ASSIGNTYPE: onTreeActionAssignType(path); break;
+		case TreePopupMenu.MENU_OP_EDITMETA: onTreeActionEditMeta(path); break;
 		}
 	}
 	
@@ -731,6 +733,7 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 				catch(Exception x)
 				{
 					x.printStackTrace();
+					if(node != null) node.printReferenceTrace();
 					showError("Unknown Error: Preview Failed! See stderr for details.");
 				}
 				
@@ -800,6 +803,26 @@ public class ImageMasterPanel extends JPanel implements TreePanelListener, FileA
 		
 		//Refresh
 		updateTree();
+	}
+	
+	private void onTreeActionEditMeta(String path){
+		if(myproject == null){
+			showError("No project loaded!");
+			return;
+		}
+		if(path == null) return;
+		FileNode node = myproject.getNodeAt(path);
+		if(node == null){
+			System.err.println("ERR -- Tree path \"" + path + "\" could not be matched to a node.");
+			return;
+		}
+		
+		MetaEditorDialog dialog = new MetaEditorDialog(parent);
+		dialog.setNode(node);
+		dialog.setVisible(true);
+		
+		//It disposes itself on close
+		
 	}
 	
 	/*----- Messages -----*/

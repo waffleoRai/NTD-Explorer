@@ -62,6 +62,8 @@ public class MIDIText {
 				return "[" + ch + "]EXPRESSION_LO " + mbytes[2];
 			case 0x40:
 				return "[" + ch + "]DAMPER_PDL " + mbytes[2];
+			case 0x62:
+				return "[" + ch + "]NRPN_LO " + String.format("0x%02x", mbytes[2]);
 			case 0x63:
 				return "[" + ch + "]NRPN " + String.format("0x%02x", mbytes[2]);
 			default: return "[" + ch + "]CTRLR" + ctrl + ": " + String.format("0x%02x", mbytes[2]);
@@ -81,10 +83,18 @@ public class MIDIText {
 				if(n == 0x51){
 					int t = (Byte.toUnsignedInt(mbytes[3]) << 16) | (Byte.toUnsignedInt(mbytes[4]) << 8) | Byte.toUnsignedInt(mbytes[5]);
 					t = MIDI.uspqn2bpm(t, 48);
-					return "[" + ch + "]SET_TEMPO " + t + "bpm";
+					return "SET_TEMPO " + t + "bpm";
 				}
 				if(n == 0x2f){
 					return "END_TRACK";
+				}
+				if(n == 0x06){
+					int sz = Byte.toUnsignedInt(mbytes[2]);
+					StringBuilder sb = new StringBuilder(10+sz);
+					sb.append("MARKER \"");
+					for (int i = 3; i < mbytes.length; i++) sb.append((char)mbytes[i]);
+					sb.append('\"');
+					return sb.toString();
 				}
 				else{
 					StringBuilder sb = new StringBuilder(128);

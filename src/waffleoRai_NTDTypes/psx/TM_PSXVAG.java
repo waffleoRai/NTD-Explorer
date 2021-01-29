@@ -72,7 +72,7 @@ public class TM_PSXVAG extends TypeManager{
 			//Info
 			Map<String, String> imap = new HashMap<String, String>();
 			imap.put("Sample Rate", "44100 hz");
-			imap.put("Bit Depth", "16 bit");
+			imap.put("Bit Depth", "4 bit");
 			imap.put("Channels", Integer.toString(wave.totalChannels()));
 			pnl.setSoundInfo(imap);
 			

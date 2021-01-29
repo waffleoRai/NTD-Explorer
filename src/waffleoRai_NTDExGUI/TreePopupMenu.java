@@ -24,6 +24,7 @@ public class TreePopupMenu extends JPopupMenu{
 	public static final int MENU_OP_REFRESH = 8;
 	public static final int MENU_OP_ASSIGNTYPE = 9;
 	public static final int MENU_OP_CLEARTYPE = 10;
+	public static final int MENU_OP_EDITMETA = 11;
 	
 	private boolean isDir;
 	private Collection<TreePanelListener> list;
@@ -99,6 +100,19 @@ public class TreePopupMenu extends JPopupMenu{
 			public void actionPerformed(ActionEvent e) 
 			{
 				for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_VIEW);
+				//closeMe();
+			}
+			
+		});
+		
+		JMenuItem opEditMeta = new JMenuItem("Edit Metadata...");
+		add(opEditMeta);
+		opEditMeta.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				for(TreePanelListener l : listeners)l.onRightClickSelection(mypath, MENU_OP_EDITMETA);
 				//closeMe();
 			}
 			

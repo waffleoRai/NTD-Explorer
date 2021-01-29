@@ -30,7 +30,7 @@ public class TM_PSXQXSpr extends TypeManager{
 	
 	//Loaders
 	
-	public static class PSXVABBodyDefLoader implements NTDTypeLoader{
+	public static class PSXQXDefLoader implements NTDTypeLoader{
 		public TypeManager getTypeManager() {return new TM_PSXQXSpr();}
 		public FileTypeDefinition getDefinition() {return QXImage.getDefinition();}	
 	}
@@ -63,15 +63,21 @@ public class TM_PSXQXSpr extends TypeManager{
 				if(img.getWidth() > maxw) maxw = img.getWidth();
 				if(img.getHeight() > maxh) maxh = img.getHeight();
 				imgs.add(img);
+				//System.err.println("Current Image Size: " + img.getWidth() + " x " + img.getHeight());
+				//System.err.println("Current Max Size: " + maxw + " x " + maxh);
 			}
 			
 			ScrollingImageViewPanel vpnl = new ScrollingImageViewPanel();
 			CheckeredImagePane pane = vpnl.getImagePanel();
-			int cols = 4;
+			int cols = Math.min(fcount, 4);
 			int rows = fcount/cols;
+			if(fcount % cols != 0) rows++;
 			int spacing = 3;
 			
-			pane.setDrawingAreaSize(new Dimension(((maxw+spacing) * cols) + spacing << 1, ((maxh+spacing) * rows) + spacing << 1));
+			int dwidth = ((maxw+spacing) * cols) + spacing;
+			int dheight = ((maxh+spacing) * rows) + spacing;
+			//System.err.println("Drawing Dimensions: " + maxw + " x " + maxh);
+			pane.setDrawingAreaSize(new Dimension(dwidth, dheight));
 			int x = 0; int y = 0; int l = 0;
 			for(BufferedImage img : imgs){
 				RasterImageDrawer obj = new RasterImageDrawer(img);

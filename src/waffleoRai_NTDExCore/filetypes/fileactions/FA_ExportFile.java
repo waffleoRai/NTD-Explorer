@@ -16,14 +16,16 @@ import waffleoRai_NTDExGUI.dialogs.progress.IndefProgressDialog;
 
 public abstract class FA_ExportFile implements FileAction{
 
-private static final String DEFO_ENG_STRING = "Export file";
+private static final String DEFO_ENG_STRING = "Export File";
 	
 	private String str;
 	
 	public FA_ExportFile(){
 		str = DEFO_ENG_STRING;
+		onConstruct();
 	}
 
+	protected void onConstruct(){}
 	protected abstract Converter getConverter(FileNode node);
 	
 	public void doAction(FileNode node, NTDProject project, Frame gui_parent) {

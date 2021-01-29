@@ -20,6 +20,7 @@ import waffleoRai_NTDExCore.filetypes.TypeManager;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ExportFile;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ExtractFile;
 import waffleoRai_NTDExCore.filetypes.fileactions.FA_ViewHex;
+import waffleoRai_NTDExGUI.panels.preview.HexPreviewPanel;
 import waffleoRai_NTDExGUI.panels.preview.SimpleSoundbankTreePanel;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
@@ -71,10 +72,7 @@ public class TM_PSXVAB extends TypeManager{
 
 	}
 
-	public JPanel generatePreviewPanel(FileNode node, Component gui_parent) {
-
-		if(node == null) return null;
-		
+	private JPanel getPrevPnl_bank(FileNode node, Component gui_parent){
 		PSXVAB bank = null;
 		try {
 			FileTypeNode tail = node.getTypeChainTail();
@@ -86,7 +84,8 @@ public class TM_PSXVAB extends TypeManager{
 				FileNode vb = PSXVAB.findVABBody(node);
 				FileBuffer vhdat = node.loadDecompressedData();
 				FileBuffer vbdat = null;
-				if(vb != null) vbdat = node.loadDecompressedData();
+				if(vb != null) vbdat = vb.loadDecompressedData();
+				//if(vb != null) vb.printReferenceTrace();
 				bank = new PSXVAB(vhdat, vbdat);
 			}
 			else{
@@ -96,6 +95,7 @@ public class TM_PSXVAB extends TypeManager{
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
+			if(node != null) node.printReferenceTrace();
 			JOptionPane.showMessageDialog(gui_parent, 
 					"I/O Error: VAB could not be opened! See stderr for details.", 
 					"VAB Preview Error", JOptionPane.ERROR_MESSAGE);
@@ -103,6 +103,7 @@ public class TM_PSXVAB extends TypeManager{
 		} 
 		catch (UnsupportedFileTypeException e) {
 			e.printStackTrace();
+			if(node != null) node.printReferenceTrace();
 			JOptionPane.showMessageDialog(gui_parent, 
 					"Parser Error: VAB could not be read! See stderr for details.", 
 					"VAB Preview Error", JOptionPane.ERROR_MESSAGE);
@@ -129,12 +130,41 @@ public class TM_PSXVAB extends TypeManager{
 		
 		return pnl;
 	}
+	
+	private JPanel getPrevPnl_body(FileNode node, Component gui_parent){
+		HexPreviewPanel pnl = new HexPreviewPanel();
+		try{pnl.load(node, 0, false);}
+		catch(IOException e){
+			System.err.println("Node points to: " + node.getSourcePath() + " 0x" + 
+						Long.toHexString(node.getOffset()));
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(gui_parent, 
+					"I/O Error: Node data could not be loaded!", 
+					"I/O Error", JOptionPane.ERROR_MESSAGE);
+			return null;
+		}
+		return pnl;
+	}
+	
+	public JPanel generatePreviewPanel(FileNode node, Component gui_parent) {
+
+		if(node == null) return null;
+		
+		//Well it doesn't check WHICH VAB def it is. Duh.
+		//If .vb, just load hex view.
+		if(node.getTypeChainTail().getTypeDefinition().getTypeID() == PSXVAB.DEF_ID_BODY) return getPrevPnl_body(node, gui_parent);
+		else return getPrevPnl_bank(node, gui_parent);	
+	}
 
 	public List<FileAction> getFileActions() {
 		List<FileAction> list = new ArrayList<FileAction>(3);
 		list.add(FA_ExtractFile.getAction());
 		list.add(FA_ViewHex.getAction());
 		list.add(new FA_ExportFile(){
+			
+			protected void onConstruct(){
+				super.setString("Export to SF2");
+			}
 
 			protected Converter getConverter(FileNode node) {
 				return getStandardConverter();
