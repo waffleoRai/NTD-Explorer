@@ -65,13 +65,15 @@ import waffleoRai_fdefs.nintendo.NXSysDefs;
  * 2020.11.20 | 2.0.0 -> 2.0.1
  * 	Added scan for empty dirs on import/tree reset
  * 
+ * 2021.06.23 | 2.0.1 -> 2.0.2
+ * 	Default icon set to logo
  */
 
 /**
  * A project implementation for Switch XCI images.
  * @author Blythe Hospelhorn
- * @version 2.0.1
- * @since November 20, 2020
+ * @version 2.0.2
+ * @since June 23, 2021
  */
 public class NXProject extends NTDProject{
 	
@@ -145,8 +147,9 @@ public class NXProject extends NTDProject{
 		String[] bdat = NXUtils.getControlStrings(tree, NXUtils.LANIDX_AMENG);
 		if(bdat == null){
 			//Assume encrypted.
-			BufferedImage lock_ico = NTDProgramFiles.getDefaultImage_lock();
-			proj.setBannerIcon(new BufferedImage[]{lock_ico});
+			//BufferedImage lock_ico = NTDProgramFiles.getDefaultImage_lock();
+			//proj.setBannerIcon(new BufferedImage[]{lock_ico});
+			proj.setDefaultIcon_locked();
 		}
 		else{
 			//Save that info!
@@ -157,8 +160,8 @@ public class NXProject extends NTDProject{
 			
 			//Get icon image
 			BufferedImage ico = NXUtils.getBannerIcon(tree, NXUtils.LANIDX_AMENG);
-			if(ico == null) ico = NTDProgramFiles.getDefaultImage_unknown();
-			proj.setBannerIcon(new BufferedImage[]{ico});
+			if(ico == null) proj.setDefaultIcon_unlocked();
+			else proj.setBannerIcon(new BufferedImage[]{ico});
 		}
 		
 		proj.setFullCode("HAC_" + proj.getGameCode4() + "_" + reg.getShortCode());
@@ -175,6 +178,26 @@ public class NXProject extends NTDProject{
 		proj.saveTree();
 		
 		return proj;
+	}
+	
+	/*----- Image -----*/
+	
+	private void setDefaultIcon_unlocked() throws IOException{
+		BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console.SWITCH, false);
+		if(defo_ico != null) setBannerIcon(new BufferedImage[]{defo_ico});
+		else {
+			defo_ico = NTDProgramFiles.scaleDefaultImage_unknown(64, 64);
+			if(defo_ico != null) setBannerIcon(new BufferedImage[]{defo_ico});
+		}
+	}
+	
+	private void setDefaultIcon_locked() throws IOException{
+		BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console.SWITCH, true);
+		if(defo_ico != null) setBannerIcon(new BufferedImage[]{defo_ico});
+		else {
+			defo_ico = NTDProgramFiles.scaleDefaultImage_lock(64, 64);
+			if(defo_ico != null) setBannerIcon(new BufferedImage[]{defo_ico});
+		}
 	}
 	
 	/*----- Decryption -----*/

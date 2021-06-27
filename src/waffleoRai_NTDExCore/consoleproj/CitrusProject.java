@@ -54,13 +54,15 @@ import waffleoRai_fdefs.nintendo.CitrusAESCTRDef;
  * 2020.11.20 | 2.0.0 -> 2.0.1
  * 	Added scan for empty dirs on import/tree reset
  * 
+ * 2021.06.23 | 2.0.1 -> 2.0.2
+ * 	Default banner image is set to logo
  */
 
 /**
  * NTDProject implementation for a 3DS CCI image.
  * @author Blythe Hospelhorn
- * @version 2.0.1
- * @since November 20, 2020
+ * @version 2.0.2
+ * @since June 23, 2021
  */
 public class CitrusProject extends NTDProject{
 	
@@ -181,10 +183,17 @@ public class CitrusProject extends NTDProject{
 				proj.setPublisherName(smdh.getPublisherName(CitrusSMDH.LANIDX_ENG));
 				ico_found = true;
 			}
+			else{
+				BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console._3DS, false);
+				if(defo_ico != null) proj.setBannerIcon(new BufferedImage[]{defo_ico});
+			}
 		}
 		if(!ico_found){
 			//Set the lock icon.
-			proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.scaleDefaultImage_lock(48, 48)});
+			//proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.scaleDefaultImage_lock(48, 48)});
+			BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console._3DS, true);
+			if(defo_ico != null) proj.setBannerIcon(new BufferedImage[]{defo_ico});
+			else proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.scaleDefaultImage_lock(48, 48)});
 			proj.setBannerTitle("3DS Software " + part0.getProductID());
 			proj.setPublisherName("Publisher Unknown");
 		}

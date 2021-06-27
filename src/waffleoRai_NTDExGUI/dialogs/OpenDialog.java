@@ -47,17 +47,17 @@ public class OpenDialog extends JDialog{
 	public static final int GUI_WIDTH_ADD = 15;
 	public static final int GUI_HEIGHT_ADD = 65;
 	
-	public static final int TAB_IDX_GC = 1;
-	public static final int TAB_IDX_DS = 2;
-	public static final int TAB_IDX_WII = 3;
-	public static final int TAB_IDX_3DS = 4;
-	public static final int TAB_IDX_WIIU = 5;
-	public static final int TAB_IDX_SWITCH = 6;
+	public static final int TAB_IDX_GC = 3;
+	public static final int TAB_IDX_DS = 4;
+	public static final int TAB_IDX_WII = 5;
+	public static final int TAB_IDX_3DS = 6;
+	public static final int TAB_IDX_WIIU = 7;
+	public static final int TAB_IDX_SWITCH = 8;
 	public static final int TAB_IDX_PS1 = 0;
-	//public static final int TAB_IDX_N64 = 99;
+	public static final int TAB_IDX_N64 = 1;
 	//public static final int TAB_IDX_GB = 99;
 	//public static final int TAB_IDX_GBC = 99;
-	//public static final int TAB_IDX_GBA = 99;
+	public static final int TAB_IDX_GBA = 2;
 	
 	//private Timer ds_timer;
 	private NTDProject selection;
@@ -110,6 +110,40 @@ public class OpenDialog extends JDialog{
 		pnlPSX.setOpaque(false);
 		spPSX.setViewportView(pnlPSX);
 		int gcount_psx = loadTab(new Console[]{Console.PS1}, pnlPSX, loadlist);
+		
+		JScrollPane spNUS = new JScrollPane(){
+			private static final long serialVersionUID = -5907251996864073016L;
+			public void paintComponent(Graphics g){
+				super.paintComponent(g);
+				g.drawImage(pnlbkg, 0, 0, null);
+			}
+		};
+		spNUS.getViewport().setOpaque(false);
+		spNUS.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		tabbedPane.addTab("N64", null, spNUS, null);
+		tabbedPane.setEnabledAt(TAB_IDX_N64, false);
+		
+		JPanel pnlNUS = new JPanel();
+		pnlNUS.setOpaque(false);
+		spNUS.setViewportView(pnlNUS);
+		int gcount_nus = loadTab(new Console[]{Console.N64}, pnlNUS, loadlist);
+		
+		JScrollPane spAGB = new JScrollPane(){
+			private static final long serialVersionUID = -5907251596864073056L;
+			public void paintComponent(Graphics g){
+				super.paintComponent(g);
+				g.drawImage(pnlbkg, 0, 0, null);
+			}
+		};
+		spAGB.getViewport().setOpaque(false);
+		spAGB.setViewportBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		tabbedPane.addTab("GBA", null, spAGB, null);
+		tabbedPane.setEnabledAt(TAB_IDX_GBA, false);
+		
+		JPanel pnlAGB = new JPanel();
+		pnlAGB.setOpaque(false);
+		spAGB.setViewportView(pnlAGB);
+		int gcount_agb = loadTab(new Console[]{Console.GBA}, pnlAGB, loadlist);
 		
 		JScrollPane spGC = new JScrollPane(){
 			private static final long serialVersionUID = -5907251596864073016L;
@@ -228,6 +262,8 @@ public class OpenDialog extends JDialog{
 		setSPDimension(gcount_3ds, TAB_IDX_3DS, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, sp3DS);
 		setSPDimension(gcount_wiiu, TAB_IDX_WIIU, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spWiiU);
 		setSPDimension(gcount_switch, TAB_IDX_SWITCH, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spSwitch);
+		setSPDimension(gcount_nus, TAB_IDX_N64, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spNUS);
+		setSPDimension(gcount_agb, TAB_IDX_GBA, DefaultGameOpenButton.WIDTH, DefaultGameOpenButton.HEIGHT, spAGB);
 		
 		for(int i = 0; i < blockCount.length; i++)
 		{
@@ -256,7 +292,7 @@ public class OpenDialog extends JDialog{
 		{
 			tabbedPane.setEnabledAt(tabidx, true);
 			dim.width = bwidth + SIZE_ADD_NOSCROLLER + 5;
-			dim.height = bheight * count + 20;
+			dim.height = bheight * count + 40;
 		}
 		else
 		{

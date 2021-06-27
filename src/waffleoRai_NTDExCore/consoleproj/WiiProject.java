@@ -64,13 +64,15 @@ import waffleoRai_fdefs.nintendo.WiiAESDef;
  * 2020.11.20 | 2.0.0 -> 2.0.1
  * 	Added scan for empty dirs on import/tree reset
  * 
+ * 2021.06.23 | 2.0.1 -> 2.0.2
+ * 	Set default import banner to logo
  */
 
 /**
  * NTDProject implementation for a Wii disc image.
  * @author Blythe Hospelhorn
- * @version 2.0.1
- * @since November 20, 2020
+ * @version 2.0.2
+ * @since June 23, 2021
  */
 public class WiiProject extends NTDProject{
 	
@@ -140,8 +142,7 @@ public class WiiProject extends NTDProject{
 		//If decryption cannot be done, set icon and flash notice accordingly.
 		//Otherwise, save decryption buffers
 		if(key == null){
-			BufferedImage lockico = NTDProgramFiles.scaleDefaultImage_lock(48, 48);
-			proj.setBannerIcon(new BufferedImage[]{lockico});
+			proj.setDefaultIcon_locked();
 			
 			//This is an artifact, but I'll leave it for noting encryption regions
 			for(int i = 0; i < 4; i++){
@@ -159,7 +160,8 @@ public class WiiProject extends NTDProject{
 			}
 		}
 		else{
-			proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.scaleDefaultImage_unknown(48, 48)});
+			//proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.scaleDefaultImage_unknown(48, 48)});
+			proj.setDefaultIcon_unlocked();
 			proj.crypt_table = img.generateCryptTable();
 			proj.saveCryptTable();
 			WiiCrypt.initializeDecryptorState(proj.crypt_table);
@@ -238,6 +240,26 @@ public class WiiProject extends NTDProject{
 		}
 		
 		return true;
+	}
+	
+	/*----- Image -----*/
+	
+	private void setDefaultIcon_unlocked() throws IOException{
+		BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console.WII, false);
+		if(defo_ico != null) setBannerIcon(new BufferedImage[]{defo_ico});
+		else {
+			defo_ico = NTDProgramFiles.scaleDefaultImage_unknown(48, 48);
+			if(defo_ico != null) setBannerIcon(new BufferedImage[]{defo_ico});
+		}
+	}
+	
+	private void setDefaultIcon_locked() throws IOException{
+		BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console.WII, true);
+		if(defo_ico != null) setBannerIcon(new BufferedImage[]{defo_ico});
+		else {
+			defo_ico = NTDProgramFiles.scaleDefaultImage_lock(48, 48);
+			if(defo_ico != null) setBannerIcon(new BufferedImage[]{defo_ico});
+		}
 	}
 	
 	/*----- Alt Methods -----*/

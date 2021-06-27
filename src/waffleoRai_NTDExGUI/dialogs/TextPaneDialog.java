@@ -4,6 +4,7 @@ import javax.swing.JDialog;
 import java.awt.GridBagLayout;
 import javax.swing.JPanel;
 
+import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import javax.swing.JScrollPane;
@@ -21,10 +22,18 @@ public class TextPaneDialog extends JDialog{
 
 	private static final long serialVersionUID = -1229717669437245201L;
 	
+	public static final int MIN_WIDTH = 200;
+	public static final int MIN_HEIGHT = 200;
+	
 	private JTextPane textPane;
 	
 	public TextPaneDialog(Frame parent){
 		super(parent, true);
+		
+		super.setMinimumSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
+		super.setPreferredSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
+		super.setTitle("text pane dialog");
+		
 		setLocationRelativeTo(parent);
 		initGUI();
 	}

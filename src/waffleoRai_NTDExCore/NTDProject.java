@@ -36,6 +36,7 @@ import waffleoRai_Image.SimpleAnimation;
 import waffleoRai_NTDExCore.consoleproj.CitrusProject;
 import waffleoRai_NTDExCore.consoleproj.DSProject;
 import waffleoRai_NTDExCore.consoleproj.GCProject;
+import waffleoRai_NTDExCore.consoleproj.NUSProject;
 import waffleoRai_NTDExCore.consoleproj.NXProject;
 import waffleoRai_NTDExCore.consoleproj.PSXProject;
 import waffleoRai_NTDExCore.consoleproj.WiiProject;
@@ -660,6 +661,9 @@ public abstract class NTDProject implements Comparable<NTDProject>{
 		case DSi:
 			proj = new DSProject();
 			proj.console = c;
+			break;
+		case N64:
+			proj = new NUSProject();
 			break;
 		case GAMECUBE:
 			proj = new GCProject();

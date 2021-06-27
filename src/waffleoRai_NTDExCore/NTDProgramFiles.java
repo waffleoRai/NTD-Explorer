@@ -34,6 +34,7 @@ import waffleoRai_Compression.definitions.AbstractCompDef;
 import waffleoRai_Compression.definitions.CompDefNode;
 import waffleoRai_Compression.definitions.CompressionDefs;
 import waffleoRai_Containers.nintendo.citrus.CitrusCrypt;
+import waffleoRai_Encryption.AESCBCInputStream;
 import waffleoRai_Files.FileTypeNode;
 import waffleoRai_Utils.FileBuffer;
 import waffleoRai_Utils.FileBufferStreamer;
@@ -280,11 +281,21 @@ public class NTDProgramFiles {
 	
 	/*----- Default Images -----*/
 	
+	private static final String IMG_PATH_DIR = "res";
 	private static final String IMG_PATH_LOCK = "res/ndtex_icon_locked.png";
 	private static final String IMG_PATH_QUESTION = "res/ndtex_icon_unknown.png";
 	
 	private static final String IMG_PATH_LOCK_DBG_SUFFIX = "debug" + File.separator + "ndtex_icon_locked.png";
 	private static final String IMG_PATH_QUESTION_DBG_SUFFIX = "debug" + File.separator + "ndtex_icon_unknown.png";
+	
+	private static final byte[] IMG_AES_IV = {(byte)'N', (byte)'T', (byte)'D', (byte)'e',
+			 							      (byte)'x', (byte)'p', (byte)'l', (byte)'o',
+			 							      (byte)'r', (byte)'e', (byte)'r', (byte)' ',
+			 							      (byte)'2', (byte)'0', (byte)'2', (byte)'0',};
+	private static final int[] IMG_AES_KEY = {0x97, 0xbc, 0x9f, 0xa5,
+			 								  0x56, 0xd7, 0xce, 0x76,
+			 								  0x07, 0x18, 0x5e, 0xab,
+			 								  0x69, 0x1e, 0x3f, 0xa4};
 	
 	private static BufferedImage img_lock;
 	private static BufferedImage img_question;
@@ -337,6 +348,25 @@ public class NTDProgramFiles {
 		Image s = in.getScaledInstance(w, h, Image.SCALE_DEFAULT);
 		out.getGraphics().drawImage(s, 0, 0, null);
 		return out;
+	}
+	
+	public static BufferedImage getConsoleDefaultImage(Console c, boolean with_lock) throws IOException{
+		String pkgpath = IMG_PATH_DIR + "/" + c.getShortCode().toLowerCase() + "_small";
+		if(with_lock) pkgpath += "_locked";
+		pkgpath += ".png.aes";
+		
+		InputStream is = NTDProgramFiles.class.getResourceAsStream(pkgpath);
+		if(is == null)
+		{
+			//We'll try to load it from the debug path...
+			System.err.println("NTDProgramFiles.getConsoleDefaultImage || Image load from JAR failed. Returning null...");
+			return null;
+		}
+		
+		AESCBCInputStream aesin = new AESCBCInputStream(is, IMG_AES_KEY, IMG_AES_IV);
+		BufferedImage myimg = ImageIO.read(aesin);
+		aesin.close();
+		return myimg;
 	}
 	
 	/*----- Type Definitions -----*/
@@ -713,7 +743,8 @@ public class NTDProgramFiles {
 		
 		//Prepare queue...
 		List<NTDProject> queue = new LinkedList<NTDProject>();
-		Console[] consoles = {Console.PS1, Console.GAMECUBE, Console.DS, Console.DSi, Console.WII, Console._3DS,
+		Console[] consoles = {Console.PS1, Console.N64, Console.GAMECUBE, 
+						    Console.DS, Console.DSi, Console.WII, Console._3DS,
 							Console.NEW_3DS, Console.WIIU, Console.SWITCH};
 		for(Console c : consoles)
 		{

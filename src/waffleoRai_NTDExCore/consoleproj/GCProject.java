@@ -2,6 +2,7 @@ package waffleoRai_NTDExCore.consoleproj;
 
 import java.awt.Frame;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 
@@ -12,6 +13,7 @@ import waffleoRai_Image.Animation;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.DefoLanguage;
 import waffleoRai_NTDExCore.GameRegion;
+import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExGUI.banners.Animator;
@@ -49,13 +51,15 @@ import waffleoRai_Utils.FileBuffer.UnsupportedFileTypeException;
  * 2020.12.12 | 1.2.2 -> 1.2.3
  * 	Fiddled with icon frame rate
  * 	
+ * 2021.06.23 | 1.2.3 -> 1.2.4
+ * 	Default import image now GC logo
  */
 
 /**
  * NTDProject implementation for a GameCube disk image.
  * @author Blythe Hospelhorn
- * @version 1.2.3
- * @since December 12, 2020
+ * @version 1.2.4
+ * @since June 23, 2021
  *
  */
 public class GCProject extends NTDProject{
@@ -99,6 +103,9 @@ public class GCProject extends NTDProject{
 		
 		proj.setBannerTitle(header.getGameTitle());
 		proj.setPublisherName(NTDProject.getPublisherName(proj.getMakerCode()));
+		
+		BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console.GAMECUBE, false);
+		if(defo_ico != null) proj.setBannerIcon(new BufferedImage[]{defo_ico});
 		
 		DirectoryNode root = gcimg.getDiscTree();
 		scanTreeDir(imgpath, root);

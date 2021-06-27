@@ -2,6 +2,7 @@ package waffleoRai_NTDExCore.consoleproj;
 
 import java.awt.Frame;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -17,6 +18,7 @@ import waffleoRai_Image.Animation;
 import waffleoRai_NTDExCore.Console;
 import waffleoRai_NTDExCore.DefoLanguage;
 import waffleoRai_NTDExCore.GameRegion;
+import waffleoRai_NTDExCore.NTDProgramFiles;
 import waffleoRai_NTDExCore.NTDProject;
 import waffleoRai_NTDExCore.NTDTools;
 import waffleoRai_NTDExGUI.banners.Animator;
@@ -52,13 +54,15 @@ import waffleoRai_fdefs.psx.PSXSysDefs;
  * 2020.11.20 | 1.2.1 -> 1.2.2
  * 	Added scan for empty dirs on import/tree reset
  * 
+ * 2021.06.23 | 1.2.2 -> 1.2.3
+ * 	Default import icon set to logo
  */
 
 /**
  * NTDProject implementation for a PlayStation 1 software disk image.
  * @author Blythe Hospelhorn
- * @version 1.2.2
- * @since November 20, 2020
+ * @version 1.2.3
+ * @since June 23, 2021
  */
 public class PSXProject extends NTDProject{
 	
@@ -110,6 +114,9 @@ public class PSXProject extends NTDProject{
 		String volident = root.getMetadataValue(ISOXAImage.METAKEY_VOLUMEIDENT);
 		proj.setGameCode(volident);
 		proj.setFullCode(volident);
+		
+		BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console.PS1, false);
+		if(defo_ico != null) proj.setBannerIcon(new BufferedImage[]{defo_ico});
 		
 		proj.setPublisherName(image.getPublisherIdent().replace(" ", ""));
 		GregorianCalendar date = image.getDateCreated();

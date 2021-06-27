@@ -79,7 +79,7 @@ public class MultitrackAVPanel extends DisposableJPanel{
 		cmbxVid.addActionListener(new ActionListener(){
 
 			public void actionPerformed(ActionEvent e) {
-				System.err.println("cmbxVid Selection Event");
+				//System.err.println("cmbxVid Selection Event");
 				int cidx = cmbxVid.getSelectedIndex();
 				int v = -1;
 				if(cidx >= 0) v = cmbxVid.getItemAt(cidx);
@@ -106,7 +106,7 @@ public class MultitrackAVPanel extends DisposableJPanel{
 		cmbxAud.addActionListener(new ActionListener(){
 
 			public void actionPerformed(ActionEvent e) {
-				System.err.println("cmbxAud Selection Event");
+				//System.err.println("cmbxAud Selection Event");
 				int cidx = cmbxAud.getSelectedIndex();
 				int a = -1;
 				if(cidx >= 0) a = cmbxAud.getItemAt(cidx);
@@ -156,7 +156,7 @@ public class MultitrackAVPanel extends DisposableJPanel{
 			for(int j = 0; j < old.length; j++) vTracks[j] = old[j];
 		}
 		vTracks[i] = src;
-		System.err.println("Video Track added: " + i + " | " + src.toString());
+		//System.err.println("Video Track added: " + i + " | " + src.toString());
 	}
 	
 	public void addAudioTrack(int i, Sound src){
@@ -171,7 +171,7 @@ public class MultitrackAVPanel extends DisposableJPanel{
 			for(int j = 0; j < old.length; j++) aTracks[j] = old[j];
 		}
 		aTracks[i] = src;
-		System.err.println("Audio Track added: " + i + " | " + src.toString());
+		//System.err.println("Audio Track added: " + i + " | " + src.toString());
 	}
 	
 	public void refreshComboBoxes(){
@@ -206,7 +206,7 @@ public class MultitrackAVPanel extends DisposableJPanel{
 		cmbxVid.repaint();
 		cmbxAud.repaint();
 		
-		System.err.println("Combo boxes refreshed - setting v" + v + ", a" + a);
+		//System.err.println("Combo boxes refreshed - setting v" + v + ", a" + a);
 		setAudioVideoTracks(v, a);
 	}
 	
@@ -216,21 +216,21 @@ public class MultitrackAVPanel extends DisposableJPanel{
 		IVideoSource vid = null;
 		if(vTracks != null && v >= 0 && v < vTracks.length){
 			vid = vTracks[v];
-			System.err.println("Setting video " + v + ": " + vid);
+			//System.err.println("Setting video " + v + ": " + vid);
 		}
 		
 		Sound aud = null;
 		if(aTracks != null && a >= 0 && a < aTracks.length){
 			aud = aTracks[a];
-			System.err.println("Setting audio " + a + ": " + aud);
+			//System.err.println("Setting audio " + a + ": " + aud);
 		}
 		
-		//TODO Okay I think this is the problem.
+		//Okay I think this is the problem.
 		//Panel ref can't just be replaced without removed and readding to GUI
 		//Probably easier & cleaner to hook up A/V flush/change in existing panel.
-		pnlPlayer.dispose();
-		
-		pnlPlayer = new AVPlayerPanel(vid, aud, true, true, true);
+		//pnlPlayer.dispose();
+		//pnlPlayer = new AVPlayerPanel(vid, aud, true, true, true);
+		pnlPlayer.setAV(vid, aud);
 		
 		//Get length.
 		int frames = vid.getFrameCount();

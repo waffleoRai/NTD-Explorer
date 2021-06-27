@@ -49,13 +49,16 @@ import waffleoRai_Files.tree.FileNode;
  * 2020.11.20 | 2.0.0 -> 2.0.1
  * 	Added scan for empty dirs on import/tree reset
  * 
+ * 2021.06.23 | 2.0.1 -> 2.0.2
+ * 	Default icon on import is logo
+ * 
  */
 
 /**
  * A project implementation for Wii U WUD images.
  * @author Blythe Hospelhorn
- * @version 2.0.1
- * @since November 20, 2020
+ * @version 2.0.2
+ * @since June 23, 2021
  */
 public class WiiUProject extends NTDProject{
 	
@@ -137,11 +140,15 @@ public class WiiUProject extends NTDProject{
 		//Set default icon...
 		if(ckey == null || gamekey == null){
 			//Lock
-			proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_lock()});
+			BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console.WIIU, true);
+			if(defo_ico != null) proj.setBannerIcon(new BufferedImage[]{defo_ico});
+			else proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_lock()});
 		}
 		else{
 			//Default
-			proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_unknown()});
+			//proj.setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_unknown()});
+			BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console.WIIU, false);
+			if(defo_ico != null) proj.setBannerIcon(new BufferedImage[]{defo_ico});
 		}
 		
 		proj.resetTree(observer, false, true);
@@ -267,7 +274,11 @@ public class WiiUProject extends NTDProject{
 				}
 				
 				WiiUDisc disc = WiiUDisc.readWUD(imgpath, gkey);
-				if(resetBanner) setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_lock()});
+				if(resetBanner){
+					BufferedImage defo_ico = NTDProgramFiles.getConsoleDefaultImage(Console.WIIU, true);
+					if(defo_ico != null) setBannerIcon(new BufferedImage[]{defo_ico});
+					else setBannerIcon(new BufferedImage[]{NTDProgramFiles.getDefaultImage_lock()});
+				}
 				super.setTreeRoot(disc.getDirectFileTree(fs_raw));
 			}
 			catch(UnsupportedFileTypeException x){

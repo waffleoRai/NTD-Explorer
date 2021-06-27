@@ -157,6 +157,7 @@ public class TM_PSXXAStream {
 				
 				//Spawn dialog
 				TextPaneDialog dialog = new TextPaneDialog(gui_parent);
+				dialog.setTitle("Movie Info");
 				StyledDocument doc = dialog.getTextPaneDoc();
 				SimpleAttributeSet as = new SimpleAttributeSet();
 				StyleConstants.setFontFamily(as, "Courier New");
@@ -442,7 +443,7 @@ public class TM_PSXXAStream {
 					if(sfile.streamExists(PSXXAStream.STYPE_DATA, i)){
 						XAVideoSource vid = new XAVideoSource(sfile, i);
 						if(vid != null){ 
-							System.err.println("Video Track found: " + i); 
+							//System.err.println("Video Track found: " + i); 
 							vmax = i;
 							vmap.put(i, vid);
 						}
@@ -450,7 +451,7 @@ public class TM_PSXXAStream {
 					if(sfile.streamExists(PSXXAStream.STYPE_AUDIO, i)){
 						XAAudioStream aud = new XAAudioStream(sfile, i);
 						if(aud != null){ 
-							System.err.println("Audio Track found: " + i); 
+							//System.err.println("Audio Track found: " + i); 
 							amax = i;
 							amap.put(i, aud);
 						}
