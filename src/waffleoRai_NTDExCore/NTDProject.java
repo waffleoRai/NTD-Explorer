@@ -92,6 +92,8 @@ import waffleoRai_Utils.SerializedString;
  * 2020.09.26 | 3.1.1 -> 3.2.0
  *  Method for generating an add-on importer
  * 
+ * 2021.06.27 | 3.2.0 -> 3.2.1
+ *  Added init for NUS projects
  */
 
 /**
@@ -100,8 +102,8 @@ import waffleoRai_Utils.SerializedString;
  * can be found allowing for flexibility and memory conservation. Also includes
  * many fields for metadata such as software title and region.
  * @author Blythe Hospelhorn
- * @version 3.2.0
- * @since September 26, 2020
+ * @version 3.2.1
+ * @since June 27, 2021
  *
  */
 public abstract class NTDProject implements Comparable<NTDProject>{
